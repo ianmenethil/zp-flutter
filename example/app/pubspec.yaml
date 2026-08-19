@@ -1,0 +1,48 @@
+name: zenpay_example_app
+description: Combined example Flutter app for the ZenPay Hosted Checkout SDK (zenpay_flutter).
+publish_to: none
+version: 0.1.0+1
+
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  firebase_app_check: ^0.4.6
+  firebase_core: ^4.13.0
+  flutter:
+    sdk: flutter
+  http: ^1.6.0
+  # Resolves to the local workspace member (see the root pubspec's `workspace`
+  # list); a path dep is rejected because the workspace already links it.
+  # Once published, external consumers get the pub.dev version from this same
+  # constraint — nothing here changes at release.
+  zenpay_flutter: ^0.1.0-dev.1
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/brand/logo.png
+    - assets/brand/logo-light.png
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Poppins-Black.ttf
+          weight: 900

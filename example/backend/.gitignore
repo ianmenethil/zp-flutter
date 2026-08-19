@@ -1,0 +1,11 @@
+# Dart/Pub related
+.dart_tool/
+.packages
+build/
+
+# Real credentials — commit .env.example only.
+.env
+
+# IntelliJ related
+*.iml
+.idea/

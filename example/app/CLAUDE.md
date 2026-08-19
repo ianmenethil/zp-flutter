@@ -1,0 +1,40 @@
+# ZenPay Example App — Agent Guidelines
+
+Reference Flutter client for the combined ZenPay example: fetches a checkout session from `example/backend`, presents ZenPay Hosted Checkout via `zenpay_flutter`, and handles the return. It is a *reference implementation*, not a library — merchants copy the pattern, not the package.
+
+---
+
+## 🔗 Related Guides
+
+- **[Combined Example](file:///G:/_zp-repos/zp-flutter-sdk/example/CLAUDE.md)** — Two-app architecture, how this app and `example/backend` fit together.
+- **[zenpay_flutter](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/CLAUDE.md)** — The SDK this app depends on (`../../zenpay_flutter` via Melos `path:`) for checkout presentation and return handling.
+- **[example/backend](file:///G:/_zp-repos/zp-flutter-sdk/example/backend/CLAUDE.md)** — The server this app fetches sessions from.
+- **[scripts/README.md](file:///G:/_zp-repos/zp-flutter-sdk/scripts/README.md)** — `run-android.ps1` / `run-ios.ps1` / `run-web.ps1`, TLS setup for web, `.env` layout.
+
+`AGENTS.md` in this folder is a symlink to this file — edit `CLAUDE.md`, not `AGENTS.md`.
+
+---
+
+## 1. Scope & Responsibilities
+
+- `lib/features/checkout/services/checkout_service.dart` talks only to `example/backend` (`POST /api/v1/sessions`, `GET /api/v1/sessions/{id}`) over `http`. It never builds a checkout URL, never touches ZenPay credentials, and never calls ZenPay directly — see [root CLAUDE.md § MUPID](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md) and `zenpay_flutter`'s own scope rule for why: URL construction and payment confirmation are the backend's job.
+- `lib/features/checkout/ui/checkout_page.dart` and its widgets are demonstration UI only — presentation choices here (colors, layout, copy) are not SDK requirements. Do not invent or extend the UI/visual design beyond what the project owner has specified; see [example/CLAUDE.md § Look and Feel](file:///G:/_zp-repos/zp-flutter-sdk/example/CLAUDE.md).
+- `lib/features/checkout/models/checkout_modes.dart` and `mock_customer.dart` model the demo's own request shapes; they are not part of any SDK's public API surface.
+- `lib/previews/checkout_widgets_previews.dart` uses Flutter's widget preview system — keep it in sync when adding new checkout widgets.
+- Treat any `ZpCheckoutOutcome` returned by `zenpay_flutter` as provisional. This app must always confirm final status against `example/backend`'s session-status endpoint before showing a success state.
+
+## 2. Flutter Strictness & Code Quality
+
+Adhere to [analysis_options.yaml](file:///G:/_zp-repos/zp-flutter-sdk/example/app/analysis_options.yaml): strict casts/inference/raw-types, `const` widgets wherever possible, comprehensive doc comments on any exported symbol.
+
+## 3. Verification Commands
+
+Part of the root Melos monorepo. Run from the **repository root**:
+
+```pwsh
+melos run format
+melos run analyze
+melos run test
+```
+
+To run the app itself, use `scripts/run-android.ps1`, `scripts/run-ios.ps1`, or `scripts/run-web.ps1` from the repo root (see [scripts/README.md](file:///G:/_zp-repos/zp-flutter-sdk/scripts/README.md)) — `example/backend` must already be running.
