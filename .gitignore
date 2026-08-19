@@ -1,0 +1,78 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.claude/
+.story/
+.agents/
+zenpay_typescript/
+# Environment variables
+.env
+.bak/
+
+# Local TLS certs (mkcert) — generated per machine by scripts/bootstrap.ps1.
+# localhost+2-key.pem is a private key and must never be committed.
+*.pem
+
+# Custom User Folders to ignore
+.examples/
+development/
+zenpay_dart/example.bak/
+
+# Local working notes — not part of the published repo.
+/claude-code-skills-commands.md
+/BACKLOG-PROPOSAL.md
+# Downloaded test tooling (chromedriver) — binaries stay local.
+scripts/tools/
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/build/
+
+# Web related
+**/lib/generated_plugin_registrant.dart
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+**/android/app/debug
+**/android/app/profile
+**/android/app/release
+
+# Real env files stay local; the .example templates must be committed.
+# The global gitignore's `.env.*` would otherwise swallow them too.
+!.env.example
+!.env.*.example
+conversation-2026-08-19-112253.txt
+conversation.md
+
+# Generated coverage output
+**/coverage/
+
+# Firebase / GCP credentials & platform configs
+google-services.json
+GoogleService-Info.plist
+*service-account*.json
+*.service-account.json

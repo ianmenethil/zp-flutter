@@ -1,0 +1,717 @@
+// Single cross-platform dev launcher, replacing run-*.ps1 (and the .sh
+// duplicates those would otherwise need on Linux/macOS).
+//
+// Usage: dart run <this-file> --bootstrap | --server | --android | --ios | --web | --stream
+// (run with --help for the full option list). Findable at any depth in the
+// repo — see _repoRoot below — so it's safe to move/rename.
+//
+// Every mode's final step inherits stdio and blocks for the process's whole
+// lifetime (Ctrl+C stops it) — same as running `flutter run` directly: logs
+// stream live, nothing runs detached in the background.
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:args/args.dart';
+
+/// This file's own name, as invoked — used in printed usage/next-step text
+/// so it stays correct if the file gets renamed or moved.
+String get _scriptName => Platform.script.pathSegments.last;
+
+// Colour is opt-out, not opt-in: disabled automatically when stdout isn't a
+// real ANSI-capable terminal (piped output, older `cmd.exe`), so redirecting
+// `> log.txt` never ends up with raw escape codes in the file.
+final bool _color = stdout.supportsAnsiEscapes;
+String _ansi(String code, String text) =>
+    _color ? '\x1B[${code}m$text\x1B[0m' : text;
+String _bold(String s) => _ansi('1', s);
+String _cyan(String s) => _ansi('36', s);
+String _green(String s) => _ansi('32', s);
+String _yellow(String s) => _ansi('33', s);
+String _red(String s) => _ansi('31', s);
+String _dim(String s) => _ansi('2', s);
+
+void _info(String s) => stdout.writeln(_cyan(s));
+void _success(String s) => stdout.writeln(_green(s));
+void _warn(String s) => stdout.writeln(_yellow(s));
+void _error(String s) => stderr.writeln(_red(s));
+
+String _usage() {
+  // Padding is computed from the plain (unstyled) length — colour codes are
+  // invisible bytes that would otherwise throw padRight's own count off and
+  // misalign every row.
+  String row(String left, String right) =>
+      '  ${_cyan(left)}${' ' * (26 - left.length).clamp(0, 26)}$right';
+
+  return [
+    '${_bold('ZenPay SDK dev launcher')} — runs one mode as a live, attached process',
+    '(Ctrl+C stops it; logs stream to this terminal, nothing runs in the',
+    'background).',
+    '',
+    '${_bold('Usage:')} dart run $_scriptName <mode> [options]',
+    '',
+    _bold('Modes (pick exactly one):'),
+    row('--bootstrap', 'First-run setup on a fresh clone.'),
+    row('--server', 'Run example/backend.'),
+    row('--android', 'Run example/app on Android.'),
+    row('--ios', 'Run example/app on iOS (macOS only).'),
+    row('--web', 'Run example/app on Chrome.'),
+    row('--stream', 'Mirror an Android device via scrcpy.'),
+    row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
+    row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
+    '',
+    _bold('Options:'),
+    row('--device=<id>', 'Device id for --android / --ios / --stream.'),
+    row(
+      '--public-base-url=<url>',
+      'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.',
+    ),
+    row('--keep-url', 'Skip the PUBLIC_BASE_URL prompt/update (--server).'),
+    row('--skip-certs', 'Skip the local TLS cert step (--bootstrap).'),
+    row(
+      '--url=<url>',
+      'Local URL to expose (--quick-tunnel). Defaults to '
+          'PORT from .env, else :7000.',
+    ),
+    row('-h, --help', 'Show this usage.'),
+    '',
+    _bold('Examples:'),
+    _dim('  dart run $_scriptName --bootstrap'),
+    _dim('  dart run $_scriptName --server'),
+    _dim(
+      '  dart run $_scriptName --server --public-base-url=https://abc.trycloudflare.com',
+    ),
+    _dim('  dart run $_scriptName --android --device=emulator-5554'),
+    _dim('  dart run $_scriptName --web'),
+    _dim('  dart run $_scriptName --stream'),
+    _dim('  dart run $_scriptName --tunnel'),
+    _dim('  dart run $_scriptName --quick-tunnel'),
+  ].join('\n');
+}
+
+Future<void> main(List<String> arguments) async {
+  final parser = ArgParser()
+    ..addFlag('bootstrap', negatable: false, help: 'First-run setup.')
+    ..addFlag('server', negatable: false, help: 'Run example/backend.')
+    ..addFlag('android', negatable: false, help: 'Run example/app on Android.')
+    ..addFlag(
+      'ios',
+      negatable: false,
+      help: 'Run example/app on iOS (macOS only).',
+    )
+    ..addFlag('web', negatable: false, help: 'Run example/app on Chrome.')
+    ..addFlag(
+      'stream',
+      negatable: false,
+      help: 'Mirror an Android device via scrcpy.',
+    )
+    ..addFlag(
+      'tunnel',
+      negatable: false,
+      help: 'Run the named cloudflared tunnel (saved token).',
+    )
+    ..addFlag(
+      'quick-tunnel',
+      negatable: false,
+      help: 'Run an ephemeral *.trycloudflare.com tunnel.',
+    )
+    ..addOption('device', help: 'Device id for --android / --ios / --stream.')
+    ..addOption(
+      'public-base-url',
+      help: 'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.',
+    )
+    ..addOption(
+      'url',
+      help:
+          'Local URL to expose (--quick-tunnel). Defaults to PORT from '
+          'example/backend/.env, else :7000.',
+    )
+    ..addFlag(
+      'keep-url',
+      negatable: false,
+      help: 'Skip the PUBLIC_BASE_URL prompt/update (--server).',
+    )
+    ..addFlag(
+      'skip-certs',
+      negatable: false,
+      help: 'Skip the local TLS cert step (--bootstrap).',
+    )
+    ..addFlag('help', abbr: 'h', negatable: false);
+
+  final ArgResults args;
+  try {
+    args = parser.parse(arguments);
+  } on FormatException catch (error) {
+    _error(error.message);
+    stderr.writeln();
+    stderr.writeln(_usage());
+    exit(64);
+  }
+
+  if (args['help'] as bool) {
+    stdout.writeln(_usage());
+    return;
+  }
+
+  final modes = <String>[
+    if (args['bootstrap'] as bool) 'bootstrap',
+    if (args['server'] as bool) 'server',
+    if (args['android'] as bool) 'android',
+    if (args['ios'] as bool) 'ios',
+    if (args['web'] as bool) 'web',
+    if (args['stream'] as bool) 'stream',
+    if (args['tunnel'] as bool) 'tunnel',
+    if (args['quick-tunnel'] as bool) 'quick-tunnel',
+  ];
+  if (modes.length != 1) {
+    _error(
+      modes.isEmpty
+          ? 'Pick exactly one of --bootstrap --server --android --ios --web '
+                '--stream --tunnel --quick-tunnel.'
+          : 'Only one mode at a time: got ${modes.join(', ')}.',
+    );
+    stderr.writeln();
+    stderr.writeln(_usage());
+    exit(64);
+  }
+
+  final mode = modes.single;
+
+  // --stream doesn't touch the repo at all (just launches scrcpy), so it's
+  // the one mode that works from anywhere, not just inside the repo.
+  if (mode == 'stream') {
+    await _stream(deviceId: args['device'] as String?);
+    return;
+  }
+
+  final root = _repoRoot();
+
+  if (mode == 'bootstrap') {
+    await _bootstrap(root, skipCerts: args['skip-certs'] as bool);
+  } else if (mode == 'server') {
+    await _server(
+      root,
+      publicBaseUrl: args['public-base-url'] as String?,
+      keepUrl: args['keep-url'] as bool,
+    );
+  } else if (mode == 'android') {
+    await _android(root, deviceId: args['device'] as String?);
+  } else if (mode == 'ios') {
+    await _ios(root, deviceId: args['device'] as String?);
+  } else if (mode == 'web') {
+    await _web(root);
+  } else if (mode == 'tunnel') {
+    await _tunnel(root);
+  } else {
+    await _quickTunnel(root, url: args['url'] as String?);
+  }
+}
+
+/// Walks up from this script's own location to find the monorepo root.
+/// Deliberately not hardcoded to a fixed depth (e.g. "two folders up") —
+/// this file is meant to be runnable from wherever it's placed (repo root,
+/// scripts/, anywhere), so resolution has to follow it rather than assume
+/// where it lives.
+String _repoRoot() {
+  var dir = File.fromUri(Platform.script).parent;
+  while (true) {
+    if (Directory('${dir.path}/example').existsSync() &&
+        Directory('${dir.path}/zenpay_flutter').existsSync()) {
+      return dir.path;
+    }
+    final parent = dir.parent;
+    if (parent.path == dir.path) {
+      _error(
+        'Could not find the zp-flutter-sdk repo root above '
+        '${Platform.script.toFilePath()}.',
+      );
+      exit(1);
+    }
+    dir = parent;
+  }
+}
+
+bool _hasCommand(String name) {
+  try {
+    return Process.runSync(Platform.isWindows ? 'where' : 'which', [
+          name,
+        ]).exitCode ==
+        0;
+  } on Object {
+    return false;
+  }
+}
+
+/// Resolves [name] to a full, directly-launchable path on Windows; a no-op
+/// everywhere else.
+///
+/// This is what lets [_runLive] avoid `runInShell: true`. That flag wraps
+/// the child in an extra `cmd.exe /c` layer, and on Windows that layer is
+/// actively harmful for a long-running interactive process: `cmd.exe`
+/// intercepts Ctrl+C with its own "Terminate batch job (Y/N)?" prompt and
+/// tears the child down before it gets a chance to restore the console's
+/// input mode, which is what leaves the whole terminal typing-broken
+/// afterward — see https://github.com/flutter/flutter/issues/157509 and
+/// https://github.com/dart-lang/sdk/issues/48439. Passing a resolved full
+/// path directly to Process.start sidesteps the extra shell layer entirely;
+/// Windows still launches a `.bat`/`.cmd` correctly given its exact path
+/// (verified: flutter.bat launches fine via Process.start with no
+/// runInShell once given its full path from `where`).
+///
+/// `where` can list more than one match for a name (e.g. a bare `flutter`
+/// POSIX shim alongside `flutter.bat`) — the first entry with a real
+/// Windows-executable extension is preferred; Windows can't run the
+/// extension-less one directly.
+String _resolveExecutable(String name) {
+  if (!Platform.isWindows) return name;
+  try {
+    final result = Process.runSync('where', [name]);
+    if (result.exitCode != 0) return name;
+    final candidates = const LineSplitter()
+        .convert(result.stdout as String)
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    for (final candidate in candidates) {
+      final ext = candidate.split('.').last.toLowerCase();
+      if (const {'exe', 'bat', 'cmd', 'com'}.contains(ext)) return candidate;
+    }
+    return candidates.isEmpty ? name : candidates.first;
+  } on Object {
+    return name;
+  }
+}
+
+/// Streams [executable]'s stdio live and waits for it to exit.
+Future<int> _runLive(
+  String executable,
+  List<String> args, {
+  String? cwd,
+}) async {
+  final process = await Process.start(
+    _resolveExecutable(executable),
+    args,
+    workingDirectory: cwd,
+    mode: ProcessStartMode.inheritStdio,
+  );
+  return process.exitCode;
+}
+
+/// Like [_runLive], but a non-zero exit aborts this script — for setup steps
+/// later steps depend on.
+Future<void> _runChecked(
+  String executable,
+  List<String> args, {
+  String? cwd,
+}) async {
+  final code = await _runLive(executable, args, cwd: cwd);
+  if (code != 0) {
+    exit(code);
+  }
+}
+
+/// The final step of every mode: runs the long-lived app/server process
+/// attached to this script's own stdio, then exits with its code. Never
+/// returns — this *is* the "ongoing process you can see the logs of", not a
+/// background launch.
+Future<Never> _execForeground(
+  String executable,
+  List<String> args, {
+  String? cwd,
+}) async {
+  exit(await _runLive(executable, args, cwd: cwd));
+}
+
+/// First-run setup for a fresh clone: resolves the pub workspace and creates
+/// the local files that are deliberately not committed.
+///
+/// Does NOT regenerate example/app/android or ios — those are committed and
+/// hold hand-edited config (intent-filter, entitlements, signing, bundle ids)
+/// regenerating would destroy. Use apply_platform_config.dart for that.
+Future<void> _bootstrap(String root, {required bool skipCerts}) async {
+  for (final cmd in ['flutter', 'dart']) {
+    if (!_hasCommand(cmd)) {
+      _error('Missing required command: $cmd');
+      exit(1);
+    }
+  }
+
+  _info('Resolving pub workspace...');
+  await _runChecked('dart', ['pub', 'get'], cwd: root);
+
+  for (final pkg in ['example/backend', 'example/app']) {
+    final envFile = File('$root/$pkg/.env');
+    final template = File('${envFile.path}.example');
+    if (template.existsSync() && !envFile.existsSync()) {
+      template.copySync(envFile.path);
+      _info('Created $pkg/.env from template');
+    }
+  }
+
+  // The SDK rejects any non-https return URI, so the web flow needs TLS even
+  // on localhost. Mobile does not — its return is an App Link on the public
+  // host.
+  if (!skipCerts) {
+    final appDir = '$root/example/app';
+    if (File('$appDir/localhost+2.pem').existsSync()) {
+      stdout.writeln('TLS cert already present.');
+    } else if (_hasCommand('mkcert')) {
+      await _runChecked('mkcert', ['-install'], cwd: appDir);
+      await _runChecked('mkcert', [
+        'localhost',
+        '127.0.0.1',
+        '::1',
+      ], cwd: appDir);
+    } else {
+      _warn(
+        'mkcert not installed — skipping TLS cert. Web checkout returns '
+        'will not match until you install it and re-run.',
+      );
+    }
+  }
+
+  stdout.writeln();
+  _success('Bootstrap complete. Next:');
+  stdout.writeln(
+    '  1. Fill in ZENPAY_* credentials in example/backend/.env — the '
+    'server will not start without them.',
+  );
+  stdout.writeln(
+    '  2. dart run $_scriptName --server   '
+    '(prompts for PUBLIC_BASE_URL and propagates it)',
+  );
+  stdout.writeln('  3. dart run $_scriptName --android | --ios | --web');
+}
+
+/// Starts the example backend. Every other mode assumes this is already
+/// running.
+///
+/// Prompts for PUBLIC_BASE_URL first, because it changes every time a tunnel
+/// is restarted and a stale value fails in two ways that are hard to spot:
+/// ZenPay posts callbacks to the dead URL, and the mobile return URI stops
+/// matching.
+Future<void> _server(
+  String root, {
+  String? publicBaseUrl,
+  required bool keepUrl,
+}) async {
+  final backendDir = '$root/example/backend';
+  final envFile = File('$backendDir/.env');
+  if (!envFile.existsSync()) {
+    _error(
+      'No .env at ${envFile.path} — copy .env.example to .env and fill '
+      'in your ZenPay credentials.',
+    );
+    exit(1);
+  }
+
+  if (!keepUrl) {
+    var content = envFile.readAsStringSync();
+    final current =
+        RegExp(
+          r'^PUBLIC_BASE_URL\s*=\s*(.*)$',
+          multiLine: true,
+        ).firstMatch(content)?.group(1)?.trim() ??
+        '(not set)';
+
+    var newUrl = publicBaseUrl;
+    if (newUrl == null) {
+      _info('Current PUBLIC_BASE_URL: $current');
+      stdout.writeln(
+        'For live callbacks or mobile deep links this must be a public '
+        'HTTPS host:',
+      );
+      stdout.writeln('  cloudflared tunnel --url http://localhost:7000');
+      stdout.write('New PUBLIC_BASE_URL (Enter to keep): ');
+      newUrl = stdin.readLineSync()?.trim() ?? '';
+    }
+
+    // Three other places derive from this host. Leaving any of them stale
+    // fails silently — the SDK compares the return URI exactly, and App Link
+    // verification compares the host — so update them here rather than
+    // printing instructions and hoping.
+    if (newUrl.isNotEmpty) {
+      content = content.replaceFirst(
+        RegExp(r'^PUBLIC_BASE_URL\s*=.*$', multiLine: true),
+        'PUBLIC_BASE_URL=$newUrl',
+      );
+      envFile.writeAsStringSync(content);
+      _info('PUBLIC_BASE_URL set to $newUrl');
+
+      final mobileReturn =
+          '${newUrl.replaceFirst(RegExp(r'/+$'), '')}/zenpay/app-return';
+      final appEnv = File('$root/example/app/.env');
+      if (appEnv.existsSync()) {
+        appEnv.writeAsStringSync(
+          appEnv.readAsStringSync().replaceFirst(
+            RegExp(r'^APP_RETURN_URI_MOBILE\s*=.*$', multiLine: true),
+            'APP_RETURN_URI_MOBILE=$mobileReturn',
+          ),
+        );
+        _info('APP_RETURN_URI_MOBILE -> $mobileReturn');
+      } else {
+        _warn('No example/app/.env — copy .env.example, then re-run.');
+      }
+
+      if (Directory('$root/example/app/android').existsSync()) {
+        await _runChecked('dart', [
+          'run',
+          'scripts/apply_platform_config.dart',
+          '--host',
+          Uri.parse(newUrl).host,
+        ], cwd: root);
+      }
+    }
+  }
+
+  await _execForeground('dart', ['run', 'bin/server.dart'], cwd: backendDir);
+}
+
+/// Assumes the backend is already running.
+///
+/// `adb reverse` is what lets the device reach the backend on the host's
+/// localhost. It is passed `-s` explicitly because a bare `adb reverse`
+/// fails with "more than one device/emulator" whenever one phone is
+/// connected by USB and wirelessly at once, which adb reports as two
+/// targets for the same device.
+Future<void> _android(String root, {String? deviceId}) async {
+  final device = deviceId ?? _pickAdbDevice();
+
+  _info('Using device: $device');
+  await _runChecked('adb', ['-s', device, 'reverse', 'tcp:7000', 'tcp:7000']);
+
+  await _execForeground('flutter', [
+    'run',
+    '-d',
+    device,
+    '--dart-define-from-file=.env',
+  ], cwd: '$root/example/app');
+}
+
+/// Auto-picks a single connected `adb` device, or the plain USB serial when
+/// the same phone shows up twice (USB + wireless), or exits with the reason
+/// it couldn't.
+String _pickAdbDevice() {
+  final result = Process.runSync(_resolveExecutable('adb'), ['devices']);
+  final devices = const LineSplitter()
+      .convert(result.stdout as String)
+      .map((line) => RegExp(r'^(\S+)\s+device$').firstMatch(line)?.group(1))
+      .whereType<String>()
+      .toList();
+
+  if (devices.isEmpty) {
+    _error('No adb devices found. Connect a device or start an emulator.');
+    exit(1);
+  }
+  if (devices.length == 1) return devices.single;
+
+  // Same phone over USB and wireless shows up twice — prefer the plain USB
+  // serial (no "adb-" mDNS prefix).
+  final usb = devices.where((d) => !d.startsWith('adb-')).toList();
+  if (usb.length == 1) {
+    _warn(
+      'Multiple adb targets; using USB device ${usb.single} '
+      '(pass --device to override).',
+    );
+    return usb.single;
+  }
+
+  stdout.writeln('Multiple devices found:');
+  for (final d in devices) {
+    stdout.writeln('  $d');
+  }
+  _error('Ambiguous — re-run with --device <id>.');
+  exit(1);
+}
+
+/// Requires macOS + Xcode — Flutter cannot build iOS on Windows or Linux at
+/// all, not even against a physical device.
+///
+/// Assumes the backend is already running. There is no adb-reverse
+/// equivalent: the simulator shares the host's localhost directly, and a
+/// physical device needs the backend on the LAN or behind a tunnel (see
+/// example/backend/.env.example, PUBLIC_BASE_URL).
+Future<void> _ios(String root, {String? deviceId}) async {
+  if (!Platform.isMacOS) {
+    _error(
+      'iOS requires macOS + Xcode — Flutter cannot build iOS on this '
+      'platform at all, not even against a physical device.',
+    );
+    exit(1);
+  }
+
+  await _execForeground('flutter', [
+    'run',
+    if (deviceId != null) ...['-d', deviceId],
+    '--dart-define-from-file=.env',
+  ], cwd: '$root/example/app');
+}
+
+/// Assumes the backend is already running.
+///
+/// TLS: the SDK requires an https return URI, so APP_RETURN_URI_WEB points
+/// at https://localhost:3000. That only works if Flutter serves over TLS,
+/// which needs a local cert. Deliberately not running `mkcert -install`
+/// here: that writes a CA into the machine trust store, which is not
+/// something a run command should do behind your back. Without the cert
+/// this still runs, over plain http, and Chrome shows a warning.
+Future<void> _web(String root) async {
+  final appDir = '$root/example/app';
+  final cert = File('$appDir/localhost+2.pem');
+  final key = File('$appDir/localhost+2-key.pem');
+
+  if (!(cert.existsSync() && key.existsSync()) && _hasCommand('mkcert')) {
+    _info('No TLS cert — running mkcert in example/app.');
+    final code = await _runLive('mkcert', [
+      'localhost',
+      '127.0.0.1',
+      '::1',
+    ], cwd: appDir);
+    if (code != 0) {
+      _warn('mkcert failed (exit $code) — continuing without cert.');
+    }
+  }
+
+  final hasTls = cert.existsSync() && key.existsSync();
+  if (!hasTls) {
+    _warn(
+      'No TLS cert — serving http. The https return URI will not match. '
+      'Install mkcert (choco install mkcert), run "mkcert -install" once, '
+      'then re-run this command.',
+    );
+  }
+
+  await _execForeground('flutter', [
+    'run',
+    '-d',
+    'chrome',
+    '--web-hostname',
+    'localhost',
+    '--web-port',
+    '3000',
+    // Do not add --web-browser-flag=--window-size=W,H here. flutter
+    // registers --web-browser-flag as an addMultiOption and package:args
+    // splits its value on every comma (parser.dart:342, no escape), so the
+    // height arrives as a separate argument that Chrome resolves as a
+    // 32-bit IP and opens in a junk tab. For a phone viewport use Chrome's
+    // device toolbar: F12, Ctrl+Shift+M.
+    '--web-browser-flag=--auto-open-devtools-for-tabs',
+    if (hasTls) ...[
+      '--web-tls-cert-path',
+      'localhost+2.pem',
+      '--web-tls-cert-key-path',
+      'localhost+2-key.pem',
+    ],
+    '--dart-define-from-file=.env',
+  ], cwd: appDir);
+}
+
+/// Mirrors a connected Android device's screen via `scrcpy` — independent of
+/// every other mode; useful on its own (watching the phone while driving
+/// `--android` from another terminal) so it doesn't require the repo at all.
+Future<void> _stream({String? deviceId}) async {
+  if (!_hasCommand('scrcpy')) {
+    _error(
+      'scrcpy not found on PATH. Get it from '
+      'https://github.com/Genymobile/scrcpy/releases and re-run.',
+    );
+    exit(1);
+  }
+
+  final device = deviceId ?? _pickAdbDevice();
+  await _execForeground('scrcpy', ['-s', device]);
+}
+
+const _cloudflaredInstallHint =
+    'cloudflared not found on PATH. Get it from '
+    'https://github.com/cloudflare/cloudflared/releases and re-run.';
+
+/// Runs the named tunnel already set up in the Cloudflare dashboard —
+/// `cloudflared tunnel run --token <token>`. The token is a durable
+/// credential (unlike --quick-tunnel's throwaway URL), so it's persisted in
+/// `example/backend/.env` as `CLOUDFLARE_TUNNEL_TOKEN`, same
+/// check-display-prompt-save flow as `--server`'s PUBLIC_BASE_URL: shows the
+/// current value, Enter keeps it, anything else replaces and saves it.
+Future<void> _tunnel(String root) async {
+  if (!_hasCommand('cloudflared')) {
+    _error(_cloudflaredInstallHint);
+    exit(1);
+  }
+
+  final envFile = File('$root/example/backend/.env');
+  if (!envFile.existsSync()) {
+    _error('No .env at ${envFile.path} — copy .env.example to .env first.');
+    exit(1);
+  }
+
+  var content = envFile.readAsStringSync();
+  final tokenPattern = RegExp(
+    r'^CLOUDFLARE_TUNNEL_TOKEN\s*=\s*(.*)$',
+    multiLine: true,
+  );
+  final current = tokenPattern.firstMatch(content)?.group(1)?.trim() ?? '';
+
+  if (current.isNotEmpty) {
+    _info('Current CLOUDFLARE_TUNNEL_TOKEN: $current');
+    stdout.write('Enter to keep, or paste a new token: ');
+  } else {
+    stdout.write(
+      'No CLOUDFLARE_TUNNEL_TOKEN set — paste your cloudflared tunnel '
+      'token (Cloudflare Zero Trust > Networks > Tunnels): ',
+    );
+  }
+  final newToken = stdin.readLineSync()?.trim() ?? '';
+  final token = newToken.isEmpty ? current : newToken;
+
+  if (token.isEmpty) {
+    _error('A token is required for --tunnel.');
+    exit(1);
+  }
+
+  if (newToken.isNotEmpty && newToken != current) {
+    content = tokenPattern.hasMatch(content)
+        ? content.replaceFirst(
+            tokenPattern,
+            'CLOUDFLARE_TUNNEL_TOKEN=$newToken',
+          )
+        : '${content.trimRight()}\nCLOUDFLARE_TUNNEL_TOKEN=$newToken\n';
+    envFile.writeAsStringSync(content);
+    _info('CLOUDFLARE_TUNNEL_TOKEN saved.');
+  }
+
+  await _execForeground('cloudflared', ['tunnel', 'run', '--token', token]);
+}
+
+/// Runs an ephemeral quick tunnel — `cloudflared tunnel --url <url>` — that
+/// needs no Cloudflare account setup, prints a random
+/// `https://*.trycloudflare.com` URL, and dies with the process. That
+/// printed URL is what you then paste into
+/// `dart run $_scriptName --server --public-base-url=<url>`.
+Future<void> _quickTunnel(String root, {String? url}) async {
+  if (!_hasCommand('cloudflared')) {
+    _error(_cloudflaredInstallHint);
+    exit(1);
+  }
+
+  final target = url ?? _defaultQuickTunnelUrl(root);
+  _info(
+    'Tunneling $target — copy the printed https://*.trycloudflare.com URL '
+    'into `dart run $_scriptName --server --public-base-url=<url>`.',
+  );
+  await _execForeground('cloudflared', ['tunnel', '--url', target]);
+}
+
+/// `http://localhost:<PORT>`, reading PORT from example/backend/.env (same
+/// default the backend itself uses) so this needs no separate config of its
+/// own; falls back to :7000 — the backend's own hardcoded default — if
+/// there's no .env yet.
+String _defaultQuickTunnelUrl(String root) {
+  final envFile = File('$root/example/backend/.env');
+  if (envFile.existsSync()) {
+    final port = RegExp(
+      r'^PORT\s*=\s*(.*)$',
+      multiLine: true,
+    ).firstMatch(envFile.readAsStringSync())?.group(1)?.trim();
+    if (port != null && port.isNotEmpty) return 'http://localhost:$port';
+  }
+  return 'http://localhost:7000';
+}

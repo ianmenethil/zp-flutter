@@ -1,0 +1,57 @@
+name: zp_flutter_sdk
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+
+# Required by melos 7+, which delegates package linking to Dart pub workspaces
+# rather than doing it itself. Every entry must also declare
+# `resolution: workspace` in its own pubspec.
+workspace:
+  - zenpay_dart
+  - zenpay_flutter
+  - example/app
+  - example/backend
+
+dev_dependencies:
+  args: ^2.7.0
+  melos: ^8.3.0
+  test: ^1.31.0
+
+melos:
+  packages:
+    - zenpay_dart
+    - zenpay_flutter
+    - example/*
+  scripts:
+    test:
+      exec: flutter test
+      description: Run Flutter/Dart tests across all packages.
+      packageFilters:
+        dirExists: test
+    format:
+      exec: dart format .
+      description: Format all Dart and Flutter code.
+    analyze:
+      exec: dart analyze .
+      description: Run static analysis (dart analyze) across all packages.
+    lint:
+      exec: dart run dart_code_linter:metrics analyze lib
+      description: Run unused code checks using dart_code_linter.
+      packageFilters:
+        dependsOn: "dart_code_linter"
+    coverage:
+      exec: flutter test --coverage
+      description: Generate lcov coverage for Flutter packages.
+      packageFilters:
+        dirExists: test
+        flutter: true
+    coverage:dart:
+      exec: dart run coverage:test_with_coverage && dart run coverage:format_coverage --packages="$MELOS_ROOT_PATH/.dart_tool/package_config.json" --lcov -i coverage/coverage.json -o coverage/lcov.info --base-directory . --check-ignore
+      description: Generate lcov coverage for pure Dart packages.
+      packageFilters:
+        dirExists: test
+        flutter: false
+
+
+
