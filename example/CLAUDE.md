@@ -6,7 +6,7 @@ Single example demonstrating the full ZenPay Hosted Checkout flow using both pub
 
 ## 🔗 Related Guides
 
-- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines, MUPID rule.
+- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines.
 - **[Pure Dart SDK](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_dart/CLAUDE.md)** — Server-side cryptography, models, and token validation.
 - **[Flutter Client SDK](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/CLAUDE.md)** — UI and client-side orchestration.
 - **[example/backend/CLAUDE.md](file:///G:/_zp-repos/zp-flutter-sdk/example/backend/CLAUDE.md)** — This example's Shelf backend, in detail.

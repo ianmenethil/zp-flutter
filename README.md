@@ -51,15 +51,6 @@ To actually run the example app and backend (not just verify the code), see
 
 ---
 
-## Design Rule
-
-`merchantUniquePaymentId` (MUPID) is an ordinary opaque identifier, not a
-correlation mechanism the SDK verifies or matches — see
-[CLAUDE.md § MUPID](CLAUDE.md) before adding anything that treats it
-specially.
-
----
-
 ## License
 
 See [LICENSE](LICENSE).

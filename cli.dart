@@ -58,6 +58,8 @@ String _usage() {
     row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
     row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
     row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
+    row('--docker-build', 'Build the backend Docker image (zenpay-backend).'),
+    row('--docker-run', 'Run the backend Docker container (port 7000).'),
     row('--register-device', 'Register Firebase App Check debug token.'),
     row(
       '--release:dart:minor',
@@ -102,6 +104,8 @@ String _usage() {
     _dim('  dart run $_scriptName --stream'),
     _dim('  dart run $_scriptName --tunnel'),
     _dim('  dart run $_scriptName --quick-tunnel'),
+    _dim('  dart run $_scriptName --docker-build'),
+    _dim('  dart run $_scriptName --docker-run'),
     _dim('  dart run $_scriptName --release:dart:minor'),
     _dim('  dart run $_scriptName --release:flutter:major'),
   ].join('\n');
@@ -142,6 +146,16 @@ Future<void> main(List<String> arguments) async {
       'distribute',
       negatable: false,
       help: 'Build Android APK and upload to Firebase App Distribution.',
+    )
+    ..addFlag(
+      'docker-build',
+      negatable: false,
+      help: 'Build the backend Docker image (zenpay-backend).',
+    )
+    ..addFlag(
+      'docker-run',
+      negatable: false,
+      help: 'Run the backend Docker container (port 7000).',
     )
     ..addFlag(
       'release:dart:minor',
@@ -212,6 +226,8 @@ Future<void> main(List<String> arguments) async {
     if (args['tunnel'] as bool) 'tunnel',
     if (args['quick-tunnel'] as bool) 'quick-tunnel',
     if (args['distribute'] as bool) 'distribute',
+    if (args['docker-build'] as bool) 'docker-build',
+    if (args['docker-run'] as bool) 'docker-run',
     if (args['register-device'] as bool) 'register-device',
     if (args['release:dart:minor'] as bool) 'release:dart:minor',
     if (args['release:dart:major'] as bool) 'release:dart:major',
@@ -222,8 +238,8 @@ Future<void> main(List<String> arguments) async {
     _error(
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --ios --web '
-                '--stream --tunnel --quick-tunnel --distribute --register-device '
-                '--release:dart:minor --release:dart:major '
+                '--stream --tunnel --quick-tunnel --distribute --docker-build '
+                '--docker-run --register-device --release:dart:minor --release:dart:major '
                 '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
@@ -264,6 +280,10 @@ Future<void> main(List<String> arguments) async {
     await _quickTunnel(root, url: args['url'] as String?);
   } else if (mode == 'distribute') {
     await _distribute(root);
+  } else if (mode == 'docker-build') {
+    await _dockerBuild(root);
+  } else if (mode == 'docker-run') {
+    await _dockerRun(root);
   } else if (mode == 'register-device') {
     await _registerDevice(root, deviceId: args['device'] as String?);
   } else if (mode.startsWith('release:')) {
@@ -914,6 +934,45 @@ Future<void> _distribute(String root) async {
     '--app',
     appId,
   ], cwd: '$root/example/app');
+}
+
+Future<void> _dockerBuild(String root) async {
+  if (!_hasCommand('docker')) {
+    _error('docker command not found. Please install Docker Desktop.');
+    exit(1);
+  }
+
+  _info('Building backend Docker image (zenpay-backend)...');
+  await _execForeground('docker', [
+    'build',
+    '-t',
+    'zenpay-backend',
+    '.',
+  ], cwd: root);
+  _success('Docker image zenpay-backend built successfully.');
+}
+
+Future<void> _dockerRun(String root) async {
+  if (!_hasCommand('docker')) {
+    _error('docker command not found. Please install Docker Desktop.');
+    exit(1);
+  }
+
+  final envFile = File('$root/example/backend/.env');
+  final args = [
+    'run',
+    '--rm',
+    '-it',
+    '-p',
+    '7000:7000',
+  ];
+  if (envFile.existsSync()) {
+    args.addAll(['--env-file', 'example/backend/.env']);
+  }
+  args.add('zenpay-backend');
+
+  _info('Running Docker container (zenpay-backend on http://localhost:7000)...');
+  await _execForeground('docker', args, cwd: root);
 }
 
 Future<void> _registerDevice(String root, {String? deviceId}) async {

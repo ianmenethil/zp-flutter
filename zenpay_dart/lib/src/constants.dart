@@ -116,9 +116,6 @@ abstract final class ZpErrors {
       'apiKey, username, password, and merchantUniquePaymentId must be at '
       'least ${ZpCore.minCredentialLength} characters';
 
-  /// Error: MUPID mismatch.
-  static const mupidMismatch = 'response.merchantUniquePaymentId does not match the launched attempt';
-
   /// Error: body empty.
   static const bodyEmpty = 'body must not be empty';
 

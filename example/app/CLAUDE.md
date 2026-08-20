@@ -17,7 +17,7 @@ Reference Flutter client for the combined ZenPay example: fetches a checkout ses
 
 ## 1. Scope & Responsibilities
 
-- `lib/features/checkout/services/checkout_service.dart` talks only to `example/backend` (`POST /api/v1/sessions`, `GET /api/v1/sessions/{id}`) over `http`. It never builds a checkout URL, never touches ZenPay credentials, and never calls ZenPay directly — see [root CLAUDE.md § MUPID](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md) and `zenpay_flutter`'s own scope rule for why: URL construction and payment confirmation are the backend's job.
+- `lib/features/checkout/services/checkout_service.dart` talks only to `example/backend`'s two-step checkout flow (`POST /api/v1/checkout/token` to prepare, `POST /api/v1/checkout/exchange` for the checkout URL) plus `GET /api/v1/sessions` for status, all over `http`. It never builds a checkout URL, never touches ZenPay credentials, and never calls ZenPay directly — see `zenpay_flutter`'s own scope rule for why: URL construction and payment confirmation are the backend's job.
 - `lib/features/checkout/ui/checkout_page.dart` and its widgets are demonstration UI only — presentation choices here (colors, layout, copy) are not SDK requirements. Do not invent or extend the UI/visual design beyond what the project owner has specified; see [example/CLAUDE.md § Look and Feel](file:///G:/_zp-repos/zp-flutter-sdk/example/CLAUDE.md).
 - `lib/features/checkout/models/checkout_modes.dart` and `mock_customer.dart` model the demo's own request shapes; they are not part of any SDK's public API surface.
 - `lib/previews/checkout_widgets_previews.dart` uses Flutter's widget preview system — keep it in sync when adding new checkout widgets.

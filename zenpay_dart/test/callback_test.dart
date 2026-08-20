@@ -188,7 +188,7 @@ void main() {
     final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final body = {
       'response': {
-        'merchantUniquePaymentId': mupid, // needed to pass mupid check
+        'merchantUniquePaymentId': mupid,
         'paymentReference': vector['reference'],
         'paymentStatus': 3,
       },

@@ -29,9 +29,16 @@ lib/
     ├── callback.dart          # SHA3-512 callback verification
     ├── callback_token.dart    # HMAC-SHA3-512 signed URL tokens
     ├── checkout_url.dart      # Authorise launch URL construction
+    ├── constants.dart         # Shared constants, regex patterns, error messages
     ├── crypto.dart            # SHA3-512, constant-time comparison, ID generation
-    ├── enums.dart             # Wire integer enums (modes, statuses, display)
-    └── fingerprint.dart       # Outgoing fingerprint (SHA3-512 hash pipe)
+    ├── defaults.dart          # Default ZpCheckoutOptions values
+    ├── fingerprint.dart       # Outgoing fingerprint (SHA3-512 hash pipe)
+    └── models/                # Request/result data classes and wire enums
+        ├── callback_models.dart
+        ├── callback_token_models.dart
+        ├── checkout_options.dart
+        ├── enums.dart
+        └── fingerprint_models.dart
 ```
 
 The reference backend lives at `../example/backend/` (own `lib/src/`,
@@ -49,7 +56,7 @@ For detailed per-entity documentation of every class, function, and enum:
 
 ### Prerequisites
 
-- Dart SDK ≥ 3.12.0
+- Dart SDK ≥ 3.13.0
 - A ZenPay sandbox or production merchant account
 
 ### 1. Install Dependencies
@@ -103,63 +110,70 @@ The server listens on `0.0.0.0:<PORT>` and shuts down cleanly on `Ctrl+C`.
 ## API Endpoints
 
 This is a **minimal demo backend** (see the doc comment atop `server_app.dart`)
-— no merchant login, no static Bearer token. Checkout creation is a two-step
-token/exchange model, bounded by per-IP rate limiting and session retry
-policy instead of authentication; status lookup and the return are gated on
-a signed `?t=` callback URL token. Full detail, including the identity model
-and security posture: [example/backend/README.md](../example/backend/README.md).
+— no merchant login, no static Bearer token, no session or retry concept.
+Checkout creation is a two-step token/exchange model, bounded by per-IP rate
+limiting and optional Firebase App Check instead of authentication; status
+lookup and the return are gated on a signed `?t=` callback URL token. Full
+detail, including the identity model and security posture:
+[example/backend/README.md](../example/backend/README.md).
 
 | Method | Path                              |          Auth           | Description                                                                              |
 | :----- | :--------------------------------- | :----------------------: | :------------------------------------------------------------------------------------------ |
-| `POST` | `/api/v1/checkout/token`          |                          | Step 1 — prepares a checkout, returns a signed `checkoutToken`. Requires `Idempotency-Key` header (16–128 chars). |
-| `POST` | `/api/v1/checkout/exchange`       | `Bearer <checkoutToken>` | Step 2 — builds (or, on replay, reuses) the ZenPay checkout URL; returns it with a `sessionToken`. |
-| `POST` | `/api/v1/checkout/retry-token`    | `Bearer <sessionToken>`  | Mints a fresh `checkoutToken` for a new attempt under the same session.                  |
+| `POST` | `/api/v1/checkout/token`          |                          | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `Idempotency-Key` header (16–128 chars); anonymous but rate-limited per IP and App-Check-gated. |
+| `POST` | `/api/v1/checkout/exchange`       | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL.     |
 | `GET`  | `/api/v1/sessions?t=...`          | `t` token                | Retrieves authoritative payment status for the one attempt named by the verified token.  |
 | `POST` | `/api/v1/callbacks`               |                          | ZenPay server-to-server webhook. Verifies SHA3-512 `ValidationCode`.                     |
-| `GET`  | `/return`                         | `t` token                | Browser redirect broker — 303 for mobile/web.                                            |
+| `GET`  | `/return?t=...`                   | `t` token                | Browser redirect broker — 303 for mobile/web.                                            |
 | `GET`  | `/.well-known/assetlinks.json`    |                          | Android App Links verification file.                                                     |
 | `GET`  | `/.well-known/apple-app-site-association` |                  | iOS Universal Links verification file.                                                   |
+
+There is no `POST` endpoint that mints a fresh ZenPay checkout URL from a
+single anonymous request, and no `sessionToken`, `sessionId`, or retry
+endpoint — those were removed from the reference backend's design; see
+[example/backend/README.md § Checkout Identity Model](../example/backend/README.md#checkout-identity-model).
 
 ---
 
 ## Checkout Flow
 
 ```
-┌─────────────┐   POST /checkout/token    ┌────────────────┐          ┌──────────┐
-│  Client App  │──────────────────────────▶│  This Backend   │          │  ZenPay  │
-└──────┬──────┘   {checkoutToken}          └───────┬────────┘          └─────┬────┘
-       │◀───────────────────────────────────────────┤                        │
-       │                                            │                        │
-       │   POST /checkout/exchange                  │                        │
-       │   Authorization: Bearer <checkoutToken>    │                        │
-       │────────────────────────────────────────────▶│                        │
-       │   {sessionToken, checkoutUrl}               │  (fingerprint + URL    │
-       │◀─────────────────────────────────────────────┤   built locally)      │
-       │                                            │                        │
-       │   Open checkoutUrl                                                  │
-       │─────────────────────────────────────────────────────────────────────▶│
-       │                                            │   POST /api/v1/callbacks
-       │                                            │◀───────────────────────┤
-       │                                            │   (SHA3-512 verified)   │
-       │                                            │                        │
-       │   GET /return                              │                        │
-       │────────────────────────────────────────────▶│                        │
-       │   303 → app return                          │                        │
-       │◀─────────────────────────────────────────────┤                        │
-       │                                            │                        │
-       │   GET /api/v1/sessions?t=...                                        │
-       │────────────────────────────────────────────▶│                        │
-       │   {status: successful}                      │                        │
-       │◀─────────────────────────────────────────────┤                        │
+┌─────────────┐                    ┌────────────────┐          ┌──────────┐
+│  Client App  │                    │  This Backend   │          │  ZenPay  │
+└──────┬──────┘                    └───────┬────────┘          └─────┬────┘
+       │  POST /checkout/token             │                        │
+       │  {mode, paymentAmount, customer..}│                        │
+       │───────────────────────────────────▶│                        │
+       │        {checkoutToken}             │  (resolves trusted     │
+       │◀────────────────────────────────────┤   amount; mints       │
+       │                                    │   mupid+ts; persists   │
+       │  POST /checkout/exchange           │   a pending attempt)   │
+       │  Authorization: Bearer <token>     │                        │
+       │───────────────────────────────────▶│                        │
+       │  {checkoutUrl}                     │  (builds fingerprint   │
+       │◀────────────────────────────────────┤   + checkout URL,     │
+       │                                    │   stores it)           │
+       │  Open checkoutUrl                                          │
+       │──────────────────────────────────────────────────────────▶│
+       │                                    │   POST /api/v1/callbacks
+       │                                    │◀───────────────────────┤
+       │                                    │   (SHA3-512 verified)   │
+       │  GET /return                       │                        │
+       │───────────────────────────────────▶│                        │
+       │  303 → app return                  │                        │
+       │◀────────────────────────────────────┤                        │
+       │  GET /api/v1/sessions?t=...        │                        │
+       │───────────────────────────────────▶│                        │
+       │  {status: successful}              │                        │
+       │◀────────────────────────────────────┤                        │
 ```
 
-1. **Client prepares a checkout** → backend validates the request, resolves the trusted amount, mints a fresh `sessionId`/MUPID/timestamp, and returns a signed `checkoutToken` — no ZenPay URL yet.
-2. **Client exchanges the token** → backend verifies it, builds the SHA3-512 fingerprint and launch URL locally (no outbound call to ZenPay), and returns it with a `sessionToken`. Replaying the same `checkoutToken` resolves to the same attempt.
+1. **Client prepares a checkout** → backend validates the request, resolves the trusted amount, mints a fresh MUPID/timestamp, and returns a signed `checkoutToken` — no ZenPay URL yet.
+2. **Client exchanges the token** → backend verifies it, builds the SHA3-512 fingerprint and launch URL locally (no outbound call to ZenPay), and returns the checkout URL. Replaying the same `checkoutToken` resolves to the same attempt, never a new one.
 3. **Client opens the checkout URL** → customer pays on ZenPay's hosted page.
 4. **ZenPay calls back** → backend verifies the `ValidationCode` hash in constant time and updates the attempt — the sole authoritative source of payment status.
-5. **Browser returns** → backend matches the mupid and redirects to the app; this is provisional, not proof of payment.
-6. **Client polls status** → backend returns the authoritative state from the verified callback.
-7. **Explicit retry only** — a "Try again" action sends the held `sessionToken` to `/checkout/retry-token`, which mints a fresh `checkoutToken` (new MUPID, same session) unless the session already succeeded or hit its retry limit.
+5. **Browser returns** → the signed `?t=` token authorizes the redirect; this is provisional, not proof of payment.
+6. **Client polls status** → backend returns the authoritative state from the verified callback, gated on the same `?t=` token.
+7. **No retry endpoint** — if checkout fails, is dismissed, or times out, pressing Pay again is simply a fresh `POST /checkout/token` → `/checkout/exchange`, with a new, unrelated MUPID and checkout URL.
 
 ---
 
@@ -209,14 +223,14 @@ melos run test
 - **Strict analysis**: `strict-casts`, `strict-inference`, `strict-raw-types` — no untyped `dynamic`.
 - **Public API docs enforced**: `public_member_api_docs: error` on the core package.
 - **Dead code is an error**: unused imports, private members, and locals are compiler errors.
-- **Style**: `final` locals, constructors first, `dart format` with 80-character lines.
+- **Style**: `final` locals, constructors first, `dart format` with the repo's 160-character `page_width`.
 
 ### Testing
 
 The core package tests cover:
 
 - Fingerprint generation across all four modes
-- Callback verification (valid, malformed, rejected) for payment, preauth, and tokenise modes
+- Callback verification (valid, malformed, rejected) for payment, custom payment, preauth, and tokenise modes
 - Checkout URL construction and validation
 - Callback URL token minting, verification, expiry, and tamper detection
 - Dollar-to-cents conversion edge cases

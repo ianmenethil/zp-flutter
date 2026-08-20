@@ -8,6 +8,7 @@ import 'dart:js_interop';
 import 'package:zenpay_flutter/src/presentation/presenter.dart' show CheckoutPresenter;
 
 import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_return_validation.dart';
 
 @JS('opener')
 external JSObject? get _opener;
@@ -34,12 +35,7 @@ bool completeWebCheckoutReturnIfPopup({required Uri expectedReturnUri}) {
   if (opener == null) return false;
 
   final current = Uri.parse(_locationHref);
-  final matchesAddress =
-      current.scheme.toLowerCase() == expectedReturnUri.scheme.toLowerCase() &&
-      current.host.toLowerCase() == expectedReturnUri.host.toLowerCase() &&
-      current.port == expectedReturnUri.port &&
-      current.path == expectedReturnUri.path;
-  if (!matchesAddress) return false;
+  if (!matchesReturnAddress(current, expectedReturnUri)) return false;
 
   _Opener(opener).postMessage(encodeZpReturnMessage(_locationHref).toJS, current.origin);
   _closeWindow();

@@ -43,6 +43,6 @@ stay minimal and focused on demonstrating the SDK integration.
 
 ## Related Guides
 
-- **[../CLAUDE.md](../CLAUDE.md)** — Monorepo root guidelines, MUPID rule.
+- **[../CLAUDE.md](../CLAUDE.md)** — Monorepo root guidelines.
 - **[../zenpay_dart/CLAUDE.md](../zenpay_dart/CLAUDE.md)** — SDK the backend depends on.
 - **[../zenpay_flutter/CLAUDE.md](../zenpay_flutter/CLAUDE.md)** — SDK the app depends on.

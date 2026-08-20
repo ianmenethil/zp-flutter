@@ -23,9 +23,10 @@ ZenPay's signed callback.
 - **Strict launch validation** — the checkout URL must be HTTPS on port 443,
   under 4096 characters, free of credentials and fragments, and on a host you
   allowlisted. Anything else throws before a browser opens.
-- **Strict return validation** — an incoming App Link or Universal Link must
-  match your configured return address exactly (scheme, host, port, path) and
-  respect length bounds, or it is ignored.
+- **Strict return validation** — an incoming return (an App Link or Universal
+  Link on mobile, or a same-origin `postMessage` handoff from the return
+  popup on Web) must match your configured return address exactly (scheme,
+  host, port, path) and respect length bounds, or it is ignored.
 - **No hidden I/O** — the package makes no network calls, writes no logs, and
   persists nothing. `ZpCheckoutObserver` is the only way to see inside it.
 
@@ -33,12 +34,28 @@ ZenPay's signed callback.
 
 ```yaml
 dependencies:
-  zenpay_flutter: ^0.1.0-dev.1
+  zenpay_flutter: ^0.1.0
 ```
 
 You also need a server that creates checkout URLs. Deep links must be
 configured for the platforms you ship: an App Link intent filter on Android, an
 associated domain on iOS. Your return address must be HTTPS.
+
+On Web, call `completeWebCheckoutReturnIfPopup` as the first line of `main()`,
+before `runApp`. It returns `true` (and `main()` should stop there, not call
+`runApp`) when this page was loaded as the same-origin checkout return popup —
+it relays the return to the opener via `postMessage` and closes the popup:
+
+```dart
+void main() {
+  if (completeWebCheckoutReturnIfPopup(
+    expectedReturnUri: Uri.parse('https://app.merchant.com/checkout/return'),
+  )) {
+    return;
+  }
+  runApp(const MyApp());
+}
+```
 
 ## Usage
 
@@ -50,9 +67,13 @@ final checkout = ZpCheckout(
     allowedCheckoutHosts: {'pay.sandbox.travelpay.com.au'},
     expectedReturnUri: Uri.parse('https://app.merchant.com/checkout/return'),
   ),
-  returnUriSource: AppLinksReturnUriSource(),
+  returnUriSource: createDefaultReturnUriSource(),
 );
 ```
+
+`createDefaultReturnUriSource` picks the right source for the platform you're
+compiling for: `AppLinksReturnUriSource` (App Links / Universal Links) on
+Android and iOS, or a listener for the popup handoff above on Web.
 
 On Web, reserve the surface synchronously inside the tap handler, before any
 `await`, or the browser will block the tab:
@@ -141,6 +162,5 @@ a test emit a return URI without any platform channel.
   [`zenpay_dart`](../zenpay_dart/README.md).
 - A runnable Flutter app plus reference backend:
   [`example/`](../example/README.md) in
-  [the repository](https://github.com/ianmenethil/zp-flutter-sdk).
-- Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) (per-file guide:
-  [lib/CLAUDE.md](lib/CLAUDE.md)).
+  [the repository](https://github.com/ianmenethil/zp-flutter).
+- Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md).

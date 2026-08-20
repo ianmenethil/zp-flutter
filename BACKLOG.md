@@ -6,12 +6,12 @@ pass: zenpay_dart 59, zenpay_flutter 23, backend 41, app 22).
 
 ## Baseline (measured 2026-08-19, before fixes)
 
-| Package | Lines | Coverage | Collector |
-|---|---|---|---|
-| `zenpay_dart` | 383/415 | 92.3% | `coverage:test_with_coverage` |
-| `zenpay_flutter` | 138/182 | 75.8% | `flutter test --coverage` |
-| `example/app` | 298/370 | 80.5% | `flutter test --coverage` |
-| `example/backend` | 404/528 | 76.5% | `coverage:test_with_coverage` |
+| Package           | Lines   | Coverage | Collector                     |
+| ----------------- | ------- | -------- | ----------------------------- |
+| `zenpay_dart`     | 383/415 | 92.3%    | `coverage:test_with_coverage` |
+| `zenpay_flutter`  | 138/182 | 75.8%    | `flutter test --coverage`     |
+| `example/app`     | 298/370 | 80.5%    | `flutter test --coverage`     |
+| `example/backend` | 404/528 | 76.5%    | `coverage:test_with_coverage` |
 
 Stale — re-measure the four `coverage/lcov.info` files if current numbers matter.
 

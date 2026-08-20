@@ -15,7 +15,7 @@ import 'dart:js_interop';
 import 'package:zenpay_flutter/src/presentation/presenter.dart' show CheckoutPresenter;
 
 import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
-import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_return_validation.dart';
 
 @JS('addEventListener')
 external void _addWindowMessageListener(String type, JSFunction listener);
@@ -45,19 +45,14 @@ final class WebPopupReturnUriSource implements ZpReturnUriSource {
   late final JSFunction _listener;
 
   void _onMessage(_MessageEvent event) {
-    // Only ever trust a message from this exact page's own origin — the
-    // return popup is same-origin by construction (see the library doc).
-    if (event.origin != _locationOrigin) return;
     final data = event.data;
-    if (data == null || !data.typeofEquals('string')) return;
-    final href = decodeZpReturnMessage((data as JSString).toDart);
-    if (href == null) return;
-    try {
-      _controller.add(Uri.parse(href));
-    } on FormatException {
-      // Malformed href: nothing to recover, ignore like any other
-      // unrecognized message.
-    }
+    final messageData = (data != null && data.typeofEquals('string')) ? (data as JSString).toDart : null;
+    final uri = parseIncomingReturnMessage(
+      eventOrigin: event.origin,
+      expectedOrigin: _locationOrigin,
+      messageData: messageData,
+    );
+    if (uri != null) _controller.add(uri);
   }
 
   @override

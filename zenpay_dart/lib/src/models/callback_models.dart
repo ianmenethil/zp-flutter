@@ -26,9 +26,6 @@ class ZpVerifyCallbackContext {
   final Object paymentAmount;
 
   /// Per-payment idempotency key — hash field 6.
-  ///
-  /// When the callback echoes its own `merchantUniquePaymentId`, that value
-  /// is also checked against this value.
   final ZpMupid merchantUniquePaymentId;
 }
 

@@ -59,6 +59,8 @@ Listens on `0.0.0.0:<PORT>`, shuts down cleanly on `Ctrl+C`.
 | `CHECKOUT_STATUS_TTL_MINUTES`    |          | How long to keep in-memory attempts before purging (default `60`).                                                                                                              |
 | `CHECKOUT_TOKEN_TTL_SECONDS`     |          | Lifetime of a `POST /api/v1/checkout/token` capability (default `300`) — short, since it only needs to survive the gap before `/checkout/exchange`.                            |
 | `CHECKOUT_RATE_LIMIT_PER_MINUTE` |          | Per-IP requests/minute on `/checkout/token` and `/checkout/exchange` (default `20`).                                                                                            |
+| `FIREBASE_PROJECT_NUMBER`        |          | Firebase project *number* (not ID). When set, requires a valid `X-Firebase-AppCheck` token on both checkout-creation endpoints. Empty disables enforcement.                    |
+| `FIREBASE_SERVICE_ACCOUNT_JSON`  |          | GCP Service Account JSON (raw or file path) with `firebaseappcheck.tokenVerifier`, used to verify App Check tokens. Required when `FIREBASE_PROJECT_NUMBER` is set.             |
 
 ---
 
@@ -67,7 +69,7 @@ Listens on `0.0.0.0:<PORT>`, shuts down cleanly on `Ctrl+C`.
 | Method | Path                                       |         Auth          | Description                                                                                             |
 | :----- | :------------------------------------------ | :--------------------: | :--------------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/v1/checkout/token`                    |                        | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `X-Client` (`web`/`mobile`) and `Idempotency-Key` (16–128 chars) headers. Anonymous but rate-limited per IP and App-Check-gated. `X-Request-Id` is echoed back for log correlation. |
-| `POST` | `/api/v1/checkout/exchange`                 | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL. |
+| `POST` | `/api/v1/checkout/exchange`                 | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL. Also App-Check-gated when `FIREBASE_PROJECT_NUMBER` is set. |
 | `GET`  | `/api/v1/sessions?t=...`                    |  `t` token   | Authoritative status for the one ZenPay attempt named by the verified callback URL token.                |
 | `POST` | `/api/v1/callbacks`                         |                        | ZenPay server-to-server webhook. Verified by `ValidationCode` alone, no `t` token.                       |
 | `GET`  | `/return?t=...`                             |  `t` token   | Browser redirect broker — 303 for mobile/web.                                                            |
@@ -99,8 +101,7 @@ There is no server-side concept of a "retry" or a logical session grouping
 multiple attempts. If checkout fails, is dismissed, or times out and the
 customer presses Pay again, that is simply a **new ZenPay checkout attempt
 with a new MUPID**, created through the normal `/checkout/token` →
-`/checkout/exchange` flow — see [root CLAUDE.md § MUPID](../../CLAUDE.md)
-for why MUPID itself is never special-cased beyond this.
+`/checkout/exchange` flow.
 
 Two token types, both signed from one configured root secret
 (`TOKEN_SECRET`) but kept deliberately separate two ways:
@@ -192,10 +193,12 @@ not a way to mint unlimited attempts from one token.
   login in this demo, so `POST /checkout/token` cannot be made airtight by
   the token/exchange split alone. It is bounded instead by a per-IP rate
   limit (`CHECKOUT_RATE_LIMIT_PER_MINUTE`), an `Idempotency-Key` requirement,
-  strict input validation, and a 64KB body cap. A production deployment
-  should add mobile app attestation (Apple App Attest / Android Play
-  Integrity) at this exact boundary — see `lib/src/server_app.dart`'s doc
-  comment for where that hook belongs. None of the above is authentication;
+  strict input validation, and a 64KB body cap. Mobile app attestation is
+  available at this exact boundary via Firebase App Check (wrapping Apple App
+  Attest / Android Play Integrity / Web reCAPTCHA, `lib/src/app_check.dart`) —
+  set `FIREBASE_PROJECT_NUMBER` and `FIREBASE_SERVICE_ACCOUNT_JSON` to require
+  a valid `X-Firebase-AppCheck` token on both checkout-creation endpoints; see
+  `lib/src/server_app.dart`'s doc comment. None of the above is authentication;
   don't confuse rate limiting, idempotency, or a signed capability token with it.
 - **Token hygiene** — full tokens are never logged; structured logs carry
   `requestId`/`merchantUniquePaymentId`/`paymentReference` instead.
@@ -209,6 +212,6 @@ not a way to mint unlimited attempts from one token.
 
 ## Related Guides
 
-- **[CLAUDE.md](CLAUDE.md)** — Scope, responsibilities, and the MUPID rule as it applies here.
+- **[CLAUDE.md](CLAUDE.md)** — Scope and responsibilities.
 - **[../../zenpay_dart/README.md](../../zenpay_dart/README.md)** — The SDK this backend is built on.
 - **[../app/README.md](../app/README.md)** — The Flutter client this backend serves.

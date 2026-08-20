@@ -1,1 +1,0 @@
-G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/CLAUDE.md

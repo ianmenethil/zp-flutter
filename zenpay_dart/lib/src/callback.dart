@@ -34,16 +34,6 @@ Map<String, Object?>? _asObjectMap(Object? value) {
   return result;
 }
 
-String? _string(
-  Map<String, Object?> data,
-  String key, {
-  String path = 'response',
-}) => switch (data[key]) {
-  null => null,
-  final String value => value,
-  _ => throw FormatException('$path.$key must be a string'),
-};
-
 _CallbackShape _parseCallbackShape(
   ZpPluginMode mode,
   Map<String, Object?> body,
@@ -182,12 +172,6 @@ ZpCallbackResult verifyZpCallback(
       validationCode: validationCode,
     )) {
       return const ZpCallbackRejected(ZpErrors.validationCodeMismatch);
-    }
-
-    final echoedMupid = _string(response, 'merchantUniquePaymentId');
-
-    if (echoedMupid != null && echoedMupid.isNotEmpty && echoedMupid != context.merchantUniquePaymentId.value) {
-      return const ZpCallbackRejected(ZpErrors.mupidMismatch);
     }
 
     return const ZpCallbackVerified();

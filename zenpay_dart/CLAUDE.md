@@ -6,7 +6,7 @@ Guidelines and standards for working within `zenpay_dart` (pure Dart SDK). This 
 
 ## 🔗 Related Guides
 
-- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines, MUPID rule.
+- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines.
 - **[Flutter Client SDK](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/CLAUDE.md)** — UI and client-side orchestration.
 - **[Integration Examples](file:///G:/_zp-repos/zp-flutter-sdk/example/CLAUDE.md)** — Reference merchant backend and app that consume this package.
 - **[lib/CLAUDE.md](lib/CLAUDE.md)** — Per-file source architecture guide (callback verifiers, tokens, URL builders, crypto, enums).
@@ -45,7 +45,7 @@ Adhere strictly to [analysis_options.yaml](file:///G:/_zp-repos/zp-flutter-sdk/z
 4. **Style**:
    - Always prefer `final` locals.
    - Sort constructors first.
-   - Follow standard `dart format` (80-character line width default).
+   - Follow `dart format` with the repo's 160-character `page_width` (set in the root [analysis_options.yaml](file:///G:/_zp-repos/zp-flutter-sdk/analysis_options.yaml), inherited via this package's own `analysis_options.yaml`).
 
 ---
 
