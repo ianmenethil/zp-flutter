@@ -10,8 +10,6 @@ import 'package:hashlib/random.dart';
 import 'package:zenpay_dart/src/constants.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
-
-
 /// Strongly typed cents value to prevent accidental dollar hashing.
 extension type const ZpCents(String value) {}
 
