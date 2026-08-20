@@ -22,8 +22,7 @@ String get _scriptName => Platform.script.pathSegments.last;
 // real ANSI-capable terminal (piped output, older `cmd.exe`), so redirecting
 // `> log.txt` never ends up with raw escape codes in the file.
 final bool _color = stdout.supportsAnsiEscapes;
-String _ansi(String code, String text) =>
-    _color ? '\x1B[${code}m$text\x1B[0m' : text;
+String _ansi(String code, String text) => _color ? '\x1B[${code}m$text\x1B[0m' : text;
 String _bold(String s) => _ansi('1', s);
 String _cyan(String s) => _ansi('36', s);
 String _green(String s) => _ansi('32', s);
@@ -40,8 +39,7 @@ String _usage() {
   // Padding is computed from the plain (unstyled) length — colour codes are
   // invisible bytes that would otherwise throw padRight's own count off and
   // misalign every row.
-  String row(String left, String right) =>
-      '  ${_cyan(left)}${' ' * (26 - left.length).clamp(0, 26)}$right';
+  String row(String left, String right) => '  ${_cyan(left)}${' ' * (26 - left.length).clamp(0, 26)}$right';
 
   return [
     '${_bold('ZenPay SDK dev launcher')} — runs one mode as a live, attached process',
@@ -59,6 +57,7 @@ String _usage() {
     row('--stream', 'Mirror an Android device via scrcpy.'),
     row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
     row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
+    row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
     row('--register-device', 'Register Firebase App Check debug token.'),
     row(
       '--release:dart:minor',
@@ -140,6 +139,11 @@ Future<void> main(List<String> arguments) async {
       help: 'Register Firebase App Check debug token.',
     )
     ..addFlag(
+      'distribute',
+      negatable: false,
+      help: 'Build Android APK and upload to Firebase App Distribution.',
+    )
+    ..addFlag(
       'release:dart:minor',
       negatable: false,
       help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.',
@@ -207,6 +211,7 @@ Future<void> main(List<String> arguments) async {
     if (args['stream'] as bool) 'stream',
     if (args['tunnel'] as bool) 'tunnel',
     if (args['quick-tunnel'] as bool) 'quick-tunnel',
+    if (args['distribute'] as bool) 'distribute',
     if (args['register-device'] as bool) 'register-device',
     if (args['release:dart:minor'] as bool) 'release:dart:minor',
     if (args['release:dart:major'] as bool) 'release:dart:major',
@@ -217,7 +222,7 @@ Future<void> main(List<String> arguments) async {
     _error(
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --ios --web '
-                '--stream --tunnel --quick-tunnel --register-device '
+                '--stream --tunnel --quick-tunnel --distribute --register-device '
                 '--release:dart:minor --release:dart:major '
                 '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
@@ -257,6 +262,8 @@ Future<void> main(List<String> arguments) async {
     await _tunnel(root);
   } else if (mode == 'quick-tunnel') {
     await _quickTunnel(root, url: args['url'] as String?);
+  } else if (mode == 'distribute') {
+    await _distribute(root);
   } else if (mode == 'register-device') {
     await _registerDevice(root, deviceId: args['device'] as String?);
   } else if (mode.startsWith('release:')) {
@@ -278,8 +285,7 @@ Future<void> main(List<String> arguments) async {
 String _repoRoot() {
   var dir = File.fromUri(Platform.script).parent;
   while (true) {
-    if (Directory('${dir.path}/example').existsSync() &&
-        Directory('${dir.path}/zenpay_flutter').existsSync()) {
+    if (Directory('${dir.path}/example').existsSync() && Directory('${dir.path}/zenpay_flutter').existsSync()) {
       return dir.path;
     }
     final parent = dir.parent;
@@ -330,11 +336,7 @@ String _resolveExecutable(String name) {
   try {
     final result = Process.runSync('where', [name]);
     if (result.exitCode != 0) return name;
-    final candidates = const LineSplitter()
-        .convert(result.stdout as String)
-        .map((line) => line.trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
+    final candidates = const LineSplitter().convert(result.stdout as String).map((line) => line.trim()).where((line) => line.isNotEmpty).toList();
     for (final candidate in candidates) {
       final ext = candidate.split('.').last.toLowerCase();
       if (const {'exe', 'bat', 'cmd', 'com'}.contains(ext)) return candidate;
@@ -531,8 +533,7 @@ Future<void> _server(
       envFile.writeAsStringSync(content);
       _info('PUBLIC_BASE_URL set to $newUrl');
 
-      final mobileReturn =
-          '${newUrl.replaceFirst(RegExp(r'/+$'), '')}/zenpay/app-return';
+      final mobileReturn = '${newUrl.replaceFirst(RegExp(r'/+$'), '')}/zenpay/app-return';
       final appEnv = File('$root/example/app/.env');
       if (appEnv.existsSync()) {
         appEnv.writeAsStringSync(
@@ -893,6 +894,26 @@ Future<void> _release(
       '  1. Review the diff (pubspec.yaml, CHANGELOG.md), commit it.',
     )
     ..writeln('  2. cd $package && dart pub publish');
+}
+
+Future<void> _distribute(String root) async {
+  if (!_hasCommand('firebase')) {
+    _error('firebase command not found. Install it with: npm install -g firebase-tools');
+    exit(1);
+  }
+
+  _info('Building Android APK (release)...');
+  await _runChecked('flutter', ['build', 'apk', '--release'], cwd: '$root/example/app');
+
+  _info('Uploading to Firebase App Distribution...');
+  // The App ID for Android (from google-services.json / user info).
+  const appId = '1:356498821161:android:0c4280696058bb9fc68c38';
+  await _execForeground('firebase', [
+    'appdistribution:distribute',
+    'build/app/outputs/flutter-apk/app-release.apk',
+    '--app',
+    appId,
+  ], cwd: '$root/example/app');
 }
 
 Future<void> _registerDevice(String root, {String? deviceId}) async {

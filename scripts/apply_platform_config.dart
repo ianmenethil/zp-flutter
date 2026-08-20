@@ -25,8 +25,7 @@ ArgParser buildParser() => ArgParser()
   )
   ..addOption(
     'root',
-    help:
-        'Repo root containing example/app. Defaults to the current directory.',
+    help: 'Repo root containing example/app. Defaults to the current directory.',
   )
   ..addOption('path', help: 'App Link path prefix.', defaultsTo: _defaultPath)
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this usage.');
@@ -185,8 +184,7 @@ void patchIos(String root, String host) {
     // entitlements.
     projectText = projectText.replaceAllMapped(
       RegExp(r'(\n\s+PRODUCT_BUNDLE_IDENTIFIER = (?!.*RunnerTests)[^;]+;)'),
-      (m) =>
-          '\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;${m[1]}',
+      (m) => '\n\t\t\t\tCODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;${m[1]}',
     );
     project.writeAsStringSync(projectText);
   }

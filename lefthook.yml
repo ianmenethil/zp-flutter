@@ -1,0 +1,15 @@
+# Strict local gate — any finding (info, warning, error, unformatted file,
+# unused code, failing test) aborts the commit entirely, so nothing broken
+# ever syncs to GitHub from this machine.
+pre-commit:
+  commands:
+    format:
+      run: dart format --output=none --set-exit-if-changed .
+    analyze:
+      run: dart run melos exec -- "dart analyze --fatal-infos ."
+    analyze-root:
+      run: dart analyze --fatal-infos .
+    lint:
+      run: dart run melos run lint
+    test:
+      run: dart run melos run test

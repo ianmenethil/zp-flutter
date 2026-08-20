@@ -15,10 +15,16 @@ workspace:
 
 dev_dependencies:
   args: ^2.7.0
-  husky: ^0.1.7
   melos: ^8.3.0
   test: ^1.31.0
   very_good_analysis: ^10.3.0
+
+# Runs automatically on every `dart pub get` / `melos bs`: installs the
+# lefthook git hooks (see lefthook.yml) so no machine commits without the gate.
+# (The pub.dev `lefthook` wrapper is Dart-2-only and incompatible with Dart 3,
+# so the npm-distributed binary is used via npx instead.)
+scripts:
+  prepare: npx --yes lefthook install
 
 melos:
   packages:

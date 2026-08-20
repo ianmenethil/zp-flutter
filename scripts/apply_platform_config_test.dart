@@ -66,11 +66,12 @@ void main() {
 
     setUp(() {
       root = Directory.systemTemp.createTempSync('apply_platform_config_');
-      manifest = File(
-        '${root.path}/example/app/android/app/src/main/AndroidManifest.xml',
-      )
-        ..createSync(recursive: true)
-        ..writeAsStringSync(_androidManifestFresh);
+      manifest =
+          File(
+              '${root.path}/example/app/android/app/src/main/AndroidManifest.xml',
+            )
+            ..createSync(recursive: true)
+            ..writeAsStringSync(_androidManifestFresh);
     });
 
     tearDown(() => root.deleteSync(recursive: true));
@@ -104,14 +105,11 @@ void main() {
 
     setUp(() {
       root = Directory.systemTemp.createTempSync('apply_platform_config_');
-      runnerDir = Directory('${root.path}/example/app/ios/Runner')
-        ..createSync(recursive: true);
-      infoPlist = File('${runnerDir.path}/Info.plist')
-        ..writeAsStringSync(_infoPlist);
-      project =
-          File('${root.path}/example/app/ios/Runner.xcodeproj/project.pbxproj')
-            ..createSync(recursive: true)
-            ..writeAsStringSync(_projectPbxproj);
+      runnerDir = Directory('${root.path}/example/app/ios/Runner')..createSync(recursive: true);
+      infoPlist = File('${runnerDir.path}/Info.plist')..writeAsStringSync(_infoPlist);
+      project = File('${root.path}/example/app/ios/Runner.xcodeproj/project.pbxproj')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(_projectPbxproj);
     });
 
     tearDown(() => root.deleteSync(recursive: true));
