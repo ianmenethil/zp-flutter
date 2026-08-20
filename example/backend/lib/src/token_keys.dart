@@ -16,18 +16,16 @@ library;
 
 import 'dart:typed_data';
 
-import 'config.dart' show AppConfig;
-import 'signed_token.dart' show deriveTokenKey;
+import 'package:zenpay_example_backend/src/config.dart' show AppConfig;
+import 'package:zenpay_example_backend/src/signed_token.dart' show deriveTokenKey;
 
 const _checkoutTokenPurpose = 'checkout-token-v1';
 const _callbackTokenPurpose = 'callback-token-v1';
 
 /// Signing key for `checkoutToken` (`checkout_token.dart`).
-Uint8List checkoutTokenKey(AppConfig config) =>
-    deriveTokenKey(config.tokenSecret, _checkoutTokenPurpose);
+Uint8List checkoutTokenKey(AppConfig config) => deriveTokenKey(config.tokenSecret, _checkoutTokenPurpose);
 
 /// Signing key for `zenpay_dart`'s `ZpCallbackUrlToken` (`t`) — passed as
 /// the `Object secret` argument the SDK already accepts; the SDK itself is
 /// unmodified.
-Uint8List callbackTokenKey(AppConfig config) =>
-    deriveTokenKey(config.tokenSecret, _callbackTokenPurpose);
+Uint8List callbackTokenKey(AppConfig config) => deriveTokenKey(config.tokenSecret, _callbackTokenPurpose);

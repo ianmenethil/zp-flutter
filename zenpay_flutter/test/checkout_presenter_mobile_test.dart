@@ -6,15 +6,14 @@ library;
 
 import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenpay_flutter/src/presentation/presenter.dart';
-import 'package:zenpay_flutter/src/presentation/checkout_presenter_mobile.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:url_launcher_platform_interface/link.dart' show LinkDelegate;
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
+import 'package:zenpay_flutter/src/presentation/checkout_presenter_mobile.dart';
+import 'package:zenpay_flutter/src/presentation/presenter.dart';
 
 /// Records every launch mode requested and answers each with a queued result.
-final class _FakeUrlLauncher extends UrlLauncherPlatform
-    with MockPlatformInterfaceMixin {
+final class _FakeUrlLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {
   _FakeUrlLauncher(this._answers);
 
   /// Result per call, in order. A [Object] entry is thrown instead of returned.
@@ -34,14 +33,20 @@ final class _FakeUrlLauncher extends UrlLauncherPlatform
     if (answer is bool) {
       return answer;
     }
-    throw answer;
+    if (answer is Exception) {
+      throw answer;
+    }
+    if (answer is Error) {
+      throw answer;
+    }
+    throw Exception(answer);
   }
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  final Uri checkoutUrl = Uri.parse('https://checkout.example.com/pay');
+  final checkoutUrl = Uri.parse('https://checkout.example.com/pay');
 
   Future<PresentationLaunchResult> present(
     _FakeUrlLauncher launcher, {

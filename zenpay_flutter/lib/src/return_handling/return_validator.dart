@@ -9,8 +9,8 @@
 /// happened. Establishing that is the merchant backend's job.
 library;
 
-import '../configuration/checkout_configuration.dart';
-import '../observability/checkout_event.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart';
+import 'package:zenpay_flutter/src/observability/checkout_event.dart';
 
 /// Delimiters used when parsing return URI queries.
 abstract final class _QueryParam {
@@ -36,18 +36,18 @@ bool _matchesReturnUriAddress(Uri candidate, Uri expected) {
       candidate.fragment.isEmpty;
 }
 
-/// Validates and normalizes candidate return URIs against the expected return
-/// policy.
-final class const ZpReturnValidator() {
+/// Validates and normalizes candidate return URIs against the expected return policy.
+final class ZpReturnValidator {
+  /// Creates a [ZpReturnValidator].
+  const ZpReturnValidator();
   /// Validates a [candidate] return URI against [configuration] security rules.
   ///
   /// Returns a normalized, sanitized [Uri] if validation succeeds, or `null` if
   /// validation fails. The query is preserved, re-encoded canonically, for the
   /// application to read; its contents are not inspected here.
   ///
-  /// [onRejectionObserved], when supplied, is called with the reason immediately
-  /// before `null` is returned. It is observational only and cannot affect the
-  /// result.
+  /// [onRejectionObserved], when supplied, is called with the reason immediately before `null` is returned.
+  /// It is observational only and cannot affect the result.
   Uri? validate({
     required Uri candidate,
     required ZpCheckoutConfiguration configuration,
@@ -94,12 +94,8 @@ final class const ZpReturnValidator() {
         }
 
         final separator = pair.indexOf(_QueryParam.keyValueSeparator);
-        final encodedKey = separator == -1
-            ? pair
-            : pair.substring(0, separator);
-        final encodedValue = separator == -1
-            ? ''
-            : pair.substring(separator + 1);
+        final encodedKey = separator == -1 ? pair : pair.substring(0, separator);
+        final encodedValue = separator == -1 ? '' : pair.substring(separator + 1);
         final key = Uri.decodeQueryComponent(encodedKey);
         final value = Uri.decodeQueryComponent(encodedValue);
 

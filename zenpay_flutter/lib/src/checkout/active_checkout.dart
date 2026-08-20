@@ -4,7 +4,7 @@ library;
 
 import 'dart:async';
 
-import '../models/checkout_outcome.dart';
+import 'package:zenpay_flutter/src/models/checkout_outcome.dart';
 
 /// Tracks one checkout launch. Used internally by `ZpCheckout`.
 final class ActiveCheckout {
@@ -19,11 +19,9 @@ final class ActiveCheckout {
   )
   onFinished;
 
-  final Completer<ZpCheckoutOutcome> _completer =
-      Completer<ZpCheckoutOutcome>();
+  final Completer<ZpCheckoutOutcome> _completer = Completer<ZpCheckoutOutcome>();
   final Stopwatch _elapsed = Stopwatch()..start();
-  final List<StreamSubscription<void>> _subscriptions =
-      <StreamSubscription<void>>[];
+  final List<StreamSubscription<void>> _subscriptions = <StreamSubscription<void>>[];
   Timer? _timeoutTimer;
 
   /// Resolves with the outcome of whichever source finished first.
@@ -33,8 +31,7 @@ final class ActiveCheckout {
   bool get isFinished => _completer.isCompleted;
 
   /// Takes ownership of [subscription], cancelling it when this checkout ends.
-  void watch(StreamSubscription<void> subscription) =>
-      _subscriptions.add(subscription);
+  void watch(StreamSubscription<void> subscription) => _subscriptions.add(subscription);
 
   /// Settles with [onTimeout] if nothing else has after [timeout].
   void expireAfter(Duration timeout, ZpCheckoutOutcome onTimeout) {
@@ -51,7 +48,7 @@ final class ActiveCheckout {
     _completer.complete(outcome);
 
     _timeoutTimer?.cancel();
-    for (final StreamSubscription<void> subscription in _subscriptions) {
+    for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }
     _subscriptions.clear();

@@ -15,21 +15,21 @@ Map<String, Object?> _loadVectors() => jsonDecode(
 
 void main() {
   final vectors = _loadVectors();
-  final tokenVector = vectors['callbackToken'] as Map<String, Object?>;
-  final secret = tokenVector['secret'] as String;
+  final tokenVector = vectors['callbackToken']! as Map<String, Object?>;
+  final secret = tokenVector['secret']! as String;
 
   test(
     'verifies a token whose HMAC-SHA3-512 signature was computed independently',
     () {
       final result = verifyZpCallbackUrlToken(
-        tokenVector['token'] as String,
+        tokenVector['token']! as String,
         secret,
       );
-      final decoded = tokenVector['decodedPayload'] as Map<String, Object?>;
+      final decoded = tokenVector['decodedPayload']! as Map<String, Object?>;
       if (result case ZpCallbackUrlTokenVerified(:final payload)) {
         expect(
           payload.mode,
-          ZpPluginMode.fromWireValue(decoded['mode'] as int),
+          ZpPluginMode.fromWireValue(decoded['mode']! as int),
         );
         expect(
           payload.merchantUniquePaymentId,
@@ -100,9 +100,7 @@ void main() {
       timestamp: '2026-02-01T09:00:00',
     );
     final token = createZpCallbackUrlToken(payload, secret);
-    final flipped =
-        token.substring(0, token.length - 1) +
-        (token[token.length - 1] == 'A' ? 'B' : 'A');
+    final flipped = token.substring(0, token.length - 1) + (token[token.length - 1] == 'A' ? 'B' : 'A');
     final result = verifyZpCallbackUrlToken(flipped, secret);
     if (result case ZpCallbackUrlTokenFailure(:final reason)) {
       expect(reason, ZpCallbackUrlTokenFailureReason.badSignature);

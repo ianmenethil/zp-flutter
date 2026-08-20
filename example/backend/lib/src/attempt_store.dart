@@ -2,7 +2,7 @@
 /// `merchantUniquePaymentId` and by idempotency key.
 library;
 
-import 'models.dart';
+import 'package:zenpay_example_backend/src/models.dart';
 
 /// Thrown on an internal store invariant violation.
 class AttemptStoreError extends Error {
@@ -32,8 +32,7 @@ class AttemptStore {
   }
 
   /// Returns the stored attempt for [merchantUniquePaymentId], or `null`.
-  CheckoutAttempt? getByMerchantPaymentId(String merchantUniquePaymentId) =>
-      _byMerchantPaymentId[merchantUniquePaymentId];
+  CheckoutAttempt? getByMerchantPaymentId(String merchantUniquePaymentId) => _byMerchantPaymentId[merchantUniquePaymentId];
 
   /// Returns the stored attempt originally created with idempotency [key],
   /// or `null`.

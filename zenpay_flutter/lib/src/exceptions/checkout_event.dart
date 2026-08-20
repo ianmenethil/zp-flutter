@@ -4,18 +4,27 @@
 /// state, and lifecycle errors encountered by the SDK.
 library;
 
-import '../checkout/checkout_controller.dart';
+import 'package:zenpay_flutter/src/checkout/checkout_controller.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart' show ZpCheckoutConfiguration;
+import 'package:zenpay_flutter/zenpay_checkout.dart' show ZpCheckoutConfiguration;
 
 /// Base sealed class for exceptions thrown by the ZenPay Checkout SDK.
 ///
 /// All custom errors emitted synchronously or asynchronously by [ZpCheckout]
 /// inherit from this class, allowing callers to catch them using a single type.
-sealed class const ZpCheckoutException(
+sealed class ZpCheckoutException implements Exception {
+  /// Creates a [ZpCheckoutException] with a [message].
+  const ZpCheckoutException(this.message);
+
   /// A message describing the error condition.
-  final String message,
-) implements Exception {
+  final String message;
+
   @override
-  String toString() => '$runtimeType: $message';
+  String toString() => switch (this) {
+    ZpCheckoutAlreadyActiveException() => 'ZpCheckoutAlreadyActiveException: $message',
+    ZpCheckoutDisposedException() => 'ZpCheckoutDisposedException: $message',
+    ZpInvalidLaunchException() => 'ZpInvalidLaunchException: $message',
+  };
 }
 
 const _errAlreadyActiveMessage = 'A ZenPay checkout is already active.';
@@ -27,7 +36,7 @@ const _errDisposedMessage = 'The ZenPay checkout controller is disposed.';
 /// must await the completion of an active session (or dispose the controller)
 /// before calling [ZpCheckout.open] again.
 final class ZpCheckoutAlreadyActiveException extends ZpCheckoutException {
-  // Left in old style: Cannot express a constant super-constructor argument in a parameterless primary constructor.
+  /// Creates a [ZpCheckoutAlreadyActiveException].
   const ZpCheckoutAlreadyActiveException() : super(_errAlreadyActiveMessage);
 }
 
@@ -36,7 +45,7 @@ final class ZpCheckoutAlreadyActiveException extends ZpCheckoutException {
 /// After [ZpCheckout.dispose] has been called, the controller cannot be
 /// reused to launch subsequent checkout sessions.
 final class ZpCheckoutDisposedException extends ZpCheckoutException {
-  // Left in old style: Cannot express a constant super-constructor argument in a parameterless primary constructor.
+  /// Creates a [ZpCheckoutDisposedException].
   const ZpCheckoutDisposedException() : super(_errDisposedMessage);
 }
 
@@ -46,5 +55,7 @@ final class ZpCheckoutDisposedException extends ZpCheckoutException {
 /// - The checkout URL host is not listed in [ZpCheckoutConfiguration.allowedCheckoutHosts].
 /// - The checkout URL scheme is not HTTPS, port is not 443, contains credentials/fragment,
 ///   or exceeds 4096 characters in length.
-final class const ZpInvalidLaunchException(super.message)
-    extends ZpCheckoutException;
+final class ZpInvalidLaunchException extends ZpCheckoutException {
+  /// Creates a [ZpInvalidLaunchException] with the failure [message].
+  const ZpInvalidLaunchException(super.message);
+}

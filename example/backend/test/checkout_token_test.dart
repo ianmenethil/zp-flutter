@@ -109,7 +109,7 @@ void main() {
   test("a ZenPay attempt-scoped 't' return token is rejected as a checkout "
       'token (scope confusion)', () {
     final returnToken = createZpCallbackUrlToken(
-      ZpCallbackUrlTokenPayload(
+      const ZpCallbackUrlTokenPayload(
         mode: ZpPluginMode.makePayment,
         merchantUniquePaymentId: 'M1',
         timestamp: '2026-01-01T00:00:00',

@@ -57,7 +57,7 @@ Future<void> main() async {
     poweredByHeader: null,
   );
 
-  logEvent('server_started', {
+  logEvent('server_started', fields: {
     'port': server.port,
     'sessionReady': sessionConfigurationErrors(config).isEmpty,
     'callbackReady': callbackConfigurationErrors(config).isEmpty,

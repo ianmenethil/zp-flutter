@@ -63,17 +63,14 @@ ZpPaymentStatus? _zpPaymentStatusFromWireValue(int value) {
 }
 
 /// Translates a ZenPay wire status code into a [MerchantPaymentStatus].
-MerchantPaymentStatus mapZenPayStatus(int statusCode) =>
-    switch (_zpPaymentStatusFromWireValue(statusCode)) {
-      ZpPaymentStatus.pending ||
-      ZpPaymentStatus.inProgress => MerchantPaymentStatus.pending,
-      ZpPaymentStatus.successful => MerchantPaymentStatus.successful,
-      ZpPaymentStatus.failed => MerchantPaymentStatus.failed,
-      ZpPaymentStatus.cancelled => MerchantPaymentStatus.cancelled,
-      ZpPaymentStatus.error ||
-      ZpPaymentStatus.suppressed => MerchantPaymentStatus.error,
-      null => MerchantPaymentStatus.unknown,
-    };
+MerchantPaymentStatus mapZenPayStatus(int statusCode) => switch (_zpPaymentStatusFromWireValue(statusCode)) {
+  ZpPaymentStatus.pending || ZpPaymentStatus.inProgress => MerchantPaymentStatus.pending,
+  ZpPaymentStatus.successful => MerchantPaymentStatus.successful,
+  ZpPaymentStatus.failed => MerchantPaymentStatus.failed,
+  ZpPaymentStatus.cancelled => MerchantPaymentStatus.cancelled,
+  ZpPaymentStatus.error || ZpPaymentStatus.suppressed => MerchantPaymentStatus.error,
+  null => MerchantPaymentStatus.unknown,
+};
 
 /// Tracks the payment identifier, launch parameters, and verified callback
 /// results for one ZenPay checkout attempt. Its identity is its
@@ -210,12 +207,9 @@ class CheckoutAttempt {
     tokenReference: tokenReference ?? this.tokenReference,
     failureCode: failureCode ?? this.failureCode,
     failureReason: failureReason ?? this.failureReason,
-    verifiedCallbackReference:
-        verifiedCallbackReference ?? this.verifiedCallbackReference,
-    verifiedCallbackStatusCode:
-        verifiedCallbackStatusCode ?? this.verifiedCallbackStatusCode,
-    verifiedCallbackPayload:
-        verifiedCallbackPayload ?? this.verifiedCallbackPayload,
+    verifiedCallbackReference: verifiedCallbackReference ?? this.verifiedCallbackReference,
+    verifiedCallbackStatusCode: verifiedCallbackStatusCode ?? this.verifiedCallbackStatusCode,
+    verifiedCallbackPayload: verifiedCallbackPayload ?? this.verifiedCallbackPayload,
   );
 }
 

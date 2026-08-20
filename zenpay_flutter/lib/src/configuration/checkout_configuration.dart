@@ -5,13 +5,13 @@
 library;
 
 import 'package:meta/meta.dart';
-
-import '../observability/checkout_event.dart';
+import 'package:zenpay_flutter/src/checkout/checkout_controller.dart' show ZpCheckout;
+import 'package:zenpay_flutter/src/observability/checkout_event.dart';
+import 'package:zenpay_flutter/zenpay_checkout.dart' show ZpCheckout;
 
 const _httpsScheme = 'https';
 const _errMissingHosts = 'At least one non-empty checkout host is required.';
-const _errInvalidReturnUri =
-    'The return URI must be a clean absolute HTTPS URI.';
+const _errInvalidReturnUri = 'The return URI must be a clean absolute HTTPS URI.';
 const _errPositiveTimeout = 'Must be positive.';
 const _errMinReturnUriLength = 'Must be at least 256.';
 const _errMinReturnValueLength = 'Must be at least 16.';
@@ -58,14 +58,9 @@ final class ZpCheckoutConfiguration({
   /// case, which is otherwise entirely silent.
   final ZpCheckoutObserver? observer,
 }) {
-  /// The set of normalized HTTPS hostnames authorized for checkout URLs.
-  final Set<String> allowedCheckoutHosts = Set<String>.unmodifiable(
-    allowedCheckoutHosts.map((String host) => host.trim().toLowerCase()),
-  );
-
+  /// Creates a validated [ZpCheckoutConfiguration].
   this {
-    if (this.allowedCheckoutHosts.isEmpty ||
-        this.allowedCheckoutHosts.any((String host) => host.isEmpty)) {
+    if (this.allowedCheckoutHosts.isEmpty || this.allowedCheckoutHosts.any((host) => host.isEmpty)) {
       throw ArgumentError.value(
         allowedCheckoutHosts,
         'allowedCheckoutHosts',
@@ -103,4 +98,9 @@ final class ZpCheckoutConfiguration({
       );
     }
   }
+
+  /// The set of normalized HTTPS hostnames authorized for checkout URLs.
+  final Set<String> allowedCheckoutHosts = Set<String>.unmodifiable(
+    allowedCheckoutHosts.map((host) => host.trim().toLowerCase()),
+  );
 }

@@ -134,12 +134,10 @@ AppConfig loadConfig() {
   final file = DotEnv(quiet: true)..load();
   String value(String key, String fallback) => _read(file, key) ?? fallback;
 
-  final hosts =
-      value('ZENPAY_ALLOWED_CHECKOUT_HOSTS', 'pay.sandbox.travelpay.com.au')
-          .split(',')
-          .map((h) => h.trim().toLowerCase())
-          .where((h) => h.isNotEmpty)
-          .toSet();
+  final hosts = value(
+    'ZENPAY_ALLOWED_CHECKOUT_HOSTS',
+    'pay.sandbox.travelpay.com.au',
+  ).split(',').map((h) => h.trim().toLowerCase()).where((h) => h.isNotEmpty).toSet();
 
   return AppConfig(
     port: _numberOr(_read(file, 'PORT'), 7000),

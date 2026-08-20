@@ -4,5 +4,4 @@ library;
 
 /// Always returns `false`: mobile presents checkout in a platform browser
 /// surface, not a popup, so there is nothing here to hand off.
-bool completeWebCheckoutReturnIfPopup({required Uri expectedReturnUri}) =>
-    false;
+bool completeWebCheckoutReturnIfPopup({required Uri expectedReturnUri}) => false;

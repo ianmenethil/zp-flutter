@@ -10,31 +10,29 @@
 /// silently blocked on web.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:zenpay_flutter/zenpay_checkout.dart';
-
 import 'package:zenpay_example_app/core/config/app_config.dart';
-
-import '../models/checkout_modes.dart';
-import '../models/mock_customer.dart';
-import '../services/checkout_service.dart';
-import 'widgets/zenpay_amount_field.dart';
-import 'widgets/zenpay_environment_banner.dart';
-import 'widgets/zenpay_labeled_field.dart';
-import 'widgets/zenpay_pay_button.dart';
-import 'widgets/zenpay_selectable_card.dart';
+import 'package:zenpay_example_app/features/checkout/models/checkout_modes.dart';
+import 'package:zenpay_example_app/features/checkout/models/mock_customer.dart';
+import 'package:zenpay_example_app/features/checkout/services/checkout_service.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_amount_field.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_environment_banner.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_labeled_field.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_pay_button.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_selectable_card.dart';
+import 'package:zenpay_flutter/zenpay_checkout.dart';
 
 const _appBarTitle = 'ZenPay Hosted Checkout';
 const _errPopupBlockedTitle = 'Could not open checkout';
 const _errPopupBlockedDetail = 'Popup blocked. Allow popups and retry.';
 const _errCheckoutFailedTitle = 'Checkout failed';
 const _errSessionConfigRequired = 'SESSION_CONFIGURATION_REQUIRED';
-const _errMissingCredentialsHelp =
-    'The backend has no ZenPay credentials — fill in backend/.env.';
+const _errMissingCredentialsHelp = 'The backend has no ZenPay credentials — fill in backend/.env.';
 const _noPaymentYetText = 'No payment attempt yet.';
 const _errBackendUnreachable = "Can't reach the backend — is it running?";
 const _errInvalidEmail = 'Enter a valid email address';
@@ -46,9 +44,9 @@ final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
 /// Digits plus common separators (`+`, spaces, hyphens, parens); 6–15 digits.
 final _phoneAllowedCharsPattern = RegExp(r'^[0-9 ()+-]+$');
-final _phoneDigitPattern = RegExp(r'[0-9]');
+final _phoneDigitPattern = RegExp('[0-9]');
 
-/// Blank is fine — [CheckoutPage._pay] falls back to a placeholder value for
+/// Blank is fine — [_CheckoutPageState._pay] falls back to a placeholder value for
 /// an empty field. Only rejects text that was actually typed and is bad.
 String? _validateEmail(String rawValue) {
   final value = rawValue.trim();
@@ -61,10 +59,7 @@ String? _validatePhone(String rawValue) {
   final value = rawValue.trim();
   if (value.isEmpty) return null;
   final digitCount = _phoneDigitPattern.allMatches(value).length;
-  final valid =
-      _phoneAllowedCharsPattern.hasMatch(value) &&
-      digitCount >= 6 &&
-      digitCount <= 15;
+  final valid = _phoneAllowedCharsPattern.hasMatch(value) && digitCount >= 6 && digitCount <= 15;
   return valid ? null : _errInvalidPhone;
 }
 
@@ -85,8 +80,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _reference = TextEditingController();
   final TextEditingController _phone = TextEditingController();
   final TextEditingController _amount = TextEditingController();
-  late final ({String name, String email, String reference, String phone})
-  _placeholder;
+  late final ({String name, String email, String reference, String phone}) _placeholder;
   late final double _placeholderAmount;
 
   TransactionMode _mode = TransactionMode.makePayment;
@@ -147,21 +141,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
       String? appCheckToken;
       try {
         appCheckToken = await FirebaseAppCheck.instance.getToken();
-      } catch (_) {
-        // App Check is optional or uninitialized in some dev/test setups.
+        if (appCheckToken == null) {
+          debugPrint('Firebase App Check returned a null token.');
+        } else {
+          debugPrint('Firebase App Check successfully fetched a token.');
+        }
+      } on Object catch (e, st) {
+        debugPrint('Firebase App Check failed to get token: $e\n$st');
       }
 
-      final checkoutToken =
-          await prepareCheckout(backendBaseUrl, <String, Object?>{
-            'customerName': _text(_name, _placeholder.name),
-            'customerEmail': _text(_email, _placeholder.email),
-            'customerReference': _text(_reference, _placeholder.reference),
-            'contactNumber': _text(_phone, _placeholder.phone),
-            'mode': _mode.wireValue,
-            if (_mode.usesAmount)
-              'paymentAmount':
-                  double.tryParse(_amount.text.trim()) ?? _placeholderAmount,
-          }, appCheckToken: appCheckToken);
+      final checkoutToken = await prepareCheckout(
+        backendBaseUrl,
+        <String, Object?>{
+          'customerName': _text(_name, _placeholder.name),
+          'customerEmail': _text(_email, _placeholder.email),
+          'customerReference': _text(_reference, _placeholder.reference),
+          'contactNumber': _text(_phone, _placeholder.phone),
+          'mode': _mode.wireValue,
+          if (_mode.usesAmount) 'paymentAmount': double.tryParse(_amount.text.trim()) ?? _placeholderAmount,
+        },
+        appCheckToken: appCheckToken,
+      );
       final exchanged = await exchangeCheckout(backendBaseUrl, checkoutToken);
 
       await _resolve(
@@ -198,9 +198,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         final verified = status.callbackVerified;
         _show(
           'Payment ${status.status}',
-          verified
-              ? 'Verified by signed ZenPay callback.'
-              : 'Provisional — awaiting the signed callback.',
+          verified ? 'Verified by signed ZenPay callback.' : 'Provisional — awaiting the signed callback.',
           isError: !verified,
           isVerified: verified,
           callbackPayload: status.callbackPayload,
@@ -220,14 +218,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   /// Turns the most common demo failure into an actionable message.
   String _explain(Object error) => switch (error) {
-    BackendError(:final code) when code == _errSessionConfigRequired =>
-      _errMissingCredentialsHelp,
+    BackendError(:final code) when code == _errSessionConfigRequired => _errMissingCredentialsHelp,
     http.ClientException() => _errBackendUnreachable,
     _ => '$error',
   };
 
-  String _text(TextEditingController controller, String fallback) =>
-      controller.text.trim().isEmpty ? fallback : controller.text.trim();
+  String _text(TextEditingController controller, String fallback) => controller.text.trim().isEmpty ? fallback : controller.text.trim();
 
   void _show(
     String title,
@@ -251,7 +247,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   @override
   void dispose() {
-    _checkout.dispose();
+    unawaited(_checkout.dispose());
     _name.dispose();
     _email.dispose();
     _reference.dispose();
@@ -337,10 +333,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   /// The payment outcome, or a placeholder before the first attempt.
   /// Green for a verified callback — distinct from [ColorScheme.primary],
   /// which the brand theme uses for CTAs, not a success signal.
-  Color _verifiedColor(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-      ? Colors.green.shade400
-      : Colors.green.shade700;
+  Color _verifiedColor(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.green.shade400 : Colors.green.shade700;
 
   Widget _buildResults(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -442,9 +435,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Image.asset(
-            Theme.of(context).brightness == Brightness.dark
-                ? 'assets/brand/logo-light.png'
-                : 'assets/brand/logo.png',
+            Theme.of(context).brightness == Brightness.dark ? 'assets/brand/logo-light.png' : 'assets/brand/logo.png',
             height: 28,
           ),
           const SizedBox(width: 14),

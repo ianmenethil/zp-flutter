@@ -37,15 +37,12 @@ enum const ZpPluginMode(
   /// Modes 0, 2 and 3 require a positive amount. Tokenise may omit it.
   bool get requiresPositiveAmount => switch (this) {
     ZpPluginMode.tokenise => false,
-    ZpPluginMode.makePayment ||
-    ZpPluginMode.customPayment ||
-    ZpPluginMode.preauthorization => true,
+    ZpPluginMode.makePayment || ZpPluginMode.customPayment || ZpPluginMode.preauthorization => true,
   };
 
   /// Callback field carrying this mode's ZenPay reference.
   String get callbackReferenceField => switch (this) {
-    ZpPluginMode.makePayment ||
-    ZpPluginMode.customPayment => 'paymentReference',
+    ZpPluginMode.makePayment || ZpPluginMode.customPayment => 'paymentReference',
     ZpPluginMode.preauthorization => 'preauthReference',
     ZpPluginMode.tokenise => 'token',
   };
@@ -133,5 +130,4 @@ enum const ZpPaymentStatus(
 }
 
 /// Whether the raw ZenPay [status] represents a successful transaction.
-bool isZpPaymentSuccessful(int status) =>
-    ZpPaymentStatus.tryFromWireValue(status)?.isSuccessful ?? false;
+bool isZpPaymentSuccessful(int status) => ZpPaymentStatus.tryFromWireValue(status)?.isSuccessful ?? false;

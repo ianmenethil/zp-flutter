@@ -16,22 +16,22 @@ Map<String, Object?> _loadVectors() => jsonDecode(
 
 void main() {
   final vectors = _loadVectors();
-  final credentials = vectors['credentials'] as Map<String, Object?>;
-  final mupid = vectors['mupid'] as String;
-  final callbacks = vectors['callbacks'] as Map<String, Object?>;
+  final credentials = vectors['credentials']! as Map<String, Object?>;
+  final mupid = vectors['mupid']! as String;
+  final callbacks = vectors['callbacks']! as Map<String, Object?>;
 
   ZpVerifyCallbackContext contextFor(num amount) => ZpVerifyCallbackContext(
-    apiKey: credentials['apiKey'] as String,
-    username: credentials['username'] as String,
-    password: credentials['password'] as String,
+    apiKey: credentials['apiKey']! as String,
+    username: credentials['username']! as String,
+    password: credentials['password']! as String,
     paymentAmount: amount,
     merchantUniquePaymentId: ZpMupid(mupid),
   );
 
   group('mode 0 (payment) — golden digest moved unchanged from the Dart backend rewrite', () {
-    final vector = callbacks['mode0Payment'] as Map<String, Object?>;
-    final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
-    final amount = vector['paymentAmount'] as num;
+    final vector = callbacks['mode0Payment']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
+    final amount = vector['paymentAmount']! as num;
 
     Map<String, Object?> body({String? reference, String? validationCode}) => {
       'response': {
@@ -151,20 +151,20 @@ void main() {
   });
 
   test('mode 1 (tokenise) — golden digest for an amountless attempt', () {
-    final vector = callbacks['mode1Tokenise'] as Map<String, Object?>;
-    final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
+    final vector = callbacks['mode1Tokenise']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final result = verifyZpCallback(mode, {
       'response': {'token': vector['reference']},
       'validationCode': vector['validationCode'],
-    }, contextFor(vector['paymentAmount'] as num));
+    }, contextFor(vector['paymentAmount']! as num));
     expect(result, isA<ZpCallbackVerified>());
   });
 
   test(
     'mode 1 (tokenise) verifies with paymentDetail and doRedirect present',
     () {
-      final vector = callbacks['mode1Tokenise'] as Map<String, Object?>;
-      final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
+      final vector = callbacks['mode1Tokenise']! as Map<String, Object?>;
+      final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
       final result = verifyZpCallback(mode, {
         'response': {
           'token': vector['reference'],
@@ -177,15 +177,15 @@ void main() {
           },
         },
         'validationCode': vector['validationCode'],
-      }, contextFor(vector['paymentAmount'] as num));
+      }, contextFor(vector['paymentAmount']! as num));
 
       expect(result, isA<ZpCallbackVerified>());
     },
   );
 
   test('mode 2 (custom payment) — hash uses "0" but a positive context amount is still required', () {
-    final vector = callbacks['mode2CustomPayment'] as Map<String, Object?>;
-    final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
+    final vector = callbacks['mode2CustomPayment']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final body = {
       'response': {
         'merchantUniquePaymentId': mupid, // needed to pass mupid check
@@ -196,7 +196,7 @@ void main() {
     };
 
     expect(
-      verifyZpCallback(mode, body, contextFor(vector['paymentAmount'] as num)),
+      verifyZpCallback(mode, body, contextFor(vector['paymentAmount']! as num)),
       isA<ZpCallbackVerified>(),
     );
     // Preserves the installed zp-hcp@0.1.30 quirk: mode 2 always hashes
@@ -206,18 +206,18 @@ void main() {
   });
 
   test('mode 3 (preauthorization) — golden digest', () {
-    final vector = callbacks['mode3Preauthorization'] as Map<String, Object?>;
-    final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
+    final vector = callbacks['mode3Preauthorization']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final result = verifyZpCallback(mode, {
       'response': {'preauthReference': vector['reference'], 'preauthStatus': 3},
       'validationCode': vector['validationCode'],
-    }, contextFor(vector['paymentAmount'] as num));
+    }, contextFor(vector['paymentAmount']! as num));
     expect(result, isA<ZpCallbackVerified>());
   });
 
   test('mode 3 (preauthorization) verifies with preauthAmount/preauthExpiryAt present', () {
-    final vector = callbacks['mode3Preauthorization'] as Map<String, Object?>;
-    final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
+    final vector = callbacks['mode3Preauthorization']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final result = verifyZpCallback(mode, {
       'response': {
         'preauthReference': vector['reference'],
@@ -227,14 +227,14 @@ void main() {
         'preauthExpiryAt': '2026-03-01T00:00:00',
       },
       'validationCode': vector['validationCode'],
-    }, contextFor(vector['paymentAmount'] as num));
+    }, contextFor(vector['paymentAmount']! as num));
 
     expect(result, isA<ZpCallbackVerified>());
   });
 
   test('rejects credentials shorter than 5 characters', () {
-    final vector = callbacks['mode0Payment'] as Map<String, Object?>;
-    final mode = ZpPluginMode.fromWireValue(vector['mode'] as int);
+    final vector = callbacks['mode0Payment']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final result = verifyZpCallback(
       mode,
       {

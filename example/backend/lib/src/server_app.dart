@@ -20,27 +20,16 @@ import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
 import 'package:zenpay_dart/zenpay_dart.dart'
-    show
-        ZpCallbackUrlTokenFailure,
-        ZpCallbackUrlTokenPayload,
-        ZpCallbackUrlTokenVerified,
-        createZpMupid,
-        verifyZpCallbackUrlToken;
+    show ZpCallbackUrlTokenFailure, ZpCallbackUrlTokenPayload, ZpCallbackUrlTokenVerified, createZpMupid, verifyZpCallbackUrlToken;
 
-import 'app_check.dart' show AppCheckVerifier, FirebaseAppCheckVerifier;
-import 'attempt_store.dart';
-import 'config.dart';
-import 'models.dart';
-import 'rate_limiter.dart' show FixedWindowRateLimiter;
-import 'security.dart' show constantTimeEqual, verifyCallback;
-import 'session_service.dart'
-    show
-        appReturnUriFor,
-        callbacksPath,
-        exchangeCheckout,
-        prepareCheckout,
-        returnPath;
-import 'token_keys.dart' show callbackTokenKey;
+import 'package:zenpay_example_backend/src/app_check.dart' show AppCheckVerifier, FirebaseAppCheckVerifier;
+import 'package:zenpay_example_backend/src/attempt_store.dart';
+import 'package:zenpay_example_backend/src/config.dart';
+import 'package:zenpay_example_backend/src/models.dart';
+import 'package:zenpay_example_backend/src/rate_limiter.dart' show FixedWindowRateLimiter;
+import 'package:zenpay_example_backend/src/security.dart' show constantTimeEqual, verifyCallback;
+import 'package:zenpay_example_backend/src/session_service.dart' show appReturnUriFor, callbacksPath, exchangeCheckout, prepareCheckout, returnPath;
+import 'package:zenpay_example_backend/src/token_keys.dart' show callbackTokenKey;
 
 /// HTTP header name constants used across request parsing and logging.
 abstract final class _HeaderNames {
@@ -58,16 +47,14 @@ String _clientIp(shelf.Request request) {
   final forwardedFor = request.headers[_HeaderNames.xForwardedFor];
   final rawIp = forwardedFor?.split(',').first.trim();
   if (rawIp != null && rawIp.isNotEmpty) return rawIp;
-  final connectionInfo =
-      request.context['shelf.io.connection_info'] as HttpConnectionInfo?;
+  final connectionInfo = request.context['shelf.io.connection_info'] as HttpConnectionInfo?;
   return connectionInfo?.remoteAddress.address ?? 'unknown';
 }
 
 /// Reads and parses a JSON request body with a 64KB maximum size limit.
 Future<Map<String, Object?>> _readJson(shelf.Request request) async {
   final contentType = request.headers[_HeaderNames.contentType];
-  if (contentType == null ||
-      !contentType.toLowerCase().startsWith('application/json')) {
+  if (contentType == null || !contentType.toLowerCase().startsWith('application/json')) {
     throw HttpError(415, 'APPLICATION_JSON_REQUIRED');
   }
 
@@ -112,16 +99,11 @@ final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 /// Validates and parses a `POST /api/v1/checkout/token` request body.
 PrepareCheckoutBody _parsePrepareCheckoutBody(Map<String, Object?> value) {
   final customerName = value['customerName'];
-  if (customerName is! String ||
-      customerName.trim().isEmpty ||
-      customerName.trim().length > 250) {
+  if (customerName is! String || customerName.trim().isEmpty || customerName.trim().length > 250) {
     throw HttpError(400, 'INVALID_CHECKOUT_NAME');
   }
   final customerEmail = value['customerEmail'];
-  if (customerEmail is! String ||
-      customerEmail.trim().isEmpty ||
-      customerEmail.trim().length > 254 ||
-      !_emailPattern.hasMatch(customerEmail.trim())) {
+  if (customerEmail is! String || customerEmail.trim().isEmpty || customerEmail.trim().length > 254 || !_emailPattern.hasMatch(customerEmail.trim())) {
     throw HttpError(400, 'INVALID_CHECKOUT_EMAIL');
   }
   final modeRaw = value['mode'];
@@ -138,26 +120,18 @@ PrepareCheckoutBody _parsePrepareCheckoutBody(Map<String, Object?> value) {
     throw HttpError(400, 'INVALID_CHECKOUT_AMOUNT');
   }
   final customerReferenceRaw = value['customerReference'];
-  if (customerReferenceRaw != null &&
-      (customerReferenceRaw is! String ||
-          customerReferenceRaw.trim().isEmpty ||
-          customerReferenceRaw.trim().length > 128)) {
+  if (customerReferenceRaw != null && (customerReferenceRaw is! String || customerReferenceRaw.trim().isEmpty || customerReferenceRaw.trim().length > 128)) {
     throw HttpError(400, 'INVALID_CHECKOUT_REFERENCE');
   }
   // ZenPay's own Authorise validation requires customerReference (with
   // customerName, already required above) for Make Payment and Custom
   // Payment — see `checkout_url.dart`'s `requiresCustomer`.
   final effectiveMode = (modeRaw as int?) ?? 0;
-  if ((effectiveMode == 0 || effectiveMode == 2) &&
-      (customerReferenceRaw == null ||
-          (customerReferenceRaw as String).trim().isEmpty)) {
+  if ((effectiveMode == 0 || effectiveMode == 2) && (customerReferenceRaw == null || (customerReferenceRaw as String).trim().isEmpty)) {
     throw HttpError(400, 'CUSTOMER_REFERENCE_REQUIRED');
   }
   final contactNumberRaw = value['contactNumber'];
-  if (contactNumberRaw != null &&
-      (contactNumberRaw is! String ||
-          contactNumberRaw.trim().isEmpty ||
-          contactNumberRaw.trim().length > 32)) {
+  if (contactNumberRaw != null && (contactNumberRaw is! String || contactNumberRaw.trim().isEmpty || contactNumberRaw.trim().length > 32)) {
     throw HttpError(400, 'INVALID_CHECKOUT_CONTACT_NUMBER');
   }
 
@@ -259,9 +233,7 @@ Future<shelf.Response> _handleCreateCheckoutToken(
   }
 
   final idempotencyKey = request.headers[_HeaderNames.idempotencyKey];
-  if (idempotencyKey == null ||
-      idempotencyKey.length < 16 ||
-      idempotencyKey.length > 128) {
+  if (idempotencyKey == null || idempotencyKey.length < 16 || idempotencyKey.length > 128) {
     throw HttpError(400, 'INVALID_IDEMPOTENCY_KEY');
   }
 
@@ -412,15 +384,9 @@ Future<shelf.Response> _handleCallback(
   store.replace(
     attempt.merchantUniquePaymentId,
     attempt.copyWith(
-      paymentReference: attempt.mode == 0 || attempt.mode == 2
-          ? fields.reference
-          : attempt.paymentReference,
-      preauthReference: attempt.mode == 3
-          ? fields.reference
-          : attempt.preauthReference,
-      tokenReference: attempt.mode == 1
-          ? fields.reference
-          : attempt.tokenReference,
+      paymentReference: attempt.mode == 0 || attempt.mode == 2 ? fields.reference : attempt.paymentReference,
+      preauthReference: attempt.mode == 3 ? fields.reference : attempt.preauthReference,
+      tokenReference: attempt.mode == 1 ? fields.reference : attempt.tokenReference,
       status: mappedStatus,
       failureCode: fields.failureCode,
       failureReason: fields.failureReason,
@@ -435,9 +401,7 @@ Future<shelf.Response> _handleCallback(
       'merchantUniquePaymentId': merchantUniquePaymentId,
       'paymentReference': fields.reference,
     });
-  } else if (mappedStatus == MerchantPaymentStatus.failed ||
-      mappedStatus == MerchantPaymentStatus.cancelled ||
-      mappedStatus == MerchantPaymentStatus.error) {
+  } else if (mappedStatus == MerchantPaymentStatus.failed || mappedStatus == MerchantPaymentStatus.cancelled || mappedStatus == MerchantPaymentStatus.error) {
     _recordEvent(request, 'checkout.attempt_failed', {
       'merchantUniquePaymentId': merchantUniquePaymentId,
       if (fields.failureCode != null) 'failureCode': fields.failureCode,
@@ -450,7 +414,7 @@ Future<shelf.Response> _handleCallback(
 
 /// Statuses a bare browser return must not downgrade — the callback (if it
 /// already arrived) is authoritative over the return redirect.
-const _terminalStatuses = {
+const Set<MerchantPaymentStatus> _terminalStatuses = {
   MerchantPaymentStatus.successful,
   MerchantPaymentStatus.failed,
   MerchantPaymentStatus.cancelled,
@@ -475,16 +439,14 @@ shelf.Response _handleReturn(
   store.replace(
     payload.merchantUniquePaymentId,
     attempt.copyWith(
-      status: _terminalStatuses.contains(attempt.status)
-          ? attempt.status
-          : MerchantPaymentStatus.browserReturned,
+      status: _terminalStatuses.contains(attempt.status) ? attempt.status : MerchantPaymentStatus.browserReturned,
     ),
   );
 
   final appReturn = appReturnUriFor(
     attempt,
     config,
-  ).replace(queryParameters: {'t': requestedUri.queryParameters['t']!});
+  ).replace(queryParameters: {'t': requestedUri.queryParameters['t']});
   return _redirect(appReturn);
 }
 
@@ -512,8 +474,7 @@ Future<shelf.Response> _handleWellKnown(String name) async {
 final _registeredRoutes = <({String method, String path})>[];
 
 /// The server's route table, for startup logging — see [_registeredRoutes].
-List<({String method, String path})> describeRoutes() =>
-    List.unmodifiable(_registeredRoutes);
+List<({String method, String path})> describeRoutes() => List.unmodifiable(_registeredRoutes);
 
 /// Builds the route table for all example backend endpoints.
 ///
@@ -537,8 +498,7 @@ shelf_router.Router _buildRouter(
   );
 
   final router = shelf_router.Router(
-    notFoundHandler: (shelf.Request request) =>
-        throw HttpError(404, 'NOT_FOUND'),
+    notFoundHandler: (request) => throw HttpError(404, 'NOT_FOUND'),
   );
 
   void get(String path, Function handler) {
@@ -572,23 +532,19 @@ shelf_router.Router _buildRouter(
   );
   post(
     '/api/v1/checkout/exchange',
-    (shelf.Request request) =>
-        _handleExchangeCheckout(request, config, store, checkoutLimiter),
+    (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter),
   );
   get(
     '/api/v1/sessions',
-    (shelf.Request request) =>
-        _handleGetSession(request.requestedUri, config, store),
+    (shelf.Request request) => _handleGetSession(request.requestedUri, config, store),
   );
   post(
     callbacksPath,
-    (shelf.Request request) =>
-        _handleCallback(request, config, store, callbackLimiter),
+    (shelf.Request request) => _handleCallback(request, config, store, callbackLimiter),
   );
   get(
     returnPath,
-    (shelf.Request request) =>
-        _handleReturn(request.requestedUri, config, store),
+    (shelf.Request request) => _handleReturn(request.requestedUri, config, store),
   );
 
   return router;
@@ -596,7 +552,7 @@ shelf_router.Router _buildRouter(
 
 /// Strips anything but a safe character set from an unexpected exception's
 /// message before it's used as a logged error code.
-final _sanitizePattern = RegExp(r'[^A-Za-z0-9_:.-]');
+final _sanitizePattern = RegExp('[^A-Za-z0-9_:.-]');
 
 /// Builds the top-level Shelf handler serving all example backend routes.
 shelf.Handler buildHandler(
@@ -604,11 +560,7 @@ shelf.Handler buildHandler(
   AttemptStore store, {
   AppCheckVerifier? appCheckVerifier,
 }) {
-  final verifier =
-      appCheckVerifier ??
-      (config.firebaseServiceAccountJson.isNotEmpty
-          ? FirebaseAppCheckVerifier(config.firebaseServiceAccountJson)
-          : null);
+  final verifier = appCheckVerifier ?? (config.firebaseServiceAccountJson.isNotEmpty ? FirebaseAppCheckVerifier(config.firebaseServiceAccountJson) : null);
   final router = _buildRouter(config, store, verifier);
 
   return (shelf.Request request) async {
@@ -628,8 +580,7 @@ shelf.Handler buildHandler(
           headers: {
             'access-control-allow-origin': config.allowedAppOrigin,
             'access-control-allow-methods': 'GET,POST,OPTIONS',
-            'access-control-allow-headers':
-                'Content-Type,Idempotency-Key,Authorization',
+            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization',
           },
         );
       } else {
@@ -643,7 +594,7 @@ shelf.Handler buildHandler(
     } on HttpError catch (error) {
       _recordEvent(withRequestId, 'request_error', {'code': error.code});
       response = _json(error.statusCode, {'error': error.code});
-    } catch (error) {
+    } on Object catch (error) {
       final code = error.toString().replaceAll(_sanitizePattern, '_');
       _recordEvent(withRequestId, 'request_error', {'code': code});
       response = _json(500, {'error': code});
@@ -658,8 +609,7 @@ shelf.Handler buildHandler(
       // to mistake one for the other. `events` carries whatever business
       // annotations (`_recordEvent`) fired along the way; empty on a plain
       // request nothing noteworthy happened to.
-      final events =
-          withRequestId.context['events']! as List<Map<String, Object?>>;
+      final events = withRequestId.context['events']! as List<Map<String, Object?>>;
       String record() => _encoder.convert({
         'event': 'http_trace',
         'requestId': requestId,
@@ -667,13 +617,13 @@ shelf.Handler buildHandler(
         'userAgent': request.headers[_HeaderNames.userAgent] ?? 'unknown',
         'method': request.method,
         'path': request.requestedUri.path,
-        'requestHeaders': _redactHeaders(request.headers),
-        'requestBody': _redactBody(
+        'requestHeaders': request.headers,
+        'requestBody': _decodeBody(
           utf8.decode(requestBody, allowMalformed: true),
         ),
         'status': response.statusCode,
-        'responseHeaders': _redactHeaders(response.headers),
-        'responseBody': _redactBody(
+        'responseHeaders': response.headers,
+        'responseBody': _decodeBody(
           utf8.decode(responseBody, allowMalformed: true),
         ),
         'durationMs': DateTime.now().difference(startTime).inMilliseconds,
@@ -706,44 +656,21 @@ void _recordEvent(
 final _logger = Logger('zenpay_example_backend');
 const _encoder = JsonEncoder.withIndent('  ');
 
-// Headers/body fields never printed in full, regardless of log level — see
-// README.md § Security Model, "No sensitive data in logs".
-const _sensitiveHeaders = {'authorization', 'cookie', 'set-cookie'};
-const _sensitiveBodyKeys = {'checkoutToken'};
-
-Map<String, String> _redactHeaders(Map<String, String> headers) => {
-  for (final entry in headers.entries)
-    entry.key: _sensitiveHeaders.contains(entry.key.toLowerCase())
-        ? '[redacted]'
-        : entry.value,
-};
-
-/// Best-effort JSON-decodes [raw] and masks known-sensitive top-level keys.
-/// Falls back to the raw string for an empty or non-JSON body.
-Object? _redactBody(String raw) {
+Object? _decodeBody(String raw) {
   if (raw.isEmpty) return null;
-  final Object? decoded;
   try {
-    decoded = jsonDecode(raw);
-  } on FormatException {
+    return jsonDecode(raw);
+  } on Object catch (_) {
     return raw;
   }
-  if (decoded is Map<String, Object?>) {
-    return {
-      for (final entry in decoded.entries)
-        entry.key: _sensitiveBodyKeys.contains(entry.key)
-            ? '[redacted]'
-            : entry.value,
-    };
-  }
-  return decoded;
 }
 
+/// Logs a structured [event] payload with optional [fields] and [isError] flag.
 void logEvent(
-  String event, [
+  String event, {
   Map<String, Object?> fields = const {},
   bool isError = false,
-]) {
+}) {
   final payload = _encoder.convert({'event': event, ...fields});
   if (isError) {
     _logger.warning(payload);

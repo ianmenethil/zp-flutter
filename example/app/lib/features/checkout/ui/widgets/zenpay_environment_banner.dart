@@ -36,8 +36,7 @@ final class ZenPayEnvironmentBanner extends StatelessWidget {
   // negligible. Swap for an explicit environment field if a host ever
   // collides.
   bool get _isNonProduction => allowedCheckoutHosts.every(
-    (String host) =>
-        host.contains(_sandboxKeyword) || host.contains(_uatKeyword),
+    (host) => host.contains(_sandboxKeyword) || host.contains(_uatKeyword),
   );
 
   @override

@@ -7,12 +7,11 @@ import 'dart:typed_data';
 import 'package:hashlib/hashlib.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
 
-import 'config.dart' show ZenPayCredentials;
-import 'models.dart' show CheckoutAttempt;
+import 'package:zenpay_example_backend/src/config.dart' show ZenPayCredentials;
+import 'package:zenpay_example_backend/src/models.dart' show CheckoutAttempt;
 
 /// Compares [a] and [b] in constant time via SHA-256 digest equality.
-bool constantTimeEqual(String a, String b) =>
-    HashDigest(Uint8List.fromList(utf8.encode(a))).isEqual(utf8.encode(b));
+bool constantTimeEqual(String a, String b) => HashDigest(Uint8List.fromList(utf8.encode(a))).isEqual(utf8.encode(b));
 
 /// Callback fields this backend derives from ZenPay's raw response once
 /// `zenpay_dart` has verified authenticity.

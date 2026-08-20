@@ -12,7 +12,10 @@ import 'package:meta/meta.dart';
 /// of them is evidence that a payment succeeded — confirm that on the merchant
 /// backend before fulfilling an order.
 @immutable
-sealed class const ZpCheckoutOutcome() {
+sealed class ZpCheckoutOutcome {
+  /// Const constructor for subclasses.
+  const ZpCheckoutOutcome();
+
   /// Stable, obfuscation-safe name for this outcome, for telemetry.
   ///
   /// Safe to log and to compare against; unlike `runtimeType` it survives
@@ -26,30 +29,42 @@ sealed class const ZpCheckoutOutcome() {
 }
 
 /// A return URI arrived at the configured return address and passed validation.
-final class const ZpReturnReceived({
+final class ZpReturnReceived extends ZpCheckoutOutcome {
+  /// Creates a [ZpReturnReceived] outcome.
+  const ZpReturnReceived({required this.returnUri});
+
   /// The validated, normalized return URI, query intact.
   ///
   /// Read whatever the merchant backend put there. The SDK does not interpret
   /// it and holds no opinion about which checkout it belongs to.
-  required final Uri returnUri,
-}) extends ZpCheckoutOutcome;
+  final Uri returnUri;
+}
 
 /// The customer closed the browser surface before any return arrived.
 ///
 /// The payment may still have completed — a customer can dismiss the browser
 /// after paying but before the redirect lands.
-final class const ZpPresentationDismissed() extends ZpCheckoutOutcome;
+final class ZpPresentationDismissed extends ZpCheckoutOutcome {
+  /// Creates a [ZpPresentationDismissed] outcome.
+  const ZpPresentationDismissed();
+}
 
 /// Nothing settled the checkout before `ZpCheckoutConfiguration.timeout`.
 ///
 /// Says only that the SDK stopped waiting. The payment may still be in flight.
-final class const ZpTimedOut() extends ZpCheckoutOutcome;
+final class ZpTimedOut extends ZpCheckoutOutcome {
+  /// Creates a [ZpTimedOut] outcome.
+  const ZpTimedOut();
+}
 
 /// The browser surface could not be opened, so checkout never started.
-final class const ZpLaunchFailed({
+final class ZpLaunchFailed extends ZpCheckoutOutcome {
+  /// Creates a [ZpLaunchFailed] outcome.
+  const ZpLaunchFailed({required this.code});
+
   /// Which failure the platform reported.
-  required final ZpLaunchFailureCode code,
-}) extends ZpCheckoutOutcome;
+  final ZpLaunchFailureCode code;
+}
 
 /// Why a browser launch failed.
 enum ZpLaunchFailureCode {

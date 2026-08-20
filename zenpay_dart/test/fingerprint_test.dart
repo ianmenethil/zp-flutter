@@ -17,25 +17,25 @@ void main() {
   final vectors = _loadVectors();
 
   test('createSha3_512 matches an independently computed vector', () {
-    final vector = vectors['sha3512'] as Map<String, Object?>;
-    expect(createSha3_512(vector['input'] as String), vector['hex']);
+    final vector = vectors['sha3512']! as Map<String, Object?>;
+    expect(createSha3_512(vector['input']! as String), vector['hex']);
   });
 
   test(
     'createZpFingerprint matches an independently computed hash-pipe vector',
     () {
-      final vector = vectors['fingerprint'] as Map<String, Object?>;
+      final vector = vectors['fingerprint']! as Map<String, Object?>;
       final result = createZpFingerprint(
         ZpFingerprintInput(
-          apiKey: vector['apiKey'] as String,
-          username: vector['username'] as String,
-          password: vector['password'] as String,
-          mode: ZpPluginMode.fromWireValue(vector['mode'] as int),
-          paymentAmount: vector['paymentAmount'] as String,
+          apiKey: vector['apiKey']! as String,
+          username: vector['username']! as String,
+          password: vector['password']! as String,
+          mode: ZpPluginMode.fromWireValue(vector['mode']! as int),
+          paymentAmount: vector['paymentAmount']! as String,
           merchantUniquePaymentId: ZpMupid(
-            vector['merchantUniquePaymentId'] as String,
+            vector['merchantUniquePaymentId']! as String,
           ),
-          timestamp: ZpTimestamp(vector['timestamp'] as String),
+          timestamp: ZpTimestamp(vector['timestamp']! as String),
         ),
       );
       expect(result, isA<ZpFingerprintSuccess>());
@@ -91,7 +91,7 @@ void main() {
   test('rejects a non-positive amount for mode 0 (Make Payment)', () {
     expect(
       createZpFingerprint(
-        baseInput(mode: ZpPluginMode.makePayment, paymentAmount: '0'),
+        baseInput(paymentAmount: '0'),
       ),
       isA<ZpFingerprintFailure>(),
     );
@@ -128,7 +128,7 @@ void main() {
   });
 
   test('changing the timestamp changes the fingerprint', () {
-    final a = createZpFingerprint(baseInput(timestamp: '2026-01-15T10:30:00'));
+    final a = createZpFingerprint(baseInput());
     final b = createZpFingerprint(baseInput(timestamp: '2026-01-15T10:30:01'));
     expect(
       (a as ZpFingerprintSuccess).fingerprint,

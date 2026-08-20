@@ -15,8 +15,10 @@ workspace:
 
 dev_dependencies:
   args: ^2.7.0
+  husky: ^0.1.7
   melos: ^8.3.0
   test: ^1.31.0
+  very_good_analysis: ^10.3.0
 
 melos:
   packages:
@@ -52,6 +54,19 @@ melos:
       packageFilters:
         dirExists: test
         flutter: false
-
-
-
+    server:
+      exec: dart run bin/server.dart
+      description: Run the example backend server.
+      packageFilters:
+        dirExists: bin
+        scope: zenpay_example_backend
+    android:
+      exec: adb reverse tcp:7000 tcp:7000 && flutter run --dart-define-from-file=.env
+      description: Run the example app on Android (with ADB reverse port forwarding).
+      packageFilters:
+        scope: zenpay_example_app
+    web:
+      exec: flutter run -d chrome --dart-define-from-file=.env --web-port=7001
+      description: Run the example app on Web.
+      packageFilters:
+        scope: zenpay_example_app

@@ -12,7 +12,7 @@
 /// asking for exactly this) and https://issues.chromium.org/issues/332587540
 /// (Chrome Custom Tabs itself ships no closure callback at the platform
 /// level, so there is nothing for `url_launcher` to forward even if it
-/// wanted to). [events] instead detects dismissal indirectly: resuming the
+/// wanted to). [CheckoutPresenter.events] instead detects dismissal indirectly: resuming the
 /// app while a checkout is presented starts a short grace period, so a
 /// genuine return (which arrives separately, via the deep-link stream) can
 /// still win the race; if nothing arrives before the grace period elapses,
@@ -24,7 +24,7 @@
 /// this package ships no native platform code, and resume-plus-grace-period
 /// alone is the same signal most `url_launcher`-based apps facing this gap
 /// rely on.
-/// [dismissCheckout] differs by platform: Android Custom Tabs has no
+/// [CheckoutPresenter.dismissCheckout] differs by platform: Android Custom Tabs has no
 /// programmatic close at the OS level, but iOS's `SFSafariViewController`
 /// genuinely supports `dismiss(animated:)`, which `url_launcher_ios` wires up
 /// via `closeInAppWebView()`. Platform detection (rather than `url_launcher`'s
@@ -37,20 +37,17 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform;
-import 'package:flutter/widgets.dart'
-    show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 import 'package:url_launcher/url_launcher.dart';
 
-import 'presenter.dart';
+import 'package:zenpay_flutter/src/presentation/presenter.dart';
 
 /// Creates the [CheckoutPresenter] for Android and iOS mobile platforms.
 CheckoutPresenter createCheckoutPresenter() => _CheckoutPresenterMobile();
 
 /// Presents ZenPay hosted checkout on mobile platforms via `url_launcher`.
-final class _CheckoutPresenterMobile extends CheckoutPresenter
-    with WidgetsBindingObserver {
+final class _CheckoutPresenterMobile extends CheckoutPresenter with WidgetsBindingObserver {
   // ponytail: a fixed grace period, not configurable — matches the
   // community-documented workaround this mirrors (see class doc). Long
   // enough that a genuine return (checked independently, on the deep-link

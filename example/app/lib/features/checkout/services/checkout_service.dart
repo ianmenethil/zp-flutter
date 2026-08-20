@@ -8,6 +8,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' show MockClient;
 
 const _checkoutTokenEndpoint = '/api/v1/checkout/token';
 const _checkoutExchangeEndpoint = '/api/v1/checkout/exchange';
@@ -48,8 +49,7 @@ class ExchangeResponse {
   const ExchangeResponse({required this.checkoutUrl});
 
   /// Decodes an [ExchangeResponse] from the backend's JSON body.
-  factory ExchangeResponse.fromJson(Map<String, Object?> json) =>
-      ExchangeResponse(checkoutUrl: json['checkoutUrl']! as String);
+  factory ExchangeResponse.fromJson(Map<String, Object?> json) => ExchangeResponse(checkoutUrl: json['checkoutUrl']! as String);
 
   /// The ZenPay HCP launch URL to present to the customer.
   final String checkoutUrl;
@@ -115,8 +115,7 @@ class StatusResponse {
 }
 
 /// A fresh `idempotency-key` header value.
-String _idempotencyKey() =>
-    '$_idempotencyPrefix-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(_idempotencySaltMax)}';
+String _idempotencyKey() => '$_idempotencyPrefix-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(_idempotencySaltMax)}';
 
 /// Step 1 — prepares a checkout and returns a signed, short-lived checkout
 /// token. [fields] is the order/customer data; `client` is set automatically.
@@ -191,9 +190,7 @@ Future<StatusResponse> fetchStatus(
     await _request(
       client,
       (c) => c.get(
-        baseUrl
-            .resolve(_sessionsEndpoint)
-            .replace(queryParameters: {'t': token}),
+        baseUrl.resolve(_sessionsEndpoint).replace(queryParameters: {'t': token}),
       ),
     ),
     200,
@@ -220,9 +217,7 @@ Future<http.Response> _request(
 
 /// Decodes [response], throwing [BackendError] unless it matches [expected].
 Map<String, Object?> _body(http.Response response, int expected) {
-  final decoded = response.body.isEmpty
-      ? const <String, Object?>{}
-      : jsonDecode(response.body) as Map<String, Object?>;
+  final decoded = response.body.isEmpty ? const <String, Object?>{} : jsonDecode(response.body) as Map<String, Object?>;
   if (response.statusCode != expected) {
     throw BackendError(response.statusCode, decoded[_errorKey] as String?);
   }

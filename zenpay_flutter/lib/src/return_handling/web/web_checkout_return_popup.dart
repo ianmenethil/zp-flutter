@@ -5,7 +5,9 @@ library;
 
 import 'dart:js_interop';
 
-import 'web_return_message.dart';
+import 'package:zenpay_flutter/src/presentation/presenter.dart' show CheckoutPresenter;
+
+import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
 
 @JS('opener')
 external JSObject? get _opener;
@@ -20,8 +22,7 @@ extension type _Opener(JSObject _) implements JSObject {
   external void postMessage(JSAny message, String targetOrigin);
 }
 
-/// Call once, before running your app's normal widget tree — the very first
-/// line of `main()` on Web.
+/// Call once, before running your app's normal widget tree — the very first line of `main()` on Web.
 ///
 /// If this page is the popup — it has a same-origin `window.opener` and its
 /// current address matches [expectedReturnUri] — this relays the current URL
@@ -40,8 +41,7 @@ bool completeWebCheckoutReturnIfPopup({required Uri expectedReturnUri}) {
       current.path == expectedReturnUri.path;
   if (!matchesAddress) return false;
 
-  _Opener(opener)
-      .postMessage(encodeZpReturnMessage(_locationHref).toJS, current.origin);
+  _Opener(opener).postMessage(encodeZpReturnMessage(_locationHref).toJS, current.origin);
   _closeWindow();
   return true;
 }

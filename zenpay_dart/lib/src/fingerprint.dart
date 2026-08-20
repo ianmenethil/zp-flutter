@@ -1,62 +1,76 @@
 /// Outgoing ZenPay HCP Authorise fingerprint generation.
 library;
 
-import 'crypto.dart';
-import 'enums.dart';
+import 'package:zenpay_dart/src/crypto.dart';
+import 'package:zenpay_dart/src/enums.dart';
 
-const _errApiKeyLength =
-    'apiKey must be at least $zpMinCredentialLength characters';
-const _errUsernameLength =
-    'username must be at least $zpMinCredentialLength characters';
-const _errPasswordLength =
-    'password must be at least $zpMinCredentialLength characters';
-const _errMupidLength =
-    'merchantUniquePaymentId must be at least $zpMinCredentialLength characters';
+const _errApiKeyLength = 'apiKey must be at least $zpMinCredentialLength characters';
+const _errUsernameLength = 'username must be at least $zpMinCredentialLength characters';
+const _errPasswordLength = 'password must be at least $zpMinCredentialLength characters';
+const _errMupidLength = 'merchantUniquePaymentId must be at least $zpMinCredentialLength characters';
 const _errTimestampFormat = 'timestamp must be in YYYY-MM-DDTHH:MM:SS format';
 
 /// Fields required to generate an Authorise fingerprint.
-class const ZpFingerprintInput({
+class ZpFingerprintInput {
+  /// Creates a [ZpFingerprintInput].
+  const ZpFingerprintInput({
+    required this.apiKey,
+    required this.username,
+    required this.password,
+    required this.mode,
+    required this.merchantUniquePaymentId,
+    required this.timestamp,
+    this.paymentAmount,
+  });
+
   /// Merchant API key — hash field 1.
-  required final String apiKey,
+  final String apiKey;
 
   /// Merchant username — hash field 2.
-  required final String username,
+  final String username;
 
   /// Merchant password — hash field 3.
-  required final String password,
+  final String password;
 
   /// Payment operating mode — hash field 4.
-  required final ZpPluginMode mode,
+  final ZpPluginMode mode;
 
   /// Per-payment Merchant Unique Payment ID — hash field 6.
-  required final ZpMupid merchantUniquePaymentId,
+  final ZpMupid merchantUniquePaymentId;
 
   /// UTC `yyyy-MM-ddTHH:mm:ss` timestamp — hash field 7.
-  required final ZpTimestamp timestamp,
+  final ZpTimestamp timestamp;
 
   /// Payment amount in dollars — hash field 5.
   ///
   /// Optional for tokenisation. Modes 0, 2 and 3 require a positive amount.
   /// Mode 2 still hashes `"0"` regardless of the supplied amount.
-  final Object? paymentAmount,
-});
+  final Object? paymentAmount;
+}
 
 /// Result of [createZpFingerprint].
 sealed class ZpFingerprintResult {
+  /// Base constructor for fingerprint results.
   const ZpFingerprintResult();
 }
 
 /// A successfully generated fingerprint.
-final class const ZpFingerprintSuccess(
+final class ZpFingerprintSuccess extends ZpFingerprintResult {
+  /// Creates a [ZpFingerprintSuccess] result with the computed [fingerprint].
+  const ZpFingerprintSuccess(this.fingerprint);
+
   /// 128-character lowercase SHA3-512 digest.
-  final String fingerprint,
-) extends ZpFingerprintResult;
+  final String fingerprint;
+}
 
 /// A fingerprint validation failure.
-final class const ZpFingerprintFailure(
+final class ZpFingerprintFailure extends ZpFingerprintResult {
+  /// Creates a [ZpFingerprintFailure] result with the failure [message].
+  const ZpFingerprintFailure(this.message);
+
   /// Why fingerprint creation failed.
-  final String message,
-) extends ZpFingerprintResult;
+  final String message;
+}
 
 (ZpCents?, ZpFingerprintFailure?) _validate(ZpFingerprintInput request) {
   if (request.apiKey.length < zpMinCredentialLength) {

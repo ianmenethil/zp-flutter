@@ -4,9 +4,7 @@
 /// (`dart.library.js_interop`) on Web.
 library;
 
-import 'web_checkout_return_popup_mobile.dart'
-    if (dart.library.js_interop) 'web_checkout_return_popup.dart'
-    as impl;
+import 'package:zenpay_flutter/src/return_handling/web/web_checkout_return_popup_mobile.dart' if (dart.library.js_interop) 'package:zenpay_flutter/src/return_handling/web/web_checkout_return_popup.dart' as impl;
 
 /// Call once, before running your app's normal widget tree — the very first
 /// line of `main()`.
@@ -17,5 +15,4 @@ import 'web_checkout_return_popup_mobile.dart'
 /// immediately rather than calling `runApp`. Otherwise — including always on
 /// Mobile, where this concept doesn't apply — does nothing and returns
 /// `false`.
-bool completeWebCheckoutReturnIfPopup({required Uri expectedReturnUri}) =>
-    impl.completeWebCheckoutReturnIfPopup(expectedReturnUri: expectedReturnUri);
+bool completeWebCheckoutReturnIfPopup({required Uri expectedReturnUri}) => impl.completeWebCheckoutReturnIfPopup(expectedReturnUri: expectedReturnUri);

@@ -44,7 +44,7 @@ const _checkoutPayload = CheckoutTokenPayload(
 );
 
 String _callbackToken(AppConfig config) => createZpCallbackUrlToken(
-  ZpCallbackUrlTokenPayload(
+  const ZpCallbackUrlTokenPayload(
     mode: ZpPluginMode.makePayment,
     merchantUniquePaymentId: 'M1',
     timestamp: '2026-01-01T00:00:00',

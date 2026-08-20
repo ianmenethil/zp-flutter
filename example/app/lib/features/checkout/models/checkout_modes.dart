@@ -48,7 +48,5 @@ enum TransactionMode {
 
   /// Whole-dollar quick-pick presets shown below the amount field. Purely a
   /// UI convenience — the backend accepts any positive amount.
-  List<int> get amountPresets => this == makePayment || this == preauthorization
-      ? const <int>[5, 10, 50, 100]
-      : const <int>[50, 100, 500, 1000];
+  List<int> get amountPresets => const <int>[50, 100, 500, 1000];
 }

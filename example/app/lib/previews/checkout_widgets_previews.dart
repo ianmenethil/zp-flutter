@@ -7,12 +7,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 
-import '../features/checkout/ui/widgets/zenpay_amount_field.dart';
-import '../features/checkout/ui/widgets/zenpay_environment_banner.dart';
-import '../features/checkout/ui/widgets/zenpay_labeled_field.dart';
-import '../features/checkout/ui/widgets/zenpay_pay_button.dart';
-import '../features/checkout/ui/widgets/zenpay_selectable_card.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_amount_field.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_environment_banner.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_labeled_field.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_pay_button.dart';
+import 'package:zenpay_example_app/features/checkout/ui/widgets/zenpay_selectable_card.dart';
 
+/// Preview for [ZenPayAmountField] with AUD presets.
 @Preview(
   name: 'AUD, 4 presets',
   group: 'ZenPayAmountField',
@@ -25,6 +26,7 @@ Widget zenpayAmountFieldPreview() {
   );
 }
 
+/// Preview for selected [ZenPaySelectableCard].
 @Preview(name: 'Selected', group: 'ZenPaySelectableCard', size: Size(200, 120))
 Widget zenpaySelectableCardSelectedPreview() {
   return ZenPaySelectableCard(
@@ -36,6 +38,7 @@ Widget zenpaySelectableCardSelectedPreview() {
   );
 }
 
+/// Preview for unselected [ZenPaySelectableCard].
 @Preview(
   name: 'Unselected',
   group: 'ZenPaySelectableCard',
@@ -51,6 +54,7 @@ Widget zenpaySelectableCardUnselectedPreview() {
   );
 }
 
+/// Preview for [ZenPayLabeledField] with placeholder hint.
 @Preview(name: 'With hint', group: 'ZenPayLabeledField', size: Size(320, 90))
 Widget zenpayLabeledFieldPreview() {
   return ZenPayLabeledField(
@@ -60,16 +64,19 @@ Widget zenpayLabeledFieldPreview() {
   );
 }
 
+/// Preview for idle [ZenPayPayButton].
 @Preview(name: 'Idle', group: 'ZenPayPayButton', size: Size(320, 70))
 Widget zenpayPayButtonIdlePreview() {
   return const ZenPayPayButton(onPressed: null);
 }
 
+/// Preview for busy [ZenPayPayButton].
 @Preview(name: 'Busy', group: 'ZenPayPayButton', size: Size(320, 70))
 Widget zenpayPayButtonBusyPreview() {
   return const ZenPayPayButton(onPressed: null, isBusy: true);
 }
 
+/// Preview for [ZenPayEnvironmentBanner] with sandbox hosts.
 @Preview(
   name: 'Sandbox hosts',
   group: 'ZenPayEnvironmentBanner',

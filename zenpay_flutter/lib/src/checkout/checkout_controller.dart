@@ -20,17 +20,16 @@ library;
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-
-import '../configuration/checkout_configuration.dart';
-import '../exceptions/checkout_event.dart';
-import '../models/checkout_outcome.dart';
-import '../observability/checkout_event.dart';
-import '../presentation/presenter.dart';
-import '../presentation/presenter_factory.dart';
-import '../return_handling/return_uri_source.dart';
-import '../return_handling/return_validator.dart';
-import 'active_checkout.dart';
-import 'launch_validator.dart';
+import 'package:zenpay_flutter/src/checkout/active_checkout.dart';
+import 'package:zenpay_flutter/src/checkout/launch_validator.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart';
+import 'package:zenpay_flutter/src/exceptions/checkout_event.dart';
+import 'package:zenpay_flutter/src/models/checkout_outcome.dart';
+import 'package:zenpay_flutter/src/observability/checkout_event.dart';
+import 'package:zenpay_flutter/src/presentation/presenter.dart';
+import 'package:zenpay_flutter/src/presentation/presenter_factory.dart';
+import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/return_validator.dart';
 
 /// Maps a launch failure thrown by `url_launcher` onto a [ZpLaunchFailureCode].
 ///
@@ -60,18 +59,14 @@ final class ZpCheckout {
   /// Creates a [ZpCheckout] controller instance.
   ///
   /// Requires a [configuration] specifying allowlisted hosts and the expected
-  /// return URI, and a [returnUriSource] delivering incoming deep links. An
+  /// return URI, and a [ZpReturnUriSource] delivering incoming deep links. An
   /// optional [presenter] can be supplied for testing or a custom presentation
   /// strategy.
   ZpCheckout({
     required this.configuration,
-    required ZpReturnUriSource returnUriSource,
+    required this._returnUriSource,
     CheckoutPresenter? presenter,
-    // A named parameter cannot be an initializing formal for a private field,
-    // so this assignment is the only way to express it.
-    // ignore: prefer_initializing_formals
-  }) : _returnUriSource = returnUriSource,
-       _presenter = presenter ?? createCheckoutPresenter();
+  }) : _presenter = presenter ?? createCheckoutPresenter();
 
   /// The active checkout configuration settings.
   final ZpCheckoutConfiguration configuration;
@@ -136,18 +131,17 @@ final class ZpCheckout {
       rethrow;
     }
 
-    final ActiveCheckout active = ActiveCheckout(
-      onFinished:
-          (ZpCheckoutOutcome outcome, Duration duration, Object? cause) {
-            _active = null;
-            _emit(
-              ZpFinishedEvent(
-                outcome: outcome.outcomeName,
-                duration: duration,
-                cause: cause,
-              ),
-            );
-          },
+    final active = ActiveCheckout(
+      onFinished: (outcome, duration, cause) {
+        _active = null;
+        _emit(
+          ZpFinishedEvent(
+            outcome: outcome.outcomeName,
+            duration: duration,
+            cause: cause,
+          ),
+        );
+      },
     );
     _active = active;
 
@@ -166,7 +160,7 @@ final class ZpCheckout {
 
     active.watch(
       _presenter.events.listen(
-        (void _) => active.finish(const ZpPresentationDismissed()),
+        (_) => active.finish(const ZpPresentationDismissed()),
         onError: (Object error, StackTrace stackTrace) {
           active.finish(
             const ZpLaunchFailed(code: ZpLaunchFailureCode.platformError),
@@ -182,8 +176,7 @@ final class ZpCheckout {
       final launch = await _presenter.openCheckout(
         checkoutUrl,
         showTitle: configuration.showBrowserTitle,
-        allowExternalBrowserFallback:
-            configuration.allowExternalBrowserFallback,
+        allowExternalBrowserFallback: configuration.allowExternalBrowserFallback,
       );
 
       _emit(
@@ -213,7 +206,7 @@ final class ZpCheckout {
   /// Ignores anything that arrives when no checkout is in flight, or after the
   /// current one has already settled.
   Future<void> handleReturnUri(Uri uri) async {
-    final ActiveCheckout? active = _active;
+    final active = _active;
     if (active == null || active.isFinished) {
       return;
     }
@@ -221,8 +214,7 @@ final class ZpCheckout {
     final normalized = _returnValidator.validate(
       candidate: uri,
       configuration: configuration,
-      onRejectionObserved: (ZpReturnRejectionReason reason) =>
-          _emit(ZpReturnRejectedEvent(reason: reason)),
+      onRejectionObserved: (reason) => _emit(ZpReturnRejectedEvent(reason: reason)),
     );
     if (normalized == null) {
       return;

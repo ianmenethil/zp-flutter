@@ -54,7 +54,7 @@ void main() {
 
     setUp(() {
       configuration = ZpCheckoutConfiguration(
-        allowedCheckoutHosts: <String>{'checkout.example.com'},
+        allowedCheckoutHosts: const <String>{'checkout.example.com'},
         expectedReturnUri: Uri.parse('https://app.example.com/return'),
       );
       returnUriSource = FakeReturnUriSource();
@@ -94,7 +94,8 @@ void main() {
         checkoutUrl: Uri.parse(
           'https://checkout.example.com/pay?secureToken=abc',
         ),
-      )..then((_) => completed = true);
+      );
+      unawaited(outcome.then((_) => completed = true));
 
       returnUriSource.emit(Uri.parse('https://app.example.com/return'));
       await pumpEventQueue();

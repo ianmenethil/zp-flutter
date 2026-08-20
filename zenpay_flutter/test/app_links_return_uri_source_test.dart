@@ -6,7 +6,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenpay_flutter/src/return_handling/app_links_return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/mobile/app_links_return_uri_source.dart';
 
 /// Fake [AppLinksPlatformAdapter] whose initial-link result and runtime
 /// stream are both controlled by the test.
@@ -14,7 +14,7 @@ final class _FakeAppLinksPlatformAdapter implements AppLinksPlatformAdapter {
   _FakeAppLinksPlatformAdapter({this.initialLink, this.initialLinkError});
 
   final Uri? initialLink;
-  final Object? initialLinkError;
+  final Exception? initialLinkError;
   final _streamController = StreamController<Uri>();
 
   @override

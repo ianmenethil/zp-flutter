@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenpay_flutter/src/return_handling/web_return_message.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
 
 void main() {
   group('encodeZpReturnMessage / decodeZpReturnMessage', () {

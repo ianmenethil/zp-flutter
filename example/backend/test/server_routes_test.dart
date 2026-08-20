@@ -14,13 +14,11 @@ import 'package:test/test.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
 import 'package:zenpay_example_backend/src/app_check.dart';
 import 'package:zenpay_example_backend/src/attempt_store.dart';
-import 'package:zenpay_example_backend/src/checkout_token.dart'
-    show CheckoutTokenVerified, verifyCheckoutToken;
+import 'package:zenpay_example_backend/src/checkout_token.dart' show CheckoutTokenVerified, verifyCheckoutToken;
 import 'package:zenpay_example_backend/src/config.dart';
 import 'package:zenpay_example_backend/src/models.dart';
 import 'package:zenpay_example_backend/src/server_app.dart';
-import 'package:zenpay_example_backend/src/token_keys.dart'
-    show callbackTokenKey, checkoutTokenKey;
+import 'package:zenpay_example_backend/src/token_keys.dart' show callbackTokenKey, checkoutTokenKey;
 
 const _apiKey = 'test-api-key';
 const _username = 'test-username';
@@ -89,20 +87,19 @@ CheckoutAttempt _attempt({
 /// Recomputes the SHA3-512 `ValidationCode` ZenPay would send for a callback,
 /// using the same `apiKey|username|password|mode|amount|mupid|reference`
 /// hash pipe `verifyZpCallback` checks against.
-String _sign(int mode, String amountField, String mupid, String reference) =>
-    sha3_512
-        .string(
-          [
-            _apiKey,
-            _username,
-            _password,
-            mode.toString(),
-            amountField,
-            mupid,
-            reference,
-          ].join('|'),
-        )
-        .hex();
+String _sign(int mode, String amountField, String mupid, String reference) => sha3_512
+    .string(
+      [
+        _apiKey,
+        _username,
+        _password,
+        mode.toString(),
+        amountField,
+        mupid,
+        reference,
+      ].join('|'),
+    )
+    .hex();
 
 /// A `t` token verifying to [merchantUniquePaymentId], as `/return` and the
 /// status lookup require. Mirrors what `session_service.dart` mints — same
@@ -210,14 +207,8 @@ void main() {
       body: body,
       idempotencyKey: idempotencyKey,
     );
-    final checkoutToken =
-        (jsonDecode(prepareResponse.body)
-                as Map<String, Object?>)['checkoutToken']!
-            as String;
-    final payload =
-        (verifyCheckoutToken(checkoutToken, checkoutTokenKey(_config()))
-                as CheckoutTokenVerified)
-            .payload;
+    final checkoutToken = (jsonDecode(prepareResponse.body) as Map<String, Object?>)['checkoutToken']! as String;
+    final payload = (verifyCheckoutToken(checkoutToken, checkoutTokenKey(_config())) as CheckoutTokenVerified).payload;
     final exchangeResponse = await exchange(checkoutToken);
     return (
       checkoutToken: checkoutToken,
@@ -312,14 +303,8 @@ void main() {
         final secondPrepare = await prepare(
           idempotencyKey: 'idempotency-key-dup',
         );
-        final secondToken =
-            (jsonDecode(secondPrepare.body)
-                    as Map<String, Object?>)['checkoutToken']!
-                as String;
-        final secondPayload =
-            (verifyCheckoutToken(secondToken, checkoutTokenKey(_config()))
-                    as CheckoutTokenVerified)
-                .payload;
+        final secondToken = (jsonDecode(secondPrepare.body) as Map<String, Object?>)['checkoutToken']! as String;
+        final secondPayload = (verifyCheckoutToken(secondToken, checkoutTokenKey(_config())) as CheckoutTokenVerified).payload;
 
         expect(secondPrepare.statusCode, 201);
         expect(
@@ -395,7 +380,7 @@ void main() {
     test(
       'returns the stored attempt state for a valid token, with no identifiers',
       () async {
-        store.create(_attempt(merchantUniquePaymentId: 'att-lookup'));
+        store.create(_attempt());
         final token = _token(merchantUniquePaymentId: 'att-lookup');
 
         final response = await call('/api/v1/sessions?t=$token');
@@ -433,7 +418,7 @@ void main() {
   group('POST /api/v1/callbacks', () {
     test('accepts a correctly signed callback and updates status', () async {
       store.create(
-        _attempt(merchantUniquePaymentId: 'att-cb-1', mode: 0, amount: 25.50),
+        _attempt(merchantUniquePaymentId: 'att-cb-1', amount: 25.50),
       );
       final digest = _sign(0, '2550', 'att-cb-1', 'PAY-1');
 
@@ -458,16 +443,15 @@ void main() {
       expect(body['paymentReference'], 'PAY-1');
       expect(body['callbackVerified'], true);
       expect(body['status'], 'successful');
-      final callbackPayload = body['callbackPayload'] as Map<String, Object?>;
+      final callbackPayload = body['callbackPayload']! as Map<String, Object?>;
       expect(callbackPayload['validationCode'], digest);
-      final callbackResponse =
-          callbackPayload['response'] as Map<String, Object?>;
+      final callbackResponse = callbackPayload['response']! as Map<String, Object?>;
       expect(callbackResponse['paymentReference'], 'PAY-1');
     });
 
     test('rejects a tampered ValidationCode', () async {
       store.create(
-        _attempt(merchantUniquePaymentId: 'att-cb-2', mode: 0, amount: 25.50),
+        _attempt(merchantUniquePaymentId: 'att-cb-2', amount: 25.50),
       );
       // Correctly shaped (128-char hex) but signed for a different
       // reference, so it fails the hash check rather than shape validation.
@@ -518,12 +502,10 @@ void main() {
       store.create(
         _attempt(
           merchantUniquePaymentId: 'att-return-mobile',
-          client: CheckoutClient.mobile,
         ),
       );
       final token = _token(merchantUniquePaymentId: 'att-return-mobile');
-      final request = http.Request('GET', Uri.parse('$base/return?t=$token'))
-        ..followRedirects = false;
+      final request = http.Request('GET', Uri.parse('$base/return?t=$token'))..followRedirects = false;
       final response = await http.Response.fromStream(await request.send());
       expect(response.statusCode, 303);
       expect(response.headers['location'], contains('/zenpay/app-return'));
@@ -540,8 +522,7 @@ void main() {
           ),
         );
         final token = _token(merchantUniquePaymentId: 'att-return-web');
-        final request = http.Request('GET', Uri.parse('$base/return?t=$token'))
-          ..followRedirects = false;
+        final request = http.Request('GET', Uri.parse('$base/return?t=$token'))..followRedirects = false;
         final response = await http.Response.fromStream(await request.send());
         expect(response.statusCode, 303);
         expect(
@@ -572,7 +553,7 @@ void main() {
       'rejects POST /api/v1/checkout/token with 401 when header is missing',
       () async {
         await server.close(force: true);
-        final verifier = _FakeAppCheckVerifier(shouldPass: true);
+        final verifier = _FakeAppCheckVerifier();
         await startServer(
           _config(firebaseProjectNumber: '123456789'),
           appCheckVerifier: verifier,
@@ -617,7 +598,7 @@ void main() {
       'accepts POST /api/v1/checkout/token with 201 when token is valid',
       () async {
         await server.close(force: true);
-        final verifier = _FakeAppCheckVerifier(shouldPass: true);
+        final verifier = _FakeAppCheckVerifier();
         await startServer(
           _config(firebaseProjectNumber: '123456789'),
           appCheckVerifier: verifier,
@@ -646,7 +627,7 @@ void main() {
         await server.close(force: true);
         final verifier = _FakeAppCheckVerifier(shouldPass: false);
         await startServer(
-          _config(firebaseProjectNumber: ''),
+          _config(),
           appCheckVerifier: verifier,
         );
 

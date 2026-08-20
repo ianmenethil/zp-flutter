@@ -74,7 +74,16 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 5. `lib/src/enums.dart`
+## 5. `lib/src/defaults.dart`
+
+**File Path:** [lib/src/defaults.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/defaults.dart)  
+**Overview:** Defines default configuration values for hosted checkout options, closely mirroring the TypeScript SDK's defaults.
+
+- **`abstract final class ZpCheckoutDefaults`**: Namespace holding static constants for default option values (e.g., `mode`, `displayMode`, `hideHeader`); used internally to populate omitted parameters.
+
+---
+
+## 6. `lib/src/enums.dart`
 
 **File Path:** [lib/src/enums.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/enums.dart)  
 **Overview:** Defines strongly typed vocabularies and wire integer mappings for ZenPay HCP modes, display styles, user types, fee payers, and payment status codes.
@@ -93,7 +102,7 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 6. `lib/src/fingerprint.dart`
+## 7. `lib/src/fingerprint.dart`
 
 **File Path:** [lib/src/fingerprint.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/fingerprint.dart)  
 **Overview:** Implements outgoing Authorise fingerprint calculation using SHA3-512 over pipe-delimited merchant credential and order fields.
@@ -107,7 +116,7 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 7. `lib/zenpay_dart.dart`
+## 8. `lib/zenpay_dart.dart`
 
 **File Path:** [lib/zenpay_dart.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/zenpay_dart.dart)  
 **Overview:** The root library barrel file exporting the public API for pure-Dart server environments while encapsulating internal implementation files in `src/`.

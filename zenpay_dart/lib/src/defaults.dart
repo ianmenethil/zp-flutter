@@ -12,7 +12,9 @@
 ///   `ZpPresentationDismissed` outcome, not a launch option.
 library;
 
-import 'enums.dart';
+import 'package:zenpay_dart/src/checkout_url.dart' show ZpCheckoutOptions;
+import 'package:zenpay_dart/src/enums.dart';
+import 'package:zenpay_dart/zenpay_dart.dart' show ZpCheckoutOptions;
 
 /// The default value for every optional [ZpCheckoutOptions] field that has one.
 abstract final class ZpCheckoutDefaults {
@@ -20,8 +22,7 @@ abstract final class ZpCheckoutDefaults {
   static const ZpPluginMode mode = ZpPluginMode.makePayment;
 
   /// Who absorbs the surcharge. TypeScript: `overrideFeePayer: 0`.
-  static const ZpOverrideFeePayer overrideFeePayer =
-      ZpOverrideFeePayer.accountDefault;
+  static const ZpOverrideFeePayer overrideFeePayer = ZpOverrideFeePayer.accountDefault;
 
   /// Who operates the checkout. TypeScript: `userMode: 0`.
   static const ZpUserMode userMode = ZpUserMode.customer;
@@ -65,9 +66,5 @@ abstract final class ZpCheckoutDefaults {
   static const bool allowAliPayPlusOneOffPayment = true;
 
   /// Value sent as the `isJsPlugin` query parameter.
-  ///
-  /// Not part of the TypeScript `defaults` object — that SDK injects it during
-  /// URL building instead, and only when the caller did not supply their own.
-  /// It is kept here so every default value lives in one place.
   static const bool isJsPlugin = true;
 }

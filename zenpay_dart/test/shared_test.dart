@@ -79,8 +79,7 @@ void main() {
   test('createZpTimestamp returns a slice-19 UTC ISO 8601 string', () {
     final timestamp = createZpTimestamp();
     expect(
-      RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$')
-          .hasMatch(timestamp.value),
+      RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$').hasMatch(timestamp.value),
       isTrue,
       reason: timestamp.value,
     );

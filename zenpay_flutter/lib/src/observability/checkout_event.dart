@@ -13,8 +13,22 @@ import 'package:meta/meta.dart';
 /// thrown from [onEvent] is caught and discarded, so observing a checkout can
 /// never change its outcome.
 abstract interface class ZpCheckoutObserver {
+  /// Creates a [ZpCheckoutObserver] from an [onEvent] callback function.
+  factory ZpCheckoutObserver.from(
+    void Function(ZpCheckoutEvent event) onEvent,
+  ) = _CallbackCheckoutObserver;
+
   /// Called once per event, in the order the events occur.
   void onEvent(ZpCheckoutEvent event);
+}
+
+final class _CallbackCheckoutObserver implements ZpCheckoutObserver {
+  const _CallbackCheckoutObserver(this._onEvent);
+
+  final void Function(ZpCheckoutEvent event) _onEvent;
+
+  @override
+  void onEvent(ZpCheckoutEvent event) => _onEvent(event);
 }
 
 /// Why a candidate return URI was refused.
@@ -45,46 +59,75 @@ enum ZpReturnRejectionReason {
 /// checkout URL and no raw return query, so the credentials in a checkout URL
 /// cannot reach a log sink through one.
 @immutable
-sealed class const ZpCheckoutEvent();
+sealed class ZpCheckoutEvent {
+  /// Base constructor for checkout events.
+  const ZpCheckoutEvent();
+}
 
 /// A launch failed validation and no browser was opened.
-final class const ZpLaunchRejectedEvent({
+final class ZpLaunchRejectedEvent extends ZpCheckoutEvent {
+  /// Creates a [ZpLaunchRejectedEvent] with the given rejection [reason].
+  const ZpLaunchRejectedEvent({
+    required this.reason,
+  });
+
   /// A short, non-sensitive description of the failed precondition.
-  required final String reason,
-}) extends ZpCheckoutEvent;
+  final String reason;
+}
 
 /// The browser presentation was requested for a validated launch.
-final class const ZpPresentedEvent({
+final class ZpPresentedEvent extends ZpCheckoutEvent {
+  /// Creates a [ZpPresentedEvent] with the [checkoutHost] and launch status.
+  const ZpPresentedEvent({
+    required this.checkoutHost,
+    required this.launched,
+  });
+
   /// The checkout host, which the merchant already allowlisted. Never the full
   /// URL, which carries the credentials.
-  required final String checkoutHost,
+  final String checkoutHost;
 
   /// Whether the platform reported a successful launch.
-  required final bool launched,
-}) extends ZpCheckoutEvent;
+  final bool launched;
+}
 
 /// A candidate return URI was refused. The checkout remains active.
-final class const ZpReturnRejectedEvent({
+final class ZpReturnRejectedEvent extends ZpCheckoutEvent {
+  /// Creates a [ZpReturnRejectedEvent] with the rejection [reason].
+  const ZpReturnRejectedEvent({
+    required this.reason,
+  });
+
   /// Why the URI was refused. The URI itself is never included.
-  required final ZpReturnRejectionReason reason,
-}) extends ZpCheckoutEvent;
+  final ZpReturnRejectionReason reason;
+}
 
 /// A valid return URI was accepted and the checkout is completing.
-final class const ZpReturnAcceptedEvent() extends ZpCheckoutEvent;
+final class ZpReturnAcceptedEvent extends ZpCheckoutEvent {
+  /// Creates a [ZpReturnAcceptedEvent].
+  const ZpReturnAcceptedEvent();
+}
 
 /// The checkout finished, for any reason.
-final class const ZpFinishedEvent({
+final class ZpFinishedEvent extends ZpCheckoutEvent {
+  /// Creates a [ZpFinishedEvent] with the outcome, duration, and optional cause.
+  const ZpFinishedEvent({
+    required this.outcome,
+    required this.duration,
+    this.cause,
+  });
+
   /// The stable outcome name, for example `returnReceived`. See
   /// `ZpCheckoutOutcome.outcomeName`.
-  required final String outcome,
+  final String outcome;
 
   /// How long the attempt was active.
-  required final Duration duration,
+  final Duration duration;
 
   /// The raw error behind a `ZpLaunchFailed` outcome, when one was captured.
   /// `null` for every other outcome.
   ///
   /// Diagnostic only. This is an arbitrary platform-thrown [Object], so inspect
   /// it before forwarding it anywhere.
-  final Object? cause,
-}) extends ZpCheckoutEvent;
+  final Object? cause;
+}

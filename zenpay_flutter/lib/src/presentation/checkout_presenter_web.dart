@@ -9,7 +9,7 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'presenter.dart';
+import 'package:zenpay_flutter/src/presentation/presenter.dart';
 
 /// Creates the [CheckoutPresenter] for the web platform.
 CheckoutPresenter createCheckoutPresenter() => _CheckoutPresenterWeb();
@@ -22,10 +22,15 @@ extension type _BrowserWindow(JSObject _) implements JSObject {
   /// Whether the window has been closed, by this code or by the user.
   external bool get closed;
 
-  /// Navigates the window to [href]. Setting `location` (rather than only
-  /// `location.href`) is the browser-supported shorthand for navigation and
-  /// needs no extra JS interop surface.
-  external set location(String href);
+  /// The window's location object.
+  external _Location get location;
+}
+
+/// Handle to a browser window location object.
+extension type _Location(JSObject _) implements JSObject {
+  /// The URL of the current window location.
+  external String get href;
+  external set href(String value);
 }
 
 /// Opens [url] in the browser target named [target], sized per [features].
@@ -124,8 +129,7 @@ final class _CheckoutPresenterWeb extends CheckoutPresenter {
 
     final reserved = _reserved;
     _reserved = null;
-    final opened =
-        reserved ?? _windowOpen(url.toString(), _blankTarget, _popupFeatures);
+    final opened = reserved ?? _windowOpen(url.toString(), _blankTarget, _popupFeatures);
 
     if (opened == null) {
       return const PresentationLaunchResult(
@@ -134,12 +138,12 @@ final class _CheckoutPresenterWeb extends CheckoutPresenter {
       );
     }
     if (reserved != null) {
-      reserved.location = url.toString();
+      reserved.location.href = url.toString();
     }
 
     _active = opened;
 
-    _closeWatchdog = Timer.periodic(_closePollInterval, (Timer timer) {
+    _closeWatchdog = Timer.periodic(_closePollInterval, (timer) {
       if (!opened.closed) {
         return;
       }

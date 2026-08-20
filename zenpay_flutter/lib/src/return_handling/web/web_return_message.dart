@@ -10,5 +10,4 @@ const _prefix = 'zenpay:checkout-return:';
 String encodeZpReturnMessage(String href) => '$_prefix$href';
 
 /// Unwraps a return handoff message, or `null` if [message] isn't one.
-String? decodeZpReturnMessage(String message) =>
-    message.startsWith(_prefix) ? message.substring(_prefix.length) : null;
+String? decodeZpReturnMessage(String message) => message.startsWith(_prefix) ? message.substring(_prefix.length) : null;

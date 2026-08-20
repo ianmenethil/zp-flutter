@@ -68,8 +68,9 @@ void main() {
       root = Directory.systemTemp.createTempSync('apply_platform_config_');
       manifest = File(
         '${root.path}/example/app/android/app/src/main/AndroidManifest.xml',
-      )..createSync(recursive: true);
-      manifest.writeAsStringSync(_androidManifestFresh);
+      )
+        ..createSync(recursive: true)
+        ..writeAsStringSync(_androidManifestFresh);
     });
 
     tearDown(() => root.deleteSync(recursive: true));

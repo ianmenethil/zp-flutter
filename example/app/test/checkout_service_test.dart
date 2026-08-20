@@ -87,9 +87,7 @@ void main() {
       await expectLater(
         prepareCheckout(base, <String, Object?>{}, client: client),
         throwsA(
-          isA<BackendError>()
-              .having((e) => e.statusCode, 'statusCode', 500)
-              .having((e) => e.code, 'code', 'SESSION_CONFIGURATION_REQUIRED'),
+          isA<BackendError>().having((e) => e.statusCode, 'statusCode', 500).having((e) => e.code, 'code', 'SESSION_CONFIGURATION_REQUIRED'),
         ),
       );
     });
@@ -156,9 +154,7 @@ void main() {
       await expectLater(
         fetchStatus(base, 'signed-token', client: client),
         throwsA(
-          isA<BackendError>()
-              .having((e) => e.statusCode, 'statusCode', 404)
-              .having((e) => e.code, 'code', isNull),
+          isA<BackendError>().having((e) => e.statusCode, 'statusCode', 404).having((e) => e.code, 'code', isNull),
         ),
       );
     });

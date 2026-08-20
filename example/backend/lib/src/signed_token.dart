@@ -80,8 +80,7 @@ Uint8List deriveTokenKey(Object rootSecret, String purpose) {
   return Uint8List.fromList(mac.bytes);
 }
 
-String _base64UrlEncode(List<int> bytes) =>
-    base64Url.encode(bytes).replaceAll(_padding, '');
+String _base64UrlEncode(List<int> bytes) => base64Url.encode(bytes).replaceAll(_padding, '');
 
 Uint8List _base64UrlDecode(String value) {
   final padded = value.padRight(((value.length + 3) ~/ 4) * 4, _padding);
@@ -128,9 +127,7 @@ SignedTokenDecodeResult decodeSignedToken(String token, Object secret) {
 
   try {
     final decoded = jsonDecode(utf8.decode(_base64UrlDecode(body)));
-    return decoded is Map<String, Object?>
-        ? SignedTokenDecoded(decoded)
-        : const SignedTokenMalformed();
+    return decoded is Map<String, Object?> ? SignedTokenDecoded(decoded) : const SignedTokenMalformed();
   } on FormatException {
     return const SignedTokenMalformed();
   }

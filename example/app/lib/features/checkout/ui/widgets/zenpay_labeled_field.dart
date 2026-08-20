@@ -1,5 +1,5 @@
 /// Labeled outlined text field — style only; validation is the caller's job,
-/// surfaced here purely as [errorText].
+/// surfaced here purely as [ZenPayLabeledField.errorText].
 library;
 
 import 'package:flutter/material.dart';

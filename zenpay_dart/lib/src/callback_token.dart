@@ -7,8 +7,8 @@ import 'dart:typed_data';
 
 import 'package:hashlib/hashlib.dart';
 
-import 'crypto.dart';
-import 'enums.dart';
+import 'package:zenpay_dart/src/crypto.dart';
+import 'package:zenpay_dart/src/enums.dart';
 
 const _minSecretBytes = 32;
 const _signatureBytes = 16;
@@ -21,44 +21,62 @@ const _tokenKeyAmount = 'a';
 const _tokenKeyExpiresAt = 'exp';
 
 /// Payload stored inside a signed callback URL token.
-class const ZpCallbackUrlTokenPayload({
+class ZpCallbackUrlTokenPayload {
+  /// Creates a [ZpCallbackUrlTokenPayload].
+  const ZpCallbackUrlTokenPayload({
+    required this.mode,
+    required this.merchantUniquePaymentId,
+    required this.timestamp,
+    this.paymentAmount,
+    this.extra = const {},
+  });
+
   /// Payment operating mode.
-  required final ZpPluginMode mode,
+  final ZpPluginMode mode;
 
   /// Per-payment idempotency key.
-  required final String merchantUniquePaymentId,
+  final String merchantUniquePaymentId;
 
   /// ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SS`).
-  required final String timestamp,
+  final String timestamp;
 
   /// Payment amount in dollars.
-  final Object? paymentAmount,
+  final Object? paymentAmount;
 
   /// Arbitrary extra key-value pairs stored in the token payload.
-  final Map<String, Object?> extra = const {},
-});
+  final Map<String, Object?> extra;
+}
 
 /// Options for token creation, such as expiration.
-class const ZpCallbackUrlTokenOptions({
+class ZpCallbackUrlTokenOptions {
+  /// Creates a [ZpCallbackUrlTokenOptions].
+  const ZpCallbackUrlTokenOptions({
+    this.expiresInSeconds,
+  });
+
   /// Token lifetime in seconds.
   ///
   /// `null` means the token does not expire.
-  final int? expiresInSeconds,
-});
+  final int? expiresInSeconds;
+}
 
 /// Result of [verifyZpCallbackUrlToken].
 ///
 /// Exhaustively pattern-match with a `switch` over
 /// [ZpCallbackUrlTokenVerified] and [ZpCallbackUrlTokenFailure].
 sealed class ZpCallbackUrlTokenResult {
+  /// Base constructor for callback URL token results.
   const ZpCallbackUrlTokenResult();
 }
 
 /// A successfully verified and decoded callback URL token.
-final class const ZpCallbackUrlTokenVerified(
+final class ZpCallbackUrlTokenVerified extends ZpCallbackUrlTokenResult {
+  /// Creates a [ZpCallbackUrlTokenVerified] result with the decoded [payload].
+  const ZpCallbackUrlTokenVerified(this.payload);
+
   /// The recovered token payload.
-  final ZpCallbackUrlTokenPayload payload,
-) extends ZpCallbackUrlTokenResult;
+  final ZpCallbackUrlTokenPayload payload;
+}
 
 /// Why a callback URL token failed verification.
 enum ZpCallbackUrlTokenFailureReason {
@@ -73,10 +91,13 @@ enum ZpCallbackUrlTokenFailureReason {
 }
 
 /// A failed callback URL token verification.
-final class const ZpCallbackUrlTokenFailure(
+final class ZpCallbackUrlTokenFailure extends ZpCallbackUrlTokenResult {
+  /// Creates a [ZpCallbackUrlTokenFailure] result with the failure [reason].
+  const ZpCallbackUrlTokenFailure(this.reason);
+
   /// Why verification failed.
-  final ZpCallbackUrlTokenFailureReason reason,
-) extends ZpCallbackUrlTokenResult;
+  final ZpCallbackUrlTokenFailureReason reason;
+}
 
 Uint8List _keyBytes(Object secret) {
   final bytes = switch (secret) {
@@ -99,8 +120,7 @@ Uint8List _keyBytes(Object secret) {
   return bytes;
 }
 
-String _base64UrlEncode(List<int> bytes) =>
-    base64Url.encode(bytes).replaceAll(zpBase64Padding, '');
+String _base64UrlEncode(List<int> bytes) => base64Url.encode(bytes).replaceAll(zpBase64Padding, '');
 
 Uint8List _base64UrlDecode(String value) {
   final padded = value.padRight(((value.length + 3) ~/ 4) * 4, zpBase64Padding);
@@ -114,8 +134,7 @@ Uint8List _sign(String body, Uint8List key) {
   return Uint8List.fromList(mac.bytes.sublist(0, _signatureBytes));
 }
 
-bool _isAmountShaped(Object? value) =>
-    value == null || value is String || value is num;
+bool _isAmountShaped(Object? value) => value == null || value is String || value is num;
 
 Map<String, Object?>? _decodeBody(String body) {
   try {
@@ -127,13 +146,13 @@ Map<String, Object?>? _decodeBody(String body) {
   }
 }
 
-ZpPluginMode? _parseMode(int value) {
-  try {
-    return ZpPluginMode.fromWireValue(value);
-  } on ArgumentError {
-    return null;
-  }
-}
+ZpPluginMode? _parseMode(int value) => switch (value) {
+  0 => ZpPluginMode.makePayment,
+  1 => ZpPluginMode.tokenise,
+  2 => ZpPluginMode.customPayment,
+  3 => ZpPluginMode.preauthorization,
+  _ => null,
+};
 
 /// Mints a signed, stateless callback URL token.
 ///
@@ -165,9 +184,7 @@ String createZpCallbackUrlToken(
   final issuedAt = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 
   final expiresInSeconds = options.expiresInSeconds;
-  final expiresAt = expiresInSeconds == null
-      ? null
-      : issuedAt + expiresInSeconds;
+  final expiresAt = expiresInSeconds == null ? null : issuedAt + expiresInSeconds;
 
   final wire = <String, Object?>{
     ...payload.extra,

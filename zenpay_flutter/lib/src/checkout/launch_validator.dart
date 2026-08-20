@@ -4,8 +4,8 @@
 /// browser presentation.
 library;
 
-import '../configuration/checkout_configuration.dart';
-import '../exceptions/checkout_event.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart';
+import 'package:zenpay_flutter/src/exceptions/checkout_event.dart';
 
 /// Predefined error messages for launch validation failures.
 abstract final class _ValidationMessage {
@@ -39,7 +39,10 @@ bool isAllowedCheckoutUrl(Uri url, ZpCheckoutConfiguration configuration) =>
 ///
 /// Checks target checkout URLs against security policies and allowlisted
 /// domains.
-final class const ZpLaunchValidator() {
+final class ZpLaunchValidator {
+  /// Creates a [ZpLaunchValidator].
+  const ZpLaunchValidator();
+
   /// Validates [checkoutUrl] against [configuration].
   ///
   /// Throws [ZpInvalidLaunchException] if [checkoutUrl] does not satisfy

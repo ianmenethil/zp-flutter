@@ -12,8 +12,10 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'return_uri_source.dart';
-import 'web_return_message.dart';
+import 'package:zenpay_flutter/src/presentation/presenter.dart' show CheckoutPresenter;
+
+import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
 
 @JS('addEventListener')
 external void _addWindowMessageListener(String type, JSFunction listener);
@@ -33,16 +35,14 @@ extension type _MessageEvent(JSObject _) implements JSObject {
 /// [ZpReturnUriSource] receiving the return relayed by a same-origin
 /// checkout popup — see this file's library doc comment.
 final class WebPopupReturnUriSource implements ZpReturnUriSource {
-  final StreamController<Uri> _controller = StreamController<Uri>.broadcast();
-  late final JSFunction _listener;
-
   /// Creates a source and starts listening for `message` events immediately.
   WebPopupReturnUriSource() {
     _listener = ((JSAny event) => _onMessage(event as _MessageEvent)).toJS;
     _addWindowMessageListener('message', _listener);
-    _controller.onCancel = () =>
-        _removeWindowMessageListener('message', _listener);
+    _controller.onCancel = () => _removeWindowMessageListener('message', _listener);
   }
+  final StreamController<Uri> _controller = StreamController<Uri>.broadcast();
+  late final JSFunction _listener;
 
   void _onMessage(_MessageEvent event) {
     // Only ever trust a message from this exact page's own origin — the

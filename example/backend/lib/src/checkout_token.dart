@@ -18,14 +18,9 @@
 /// separation.
 library;
 
-import 'models.dart' show CheckoutClient;
-import 'signed_token.dart'
-    show
-        SignedTokenBadSignature,
-        SignedTokenDecoded,
-        SignedTokenMalformed,
-        decodeSignedToken,
-        encodeSignedToken;
+import 'package:zenpay_example_backend/src/models.dart' show CheckoutClient;
+import 'package:zenpay_example_backend/src/signed_token.dart'
+    show SignedTokenBadSignature, SignedTokenDecoded, SignedTokenMalformed, decodeSignedToken, encodeSignedToken;
 
 const _scope = 'checkout:exchange';
 
@@ -190,9 +185,7 @@ CheckoutTokenResult verifyCheckoutToken(String token, Object secret) {
   final issuedAt = data[_keyIssuedAt];
   final expiresAt = data[_keyExpiresAt];
 
-  final client = clientValue is String
-      ? CheckoutClient.tryParse(clientValue)
-      : null;
+  final client = clientValue is String ? CheckoutClient.tryParse(clientValue) : null;
 
   if (mupid is! String ||
       modeValue is! int ||

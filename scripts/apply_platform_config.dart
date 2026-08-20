@@ -37,8 +37,9 @@ void main(List<String> arguments) {
   try {
     results = parser.parse(arguments);
   } on FormatException catch (error) {
-    stderr.writeln(error.message);
-    stderr.writeln(parser.usage);
+    stderr
+      ..writeln(error.message)
+      ..writeln(parser.usage);
     exit(64);
   }
 
@@ -51,8 +52,9 @@ void main(List<String> arguments) {
   // a callback; without one it silently defers to a later ArgumentError. So
   // this is checked explicitly rather than relied on.
   if (!results.wasParsed('host')) {
-    stderr.writeln('Missing required option: --host');
-    stderr.writeln(parser.usage);
+    stderr
+      ..writeln('Missing required option: --host')
+      ..writeln(parser.usage);
     exit(64);
   }
 
@@ -143,7 +145,8 @@ void patchIos(String root, String host) {
   }
 
   File('${runnerDir.path}/Runner.entitlements').writeAsStringSync(
-    '''<?xml version="1.0" encoding="UTF-8"?>
+    '''
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

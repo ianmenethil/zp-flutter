@@ -44,24 +44,26 @@ library;
 
 import 'dart:async';
 
-import 'src/return_handling/return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
 
 /// A [ZpReturnUriSource] driven by the test rather than by App Links.
 ///
 /// Feed return URIs with [emit] to exercise a checkout without any platform
 /// involvement. Always [close] it in `tearDown`.
-final class FakeReturnUriSource({
+final class FakeReturnUriSource implements ZpReturnUriSource {
+  /// Creates a [FakeReturnUriSource] with an optional [initialUri].
+  FakeReturnUriSource({this.initialUri});
+
   /// Replayed first to every subscriber, mimicking `getInitialLink`.
-  final Uri? initialUri,
-}) implements ZpReturnUriSource {
+  final Uri? initialUri;
+
   /// The controller behind [uris]. Prefer [emit].
   final StreamController<Uri> controller = StreamController<Uri>.broadcast();
 
   @override
   Stream<Uri> get uris {
     if (initialUri != null) {
-      final replayed = StreamController<Uri>();
-      replayed.add(initialUri!);
+      final replayed = StreamController<Uri>()..add(initialUri!);
       unawaited(
         replayed.addStream(controller.stream).whenComplete(replayed.close),
       );

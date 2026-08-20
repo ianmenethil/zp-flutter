@@ -8,6 +8,7 @@
 // Every mode's final step inherits stdio and blocks for the process's whole
 // lifetime (Ctrl+C stops it) — same as running `flutter run` directly: logs
 // stream live, nothing runs detached in the background.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -58,6 +59,23 @@ String _usage() {
     row('--stream', 'Mirror an Android device via scrcpy.'),
     row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
     row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
+    row('--register-device', 'Register Firebase App Check debug token.'),
+    row(
+      '--release:dart:minor',
+      'Bump zenpay_dart to the next minor version, prep for pub.dev.',
+    ),
+    row(
+      '--release:dart:major',
+      'Bump zenpay_dart to the next major version, prep for pub.dev.',
+    ),
+    row(
+      '--release:flutter:minor',
+      'Bump zenpay_flutter to the next minor version, prep for pub.dev.',
+    ),
+    row(
+      '--release:flutter:major',
+      'Bump zenpay_flutter to the next major version, prep for pub.dev.',
+    ),
     '',
     _bold('Options:'),
     row('--device=<id>', 'Device id for --android / --ios / --stream.'),
@@ -85,6 +103,8 @@ String _usage() {
     _dim('  dart run $_scriptName --stream'),
     _dim('  dart run $_scriptName --tunnel'),
     _dim('  dart run $_scriptName --quick-tunnel'),
+    _dim('  dart run $_scriptName --release:dart:minor'),
+    _dim('  dart run $_scriptName --release:flutter:major'),
   ].join('\n');
 }
 
@@ -114,6 +134,31 @@ Future<void> main(List<String> arguments) async {
       negatable: false,
       help: 'Run an ephemeral *.trycloudflare.com tunnel.',
     )
+    ..addFlag(
+      'register-device',
+      negatable: false,
+      help: 'Register Firebase App Check debug token.',
+    )
+    ..addFlag(
+      'release:dart:minor',
+      negatable: false,
+      help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.',
+    )
+    ..addFlag(
+      'release:dart:major',
+      negatable: false,
+      help: 'Bump zenpay_dart to the next major version, prep for pub.dev.',
+    )
+    ..addFlag(
+      'release:flutter:minor',
+      negatable: false,
+      help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.',
+    )
+    ..addFlag(
+      'release:flutter:major',
+      negatable: false,
+      help: 'Bump zenpay_flutter to the next major version, prep for pub.dev.',
+    )
     ..addOption('device', help: 'Device id for --android / --ios / --stream.')
     ..addOption(
       'public-base-url',
@@ -142,8 +187,9 @@ Future<void> main(List<String> arguments) async {
     args = parser.parse(arguments);
   } on FormatException catch (error) {
     _error(error.message);
-    stderr.writeln();
-    stderr.writeln(_usage());
+    stderr
+      ..writeln()
+      ..writeln(_usage());
     exit(64);
   }
 
@@ -161,16 +207,24 @@ Future<void> main(List<String> arguments) async {
     if (args['stream'] as bool) 'stream',
     if (args['tunnel'] as bool) 'tunnel',
     if (args['quick-tunnel'] as bool) 'quick-tunnel',
+    if (args['register-device'] as bool) 'register-device',
+    if (args['release:dart:minor'] as bool) 'release:dart:minor',
+    if (args['release:dart:major'] as bool) 'release:dart:major',
+    if (args['release:flutter:minor'] as bool) 'release:flutter:minor',
+    if (args['release:flutter:major'] as bool) 'release:flutter:major',
   ];
   if (modes.length != 1) {
     _error(
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --ios --web '
-                '--stream --tunnel --quick-tunnel.'
+                '--stream --tunnel --quick-tunnel --register-device '
+                '--release:dart:minor --release:dart:major '
+                '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
-    stderr.writeln();
-    stderr.writeln(_usage());
+    stderr
+      ..writeln()
+      ..writeln(_usage());
     exit(64);
   }
 
@@ -201,8 +255,18 @@ Future<void> main(List<String> arguments) async {
     await _web(root);
   } else if (mode == 'tunnel') {
     await _tunnel(root);
-  } else {
+  } else if (mode == 'quick-tunnel') {
     await _quickTunnel(root, url: args['url'] as String?);
+  } else if (mode == 'register-device') {
+    await _registerDevice(root, deviceId: args['device'] as String?);
+  } else if (mode.startsWith('release:')) {
+    // release:<dart|flutter>:<minor|major>
+    final parts = mode.split(':');
+    await _release(
+      root,
+      package: parts[1] == 'dart' ? 'zenpay_dart' : 'zenpay_flutter',
+      bump: parts[2],
+    );
   }
 }
 
@@ -286,14 +350,41 @@ Future<int> _runLive(
   String executable,
   List<String> args, {
   String? cwd,
+  bool inheritStdio = true,
 }) async {
-  final process = await Process.start(
-    _resolveExecutable(executable),
-    args,
-    workingDirectory: cwd,
-    mode: ProcessStartMode.inheritStdio,
-  );
-  return process.exitCode;
+  StreamSubscription<ProcessSignal>? sigintSub;
+  if (inheritStdio) {
+    // Ignore SIGINT so we don't drop out of the CLI while the child is still running.
+    // The child process receives the signal too (e.g., cmd.exe /c flutter.bat)
+    // and should terminate gracefully. If we exit immediately, the terminal gets corrupted.
+    try {
+      sigintSub = ProcessSignal.sigint.watch().listen((_) {});
+    } on Object catch (_) {} // ProcessSignal.sigint might not be supported on all platforms, though it is on Windows.
+
+    final process = await Process.start(
+      _resolveExecutable(executable),
+      args,
+      workingDirectory: cwd,
+      mode: ProcessStartMode.inheritStdio,
+    );
+    final exitCode = await process.exitCode;
+    await sigintSub?.cancel();
+    return exitCode;
+  } else {
+    final process = await Process.start(
+      _resolveExecutable(executable),
+      args,
+      workingDirectory: cwd,
+    );
+    process.stdout.listen(stdout.add);
+    process.stderr.listen(stderr.add);
+
+    // We explicitly do not pipe stdin or listen to it, because doing so
+    // with certain processes (like dart run) on Windows can permanently
+    // break the terminal's input mode upon a Ctrl+C exit.
+
+    return process.exitCode;
+  }
 }
 
 /// Like [_runLive], but a non-zero exit aborts this script — for setup steps
@@ -317,8 +408,9 @@ Future<Never> _execForeground(
   String executable,
   List<String> args, {
   String? cwd,
+  bool inheritStdio = true,
 }) async {
-  exit(await _runLive(executable, args, cwd: cwd));
+  exit(await _runLive(executable, args, cwd: cwd, inheritStdio: inheritStdio));
 }
 
 /// First-run setup for a fresh clone: resolves the pub workspace and creates
@@ -371,15 +463,16 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
 
   stdout.writeln();
   _success('Bootstrap complete. Next:');
-  stdout.writeln(
-    '  1. Fill in ZENPAY_* credentials in example/backend/.env — the '
-    'server will not start without them.',
-  );
-  stdout.writeln(
-    '  2. dart run $_scriptName --server   '
-    '(prompts for PUBLIC_BASE_URL and propagates it)',
-  );
-  stdout.writeln('  3. dart run $_scriptName --android | --ios | --web');
+  stdout
+    ..writeln(
+      '  1. Fill in ZENPAY_* credentials in example/backend/.env — the '
+      'server will not start without them.',
+    )
+    ..writeln(
+      '  2. dart run $_scriptName --server   '
+      '(prompts for PUBLIC_BASE_URL and propagates it)',
+    )
+    ..writeln('  3. dart run $_scriptName --android | --ios | --web');
 }
 
 /// Starts the example backend. Every other mode assumes this is already
@@ -391,8 +484,8 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
 /// matching.
 Future<void> _server(
   String root, {
-  String? publicBaseUrl,
   required bool keepUrl,
+  String? publicBaseUrl,
 }) async {
   final backendDir = '$root/example/backend';
   final envFile = File('$backendDir/.env');
@@ -416,12 +509,13 @@ Future<void> _server(
     var newUrl = publicBaseUrl;
     if (newUrl == null) {
       _info('Current PUBLIC_BASE_URL: $current');
-      stdout.writeln(
-        'For live callbacks or mobile deep links this must be a public '
-        'HTTPS host:',
-      );
-      stdout.writeln('  cloudflared tunnel --url http://localhost:7000');
-      stdout.write('New PUBLIC_BASE_URL (Enter to keep): ');
+      stdout
+        ..writeln(
+          'For live callbacks or mobile deep links this must be a public '
+          'HTTPS host:',
+        )
+        ..writeln('  cloudflared tunnel --url http://localhost:7000')
+        ..write('New PUBLIC_BASE_URL (Enter to keep): ');
       newUrl = stdin.readLineSync()?.trim() ?? '';
     }
 
@@ -463,7 +557,12 @@ Future<void> _server(
     }
   }
 
-  await _execForeground('dart', ['run', 'bin/server.dart'], cwd: backendDir);
+  await _execForeground(
+    'dart',
+    ['run', 'bin/server.dart'],
+    cwd: backendDir,
+    inheritStdio: false,
+  );
 }
 
 /// Assumes the backend is already running.
@@ -714,4 +813,220 @@ String _defaultQuickTunnelUrl(String root) {
     if (port != null && port.isNotEmpty) return 'http://localhost:$port';
   }
   return 'http://localhost:7000';
+}
+
+/// Bumps [package]'s version and preps it for a pub.dev publish, via Melos.
+///
+/// [bump] is `'minor'` or `'major'`. The target is always a stable exact
+/// version with any `-dev.N` prerelease dropped (e.g. `0.1.0-dev.1` -> minor
+/// `0.2.0`, major `1.0.0`) — passed to `melos version` as an exact version,
+/// not the `minor`/`major` keyword. Melos's own keyword bump only reads the
+/// release type when the current version is *not* already a same-preid
+/// prerelease; on a `-dev.N` version with no `--graduate` (which cannot be
+/// combined with a manual version anyway) it ignores major/minor/patch
+/// entirely and just increments the prerelease counter instead. Passing the
+/// exact computed version sidesteps that and always sets precisely what was
+/// asked for.
+///
+/// Deliberately stops short of anything consequential: `melos version` runs
+/// with `--no-git-tag-version --no-git-commit-version` (committing is yours
+/// to do, not this script's), and the actual `dart pub publish` is never run
+/// here — only validated with `--dry-run`. A pub.dev publish cannot be
+/// undone, so the real publish is always a separate, manual, deliberate step.
+Future<void> _release(
+  String root, {
+  required String package,
+  required String bump,
+}) async {
+  final pubspecFile = File('$root/$package/pubspec.yaml');
+  if (!pubspecFile.existsSync()) {
+    _error('No pubspec.yaml at ${pubspecFile.path}.');
+    exit(1);
+  }
+
+  final current = RegExp(
+    r'^version:\s*(\S+)$',
+    multiLine: true,
+  ).firstMatch(pubspecFile.readAsStringSync())?.group(1);
+  if (current == null) {
+    _error('No "version:" line found in ${pubspecFile.path}.');
+    exit(1);
+  }
+
+  // Drop any -dev.N (or other) prerelease/build suffix before computing the
+  // bump — the target is always a plain stable major.minor.patch.
+  final core = current.split(RegExp('[+-]')).first;
+  final parts = core.split('.').map(int.tryParse).toList();
+  if (parts.length != 3 || parts.any((p) => p == null)) {
+    _error('Cannot parse version "$current" in ${pubspecFile.path}.');
+    exit(1);
+  }
+  final major = parts[0]!;
+  final minor = parts[1]!;
+  final target = bump == 'major' ? '${major + 1}.0.0' : '$major.${minor + 1}.0';
+
+  _info('$package: $current -> $target');
+  await _runChecked('dart', [
+    'run',
+    'melos',
+    'version',
+    package,
+    target,
+    '--no-git-tag-version',
+    '--no-git-commit-version',
+  ], cwd: root);
+
+  _info('Validating with dart pub publish --dry-run...');
+  await _runChecked('dart', [
+    'pub',
+    'publish',
+    '--dry-run',
+  ], cwd: '$root/$package');
+
+  stdout.writeln();
+  _success('$package is at $target and ready to publish.');
+  stdout
+    ..writeln(
+      'Nothing was committed, tagged, or published — that is all left to you:',
+    )
+    ..writeln(
+      '  1. Review the diff (pubspec.yaml, CHANGELOG.md), commit it.',
+    )
+    ..writeln('  2. cd $package && dart pub publish');
+}
+
+Future<void> _registerDevice(String root, {String? deviceId}) async {
+  _info('Registering Firebase App Check debug token...');
+
+  _info('Fetching gcloud access token...');
+  final gcloudResult = await Process.run('gcloud', [
+    'auth',
+    'print-access-token',
+  ]);
+  if (gcloudResult.exitCode != 0) {
+    _error('Failed to get gcloud token: ${gcloudResult.stderr}');
+    exit(1);
+  }
+  final accessToken = gcloudResult.stdout.toString().trim();
+
+  _info('Clearing app cache on device to force a new debug token...');
+  final adbArgs = [
+    'shell',
+    'pm',
+    'clear',
+    'au.com.zenithpayments.zenpay_example_app',
+  ];
+  if (deviceId != null) {
+    adbArgs
+      ..insert(0, deviceId)
+      ..insert(0, '-s');
+  }
+  final clearResult = await Process.run('adb', adbArgs);
+  if (clearResult.exitCode != 0) {
+    _error('Failed to clear app cache: ${clearResult.stderr}');
+    exit(1);
+  }
+
+  final clearLogcatArgs = ['logcat', '-c'];
+  if (deviceId != null) {
+    clearLogcatArgs
+      ..insert(0, deviceId)
+      ..insert(0, '-s');
+  }
+  await Process.run('adb', clearLogcatArgs);
+
+  _info('Launching app on device...');
+  final launchArgs = [
+    'shell',
+    'monkey',
+    '-p',
+    'au.com.zenithpayments.zenpay_example_app',
+    '-c',
+    'android.intent.category.LAUNCHER',
+    '1',
+  ];
+  if (deviceId != null) {
+    launchArgs
+      ..insert(0, deviceId)
+      ..insert(0, '-s');
+  }
+  await Process.run('adb', launchArgs);
+
+  _info('Waiting up to 15s for Firebase to generate a debug token...');
+  String? token;
+  for (var i = 0; i < 15; i++) {
+    await Future<void>.delayed(const Duration(seconds: 1));
+    final logcatArgs = ['logcat', '-d', '-s', 'DebugAppCheckProvider'];
+    if (deviceId != null) {
+      logcatArgs
+        ..insert(0, deviceId)
+        ..insert(0, '-s');
+    }
+    final logcatResult = await Process.run('adb', logcatArgs);
+    final logOutput = logcatResult.stdout.toString();
+    final match = RegExp(
+      r'Enter this debug secret \((.*?)\)',
+    ).firstMatch(logOutput);
+    if (match != null) {
+      token = match.group(1);
+      break;
+    }
+  }
+
+  if (token == null) {
+    _error(
+      'Failed to find debug token in logcat. Ensure the app is running and using AndroidDebugProvider.',
+    );
+    exit(1);
+  }
+
+  _success('Found token: $token');
+
+  final googleServicesFile = File('$root/example/app/android/app/google-services.json');
+  if (!googleServicesFile.existsSync()) {
+    _error('google-services.json not found.');
+    exit(1);
+  }
+  final Object? parsed = jsonDecode(googleServicesFile.readAsStringSync());
+  if (parsed is! Map<String, dynamic>) throw StateError('Invalid json');
+  final projectInfo = parsed['project_info'] as Map<String, dynamic>;
+  final projectNumber = projectInfo['project_number'] as String;
+  final projectId = projectInfo['project_id'] as String;
+  final clients = (parsed['client'] as List<dynamic>).cast<Map<String, dynamic>>();
+  final clientInfo = clients.first['client_info'] as Map<String, dynamic>;
+  final appId = clientInfo['mobilesdk_app_id'] as String;
+
+  _info('Registering token with Firebase ($projectId)...');
+
+  final client = HttpClient();
+  try {
+    final request = await client.postUrl(
+      Uri.parse(
+        'https://firebaseappcheck.googleapis.com/v1/projects/$projectNumber/apps/$appId/debugTokens',
+      ),
+    );
+    request.headers
+      ..add('Authorization', 'Bearer $accessToken')
+      ..add('x-goog-user-project', projectId)
+      ..contentType = ContentType.json;
+
+    final payload = jsonEncode({
+      'displayName': 'CLI Auto-Registered Device',
+      'token': token,
+    });
+    request.write(payload);
+
+    final response = await request.close();
+    final responseBody = await response.transform(utf8.decoder).join();
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      _success('Successfully registered device token with Firebase App Check!');
+    } else {
+      _error(
+        'Failed to register token (HTTP ${response.statusCode}):\n$responseBody',
+      );
+    }
+  } finally {
+    client.close();
+  }
 }

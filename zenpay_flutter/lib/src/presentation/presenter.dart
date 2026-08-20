@@ -8,13 +8,19 @@ import 'package:meta/meta.dart';
 
 /// Result of attempting to present a checkout URL.
 @immutable
-final class const PresentationLaunchResult({
+final class PresentationLaunchResult {
+  /// Creates a [PresentationLaunchResult].
+  const PresentationLaunchResult({
+    required this.launched,
+    required this.usedExternalBrowserFallback,
+  });
+
   /// Whether the presentation was successfully launched.
-  required final bool launched,
+  final bool launched;
 
   /// Whether launch fell back to an external system browser.
-  required final bool usedExternalBrowserFallback,
-});
+  final bool usedExternalBrowserFallback;
+}
 
 /// Presents the ZenPay hosted checkout page and reports its lifecycle.
 abstract class CheckoutPresenter {

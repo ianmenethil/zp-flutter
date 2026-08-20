@@ -13,8 +13,7 @@ const _appReturnUriWebEnvKey = 'APP_RETURN_URI_WEB';
 const _defaultAppReturnUriWeb = 'https://localhost:3000/';
 
 const _appReturnUriMobileEnvKey = 'APP_RETURN_URI_MOBILE';
-const _defaultAppReturnUriMobile =
-    'https://payments.example.com/zenpay/app-return';
+const _defaultAppReturnUriMobile = 'https://payments.example.com/zenpay/app-return';
 
 const _allowedCheckoutHostsEnvKey = 'ALLOWED_CHECKOUT_HOSTS';
 const _defaultAllowedCheckoutHosts = 'pay.sandbox.travelpay.com.au';

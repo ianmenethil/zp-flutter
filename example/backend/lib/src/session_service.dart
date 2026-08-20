@@ -10,17 +10,12 @@ library;
 
 import 'package:zenpay_dart/zenpay_dart.dart';
 
-import 'attempt_store.dart';
-import 'checkout_token.dart'
-    show
-        CheckoutTokenFailure,
-        CheckoutTokenPayload,
-        CheckoutTokenVerified,
-        createCheckoutToken,
-        verifyCheckoutToken;
-import 'config.dart';
-import 'models.dart';
-import 'token_keys.dart' show checkoutTokenKey, callbackTokenKey;
+import 'package:zenpay_example_backend/src/attempt_store.dart';
+import 'package:zenpay_example_backend/src/checkout_token.dart'
+    show CheckoutTokenFailure, CheckoutTokenPayload, CheckoutTokenVerified, createCheckoutToken, verifyCheckoutToken;
+import 'package:zenpay_example_backend/src/config.dart';
+import 'package:zenpay_example_backend/src/models.dart';
+import 'package:zenpay_example_backend/src/token_keys.dart' show callbackTokenKey, checkoutTokenKey;
 
 /// Path ZenPay redirects the browser back to after checkout.
 const returnPath = '/return';
@@ -35,9 +30,7 @@ const callbacksPath = '/api/v1/callbacks';
 /// app ships one — that domain verification (`assetlinks.json`) isn't part
 /// of this minimal backend yet.
 Uri appReturnUriFor(CheckoutAttempt attempt, AppConfig config) =>
-    attempt.client == CheckoutClient.mobile
-    ? config.publicBaseUrl.resolve('/zenpay/app-return')
-    : config.appReturnUriWeb;
+    attempt.client == CheckoutClient.mobile ? config.publicBaseUrl.resolve('/zenpay/app-return') : config.appReturnUriWeb;
 
 /// Whether [mode] charges the customer (Make Payment, Custom Payment,
 /// Pre-Auth) — gates `customerName`/`customerReference`, not [amount].
@@ -58,7 +51,7 @@ num? _resolveAmount(int mode, num? paymentAmount) {
   return paymentAmount;
 }
 
-/// Throws [HttpError] `409` if a replayed [idempotencyKey] request's core
+/// Throws [HttpError] `409` if a replayed `idempotencyKey` request's core
 /// order fields don't match the [existing] attempt.
 void _requireIdempotentMatch(
   CheckoutAttempt existing,
@@ -75,22 +68,21 @@ void _requireIdempotentMatch(
 }
 
 /// Mints a checkout token carrying [attempt]'s immutable fields.
-String _mintCheckoutToken(CheckoutAttempt attempt, AppConfig config) =>
-    createCheckoutToken(
-      CheckoutTokenPayload(
-        merchantUniquePaymentId: attempt.merchantUniquePaymentId,
-        mode: attempt.mode,
-        client: attempt.client,
-        customerName: attempt.customerName,
-        customerEmail: attempt.customerEmail,
-        timestamp: attempt.zenPayTimestamp,
-        amount: attempt.amount,
-        customerReference: attempt.customerReference,
-        contactNumber: attempt.contactNumber,
-      ),
-      checkoutTokenKey(config),
-      expiresInSeconds: config.checkoutTokenTtlSeconds,
-    );
+String _mintCheckoutToken(CheckoutAttempt attempt, AppConfig config) => createCheckoutToken(
+  CheckoutTokenPayload(
+    merchantUniquePaymentId: attempt.merchantUniquePaymentId,
+    mode: attempt.mode,
+    client: attempt.client,
+    customerName: attempt.customerName,
+    customerEmail: attempt.customerEmail,
+    timestamp: attempt.zenPayTimestamp,
+    amount: attempt.amount,
+    customerReference: attempt.customerReference,
+    contactNumber: attempt.contactNumber,
+  ),
+  checkoutTokenKey(config),
+  expiresInSeconds: config.checkoutTokenTtlSeconds,
+);
 
 /// Step 1 — `POST /api/v1/checkout/token`. Validates, resolves the trusted
 /// amount, mints a fresh MUPID/timestamp, persists a pending
@@ -250,8 +242,6 @@ Uri _buildCheckoutUrl({
     customerEmail: customerEmail,
     redirectUrl: returnUrl.toString(),
     callbackUrl: config.publicBaseUrl.resolve(callbacksPath).toString(),
-    displayMode: ZpDisplayMode.redirectUrl,
-    userMode: ZpUserMode.customer,
     redirectOnError: true,
     customerName: isPaymentLike ? customerName : null,
     customerReference: isPaymentLike ? customerReference : null,
@@ -262,7 +252,6 @@ Uri _buildCheckoutUrl({
     contactNumber: contactNumber,
     allowApplePayOneOffPayment: isMakePayment,
     allowGooglePayOneOffPayment: isMakePayment ? true : null,
-    sendConfirmationEmailToCustomer: false,
     sendConfirmationEmailToMerchant: false,
     allowSaveCardUserOption: false,
   );

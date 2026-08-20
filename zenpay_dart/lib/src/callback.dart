@@ -9,13 +9,12 @@
 /// field carries the reference for a given mode.
 library;
 
-import 'crypto.dart';
-import 'enums.dart';
+import 'package:zenpay_dart/src/crypto.dart';
+import 'package:zenpay_dart/src/enums.dart';
 
 final _validationCodePattern = RegExp(r'^[0-9a-f]{128}$');
 
-const _errValidationCodeHex =
-    'validationCode must be a 128-character hex string';
+const _errValidationCodeHex = 'validationCode must be a 128-character hex string';
 
 const _errCredentialLength =
     'apiKey, username, password, and merchantUniquePaymentId must each '
@@ -23,62 +22,78 @@ const _errCredentialLength =
 
 const _errPaymentAmountInvalid = 'paymentAmount is invalid';
 
-const _errValidationCodeMismatch =
-    'validationCode does not match the computed hash';
+const _errValidationCodeMismatch = 'validationCode does not match the computed hash';
 
-const _errMupidMismatch =
-    'response.merchantUniquePaymentId does not match the launched attempt';
+const _errMupidMismatch = 'response.merchantUniquePaymentId does not match the launched attempt';
 
-const _errMalformedBody =
-    'body must contain a response object and a validationCode string';
+const _errMalformedBody = 'body must contain a response object and a validationCode string';
 
 /// Merchant-known credentials, amount, and MUPID used to verify a callback.
-class const ZpVerifyCallbackContext({
+class ZpVerifyCallbackContext {
+  /// Creates a [ZpVerifyCallbackContext].
+  const ZpVerifyCallbackContext({
+    required this.apiKey,
+    required this.username,
+    required this.password,
+    required this.paymentAmount,
+    required this.merchantUniquePaymentId,
+  });
+
   /// Merchant API key — hash field 1.
-  required final String apiKey,
+  final String apiKey;
 
   /// Merchant username — hash field 2.
-  required final String username,
+  final String username;
 
   /// Merchant password — hash field 3.
-  required final String password,
+  final String password;
 
   /// Payment amount in dollars, as launched — hash field 5.
   ///
   /// Ignored for mode 2, which always hashes `"0"`. May be `0` for mode 1.
-  required final Object paymentAmount,
+  final Object paymentAmount;
 
   /// Per-payment idempotency key — hash field 6.
   ///
   /// When the callback echoes its own `merchantUniquePaymentId`, that value
   /// is also checked against this value.
-  required final ZpMupid merchantUniquePaymentId,
-});
+  final ZpMupid merchantUniquePaymentId;
+}
 
 /// Result of [verifyZpCallback].
 ///
 /// Exhaustively pattern-match with a `switch` over [ZpCallbackVerified],
 /// [ZpCallbackMalformed], and [ZpCallbackRejected].
 sealed class ZpCallbackResult {
+  /// Base constructor for callback verification results.
   const ZpCallbackResult();
 }
 
 /// An authentic callback — proves the callback was minted by ZenPay, nothing
 /// more. Carries no data: you already hold the full callback body you passed
 /// to [verifyZpCallback], so read whatever fields you need from it directly.
-final class const ZpCallbackVerified() extends ZpCallbackResult;
+final class ZpCallbackVerified extends ZpCallbackResult {
+  /// Creates a [ZpCallbackVerified] result.
+  const ZpCallbackVerified();
+}
 
 /// The callback body does not match the expected shape for its mode.
-final class const ZpCallbackMalformed(
+final class ZpCallbackMalformed extends ZpCallbackResult {
+  /// Creates a [ZpCallbackMalformed] result with the error [message].
+  const ZpCallbackMalformed(this.message);
+
   /// Why the callback was malformed.
-  final String message,
-) extends ZpCallbackResult;
+  final String message;
+}
 
 /// The callback was shaped correctly but failed authenticity verification.
-final class const ZpCallbackRejected(
+final class ZpCallbackRejected extends ZpCallbackResult {
+  /// Creates a [ZpCallbackRejected] result with the rejection [message].
+  const ZpCallbackRejected(this.message);
+
   /// Why the callback was rejected.
-  final String message,
-) extends ZpCallbackResult;
+  final String message;
+}
 
 typedef _CallbackShape = ({
   Map<String, Object?> response,
@@ -210,7 +225,7 @@ ZpCallbackMalformed? validateZpCallbackBody(
     _parseCallbackShape(mode, body);
     return null;
   } on FormatException catch (error) {
-    return ZpCallbackMalformed(error.message.toString());
+    return ZpCallbackMalformed(error.message);
   }
 }
 
@@ -252,14 +267,12 @@ ZpCallbackResult verifyZpCallback(
 
     final echoedMupid = _string(response, 'merchantUniquePaymentId');
 
-    if (echoedMupid != null &&
-        echoedMupid.isNotEmpty &&
-        echoedMupid != context.merchantUniquePaymentId.value) {
+    if (echoedMupid != null && echoedMupid.isNotEmpty && echoedMupid != context.merchantUniquePaymentId.value) {
       return const ZpCallbackRejected(_errMupidMismatch);
     }
 
     return const ZpCallbackVerified();
   } on FormatException catch (error) {
-    return ZpCallbackMalformed(error.message.toString());
+    return ZpCallbackMalformed(error.message);
   }
 }

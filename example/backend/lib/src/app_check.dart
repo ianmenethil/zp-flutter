@@ -14,6 +14,7 @@ import 'package:googleapis_beta/firebaseappcheck/v1beta.dart' as appcheck;
 
 /// Verifies Firebase App Check tokens. The default implementation calls
 /// Google's REST API; tests inject a fake.
+// Strategy interface for AppCheck token verification and test doubles.
 abstract interface class AppCheckVerifier {
   /// Returns `true` if [token] is a valid App Check token for
   /// [projectNumber]. Returns `false` on any failure — never throws.
@@ -24,8 +25,7 @@ abstract interface class AppCheckVerifier {
 /// `verifyAppCheckToken` REST endpoint via a Service Account.
 final class FirebaseAppCheckVerifier implements AppCheckVerifier {
   /// Creates a verifier from a Service Account JSON key (file contents or path).
-  FirebaseAppCheckVerifier(String serviceAccountJsonOrPath)
-    : _credentials = _parseCredentials(serviceAccountJsonOrPath);
+  FirebaseAppCheckVerifier(String serviceAccountJsonOrPath) : _credentials = _parseCredentials(serviceAccountJsonOrPath);
 
   final auth.ServiceAccountCredentials _credentials;
   auth.AuthClient? _client;
@@ -34,16 +34,13 @@ final class FirebaseAppCheckVerifier implements AppCheckVerifier {
 
   static auth.ServiceAccountCredentials _parseCredentials(String raw) {
     final trimmed = raw.trim();
-    final jsonStr = (trimmed.startsWith('{') && trimmed.endsWith('}'))
-        ? trimmed
-        : File(trimmed).readAsStringSync();
+    final jsonStr = (trimmed.startsWith('{') && trimmed.endsWith('}')) ? trimmed : File(trimmed).readAsStringSync();
     return auth.ServiceAccountCredentials.fromJson(
       jsonDecode(jsonStr) as Map<String, Object?>,
     );
   }
 
-  Future<auth.AuthClient> _authClient() async =>
-      _client ??= await auth.clientViaServiceAccount(_credentials, _scopes);
+  Future<auth.AuthClient> _authClient() async => _client ??= await auth.clientViaServiceAccount(_credentials, _scopes);
 
   @override
   Future<bool> verify(String token, String projectNumber) async {
@@ -62,7 +59,7 @@ final class FirebaseAppCheckVerifier implements AppCheckVerifier {
       // 403 = invalid/expired token, 400 = unsupported provider.
       if (e.status == 403 || e.status == 400) return false;
       rethrow;
-    } catch (_) {
+    } on Object catch (_) {
       return false;
     }
   }
