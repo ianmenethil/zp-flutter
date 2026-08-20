@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:hashlib/hashlib.dart';
 import 'package:http/http.dart' as http;
+import 'package:logging/logging.dart' show LogRecord, Logger;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
@@ -123,12 +124,10 @@ Map<String, Object?> _prepareBody({
   int mode = 0,
   num? paymentAmount = 10,
   String customerEmail = 'jane@example.com',
-  String client = 'web',
 }) => {
   'customerName': 'Jane Doe',
   'customerEmail': customerEmail,
   'customerReference': 'ORDER-REF',
-  'client': client,
   'mode': mode,
   'paymentAmount': ?paymentAmount,
 };
@@ -174,12 +173,14 @@ void main() {
   Future<http.Response> prepare({
     Map<String, Object?>? body,
     String idempotencyKey = 'idempotency-key-prepare-0001',
+    String client = 'web',
   }) => call(
     '/api/v1/checkout/token',
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       'idempotency-key': idempotencyKey,
+      'x-client': client,
     },
     body: body ?? _prepareBody(),
   );
@@ -217,12 +218,6 @@ void main() {
     );
   }
 
-  test('GET /api/v1/health responds ok', () async {
-    final response = await call('/api/v1/health');
-    expect(response.statusCode, 200);
-    expect((jsonDecode(response.body) as Map<String, Object?>)['ok'], true);
-  });
-
   group('POST /api/v1/checkout/token', () {
     test('mode 0 requires a paymentAmount', () async {
       final response = await prepare(body: _prepareBody(paymentAmount: null));
@@ -233,6 +228,40 @@ void main() {
     test('mode 0 accepts any positive amount', () async {
       final response = await prepare(body: _prepareBody(paymentAmount: 361.16));
       expect(response.statusCode, 201);
+    });
+
+    test('rejects a missing or unknown X-Client header', () async {
+      final missing = await call(
+        '/api/v1/checkout/token',
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': 'idempotency-key-no-client-header',
+        },
+        body: _prepareBody(),
+      );
+      expect(missing.statusCode, 400);
+      expect(jsonDecode(missing.body), {'error': 'INVALID_CHECKOUT_CLIENT'});
+
+      final unknown = await prepare(client: 'iframe');
+      expect(unknown.statusCode, 400);
+      expect(jsonDecode(unknown.body), {'error': 'INVALID_CHECKOUT_CLIENT'});
+    });
+
+    test('echoes the caller-supplied X-Request-Id on the response', () async {
+      final response = await call(
+        '/api/v1/checkout/token',
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'idempotency-key': 'idempotency-key-with-request-id',
+          'x-client': 'web',
+          'x-request-id': 'client-side-id-123',
+        },
+        body: _prepareBody(),
+      );
+      expect(response.statusCode, 201);
+      expect(response.headers['x-request-id'], 'client-side-id-123');
     });
 
     test('mode 0 with a valid amount returns a checkout token', () async {
@@ -584,6 +613,7 @@ void main() {
           headers: {
             'content-type': 'application/json',
             'idempotency-key': 'idempotency-key-appcheck-invalid',
+            'x-client': 'web',
             'x-firebase-appcheck': 'invalid-token',
           },
           body: _prepareBody(),
@@ -610,6 +640,7 @@ void main() {
           headers: {
             'content-type': 'application/json',
             'idempotency-key': 'idempotency-key-appcheck-valid',
+            'x-client': 'web',
             'x-firebase-appcheck': 'valid-token',
           },
           body: _prepareBody(),
@@ -640,5 +671,76 @@ void main() {
         expect(decoded['checkoutToken'], isNotNull);
       },
     );
+  });
+
+  group('http_trace header redaction', () {
+    test(
+      'masks only authorization and x-firebase-appcheck in logged headers',
+      () async {
+        final records = <LogRecord>[];
+        final subscription = Logger.root.onRecord.listen(records.add);
+
+        final response = await call(
+          '/api/v1/checkout/exchange',
+          method: 'POST',
+          headers: {
+            'authorization': 'Bearer super-secret-checkout-token',
+            'x-firebase-appcheck': 'app-check-jwt-secret-value',
+            'x-request-id': 'trace-me-123',
+          },
+        );
+        expect(response.statusCode, 401);
+
+        await subscription.cancel();
+        final traces = records
+            .map((r) => r.message)
+            .where((m) => m.contains('http_trace'))
+            .toList();
+        final exchangeTrace = traces.singleWhere(
+          (m) => (jsonDecode(m) as Map<String, Object?>)['path'] ==
+              '/api/v1/checkout/exchange',
+        );
+        final headers =
+            (jsonDecode(exchangeTrace) as Map<String, Object?>)['requestHeaders']!
+                as Map<String, Object?>;
+
+        expect(headers['authorization'], 'Bea...ken');
+        expect(headers['x-firebase-appcheck'], 'app...lue');
+        expect(headers['x-request-id'], 'trace-me-123');
+      },
+    );
+
+    test('masks checkoutToken in logged response bodies', () async {
+      final records = <LogRecord>[];
+      final subscription = Logger.root.onRecord.listen(records.add);
+
+      final response = await prepare(
+        idempotencyKey: 'idempotency-key-redaction-body',
+      );
+      expect(response.statusCode, 201);
+      final token =
+          (jsonDecode(response.body) as Map<String, Object?>)['checkoutToken']!
+              as String;
+
+      await subscription.cancel();
+      final traces = records
+          .map((r) => r.message)
+          .where((m) => m.contains('http_trace'))
+          .toList();
+      final tokenTrace = traces.singleWhere(
+        (m) =>
+            (jsonDecode(m) as Map<String, Object?>)['path'] ==
+            '/api/v1/checkout/token',
+      );
+      final body =
+          (jsonDecode(tokenTrace) as Map<String, Object?>)['responseBody']!
+              as Map<String, Object?>;
+
+      expect(
+        body['checkoutToken'],
+        '${token.substring(0, 3)}...${token.substring(token.length - 3)}',
+      );
+      expect(body['checkoutToken'], isNot(token));
+    });
   });
 }

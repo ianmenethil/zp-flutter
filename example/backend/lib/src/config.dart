@@ -157,7 +157,7 @@ AppConfig loadConfig() {
     ),
     checkoutRateLimitPerMinute: _numberOr(
       _read(file, 'CHECKOUT_RATE_LIMIT_PER_MINUTE'),
-      30,
+      20,
     ),
     firebaseProjectNumber: value('FIREBASE_PROJECT_NUMBER', ''),
     firebaseServiceAccountJson: value('FIREBASE_SERVICE_ACCOUNT_JSON', ''),

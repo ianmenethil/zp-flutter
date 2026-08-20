@@ -58,7 +58,7 @@ Listens on `0.0.0.0:<PORT>`, shuts down cleanly on `Ctrl+C`.
 | `ZENPAY_ALLOWED_CHECKOUT_HOSTS`  |          | Comma-separated allowlist of checkout URL hosts (default `pay.sandbox.travelpay.com.au`).                                                                                      |
 | `CHECKOUT_STATUS_TTL_MINUTES`    |          | How long to keep in-memory attempts before purging (default `60`).                                                                                                              |
 | `CHECKOUT_TOKEN_TTL_SECONDS`     |          | Lifetime of a `POST /api/v1/checkout/token` capability (default `300`) — short, since it only needs to survive the gap before `/checkout/exchange`.                            |
-| `CHECKOUT_RATE_LIMIT_PER_MINUTE` |          | Per-IP requests/minute on `/checkout/token` and `/checkout/exchange` (default `30`).                                                                                            |
+| `CHECKOUT_RATE_LIMIT_PER_MINUTE` |          | Per-IP requests/minute on `/checkout/token` and `/checkout/exchange` (default `20`).                                                                                            |
 
 ---
 
@@ -66,8 +66,7 @@ Listens on `0.0.0.0:<PORT>`, shuts down cleanly on `Ctrl+C`.
 
 | Method | Path                                       |         Auth          | Description                                                                                             |
 | :----- | :------------------------------------------ | :--------------------: | :--------------------------------------------------------------------------------------------------------- |
-| `GET`  | `/api/v1/health`                            |                        | Readiness probe.                                                                                         |
-| `POST` | `/api/v1/checkout/token`                    |                        | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `Idempotency-Key` header (16–128 chars). Anonymous but rate-limited per IP. |
+| `POST` | `/api/v1/checkout/token`                    |                        | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `X-Client` (`web`/`mobile`) and `Idempotency-Key` (16–128 chars) headers. Anonymous but rate-limited per IP and App-Check-gated. `X-Request-Id` is echoed back for log correlation. |
 | `POST` | `/api/v1/checkout/exchange`                 | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL. |
 | `GET`  | `/api/v1/sessions?t=...`                    |  `t` token   | Authoritative status for the one ZenPay attempt named by the verified callback URL token.                |
 | `POST` | `/api/v1/callbacks`                         |                        | ZenPay server-to-server webhook. Verified by `ValidationCode` alone, no `t` token.                       |

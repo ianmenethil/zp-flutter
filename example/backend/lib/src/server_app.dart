@@ -9,8 +9,8 @@
 ///
 /// Mobile app attestation hook: verifies Firebase App Check (wrapping Apple
 /// App Attest / Android Play Integrity / Web reCAPTCHA) as an admission check
-/// inside [_handleCreateCheckoutToken] before [prepareCheckout] runs. Enabled
-/// when `FIREBASE_PROJECT_NUMBER` is configured.
+/// inside both checkout-creation steps before any token is minted or URL
+/// built. Enabled when `FIREBASE_PROJECT_NUMBER` is configured.
 library;
 
 import 'dart:convert';
@@ -39,6 +39,18 @@ abstract final class _HeaderNames {
   static const xForwardedFor = 'x-forwarded-for';
   static const userAgent = 'user-agent';
   static const xFirebaseAppCheck = 'x-firebase-appcheck';
+  static const xClient = 'x-client';
+  static const xRequestId = 'x-request-id';
+}
+
+/// Adopts the caller's `X-Request-Id` so client and server logs correlate,
+/// sanitized to a safe charset and capped at 64 chars. Null when absent or
+/// unusable — the caller then mints one of its own.
+String? _normalizeRequestId(String? raw) {
+  if (raw == null) return null;
+  final cleaned = raw.replaceAll(_sanitizePattern, '_').trim();
+  if (cleaned.isEmpty) return null;
+  return cleaned.length > 64 ? cleaned.substring(0, 64) : cleaned;
 }
 
 /// Extracts the client IP from `X-Forwarded-For`, falling back to the raw
@@ -97,7 +109,13 @@ String _requireBearerToken(shelf.Request request, String missingCode) {
 final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
 /// Validates and parses a `POST /api/v1/checkout/token` request body.
-PrepareCheckoutBody _parsePrepareCheckoutBody(Map<String, Object?> value) {
+///
+/// The client type travels in the `X-Client` header, not the body: it is
+/// transport metadata (routing/attestation shape), not order data.
+PrepareCheckoutBody _parsePrepareCheckoutBody(
+  shelf.Request request,
+  Map<String, Object?> value,
+) {
   final customerName = value['customerName'];
   if (customerName is! String || customerName.trim().isEmpty || customerName.trim().length > 250) {
     throw HttpError(400, 'INVALID_CHECKOUT_NAME');
@@ -110,10 +128,7 @@ PrepareCheckoutBody _parsePrepareCheckoutBody(Map<String, Object?> value) {
   if (modeRaw != null && (modeRaw is! int || modeRaw < 0 || modeRaw > 3)) {
     throw HttpError(400, 'INVALID_CHECKOUT_MODE');
   }
-  final client = switch (value['client']) {
-    final String c => CheckoutClient.tryParse(c),
-    _ => null,
-  };
+  final client = CheckoutClient.tryParse(request.headers[_HeaderNames.xClient] ?? '');
   if (client == null) throw HttpError(400, 'INVALID_CHECKOUT_CLIENT');
   final paymentAmountRaw = value['paymentAmount'];
   if (paymentAmountRaw != null && paymentAmountRaw is! num) {
@@ -174,20 +189,6 @@ shelf.Response _redirect(Uri location) => shelf.Response(
   },
 );
 
-/// Handles `GET /api/v1/health` — reports whether required ZenPay
-/// configuration is present for session creation and callback verification.
-shelf.Response _handleHealth(AppConfig config) {
-  final missingSession = sessionConfigurationErrors(config);
-  final missingCallback = callbackConfigurationErrors(config);
-  return _json(200, {
-    'ok': true,
-    'sessionReady': missingSession.isEmpty,
-    'callbackReady': missingCallback.isEmpty,
-    'missingSessionConfiguration': missingSession,
-    'missingCallbackConfiguration': missingCallback,
-  });
-}
-
 /// Throws [HttpError] `429` and logs `checkout.rate_limited` if [limiter]
 /// rejects [request]'s client IP.
 void _requireRateLimit(
@@ -238,7 +239,7 @@ Future<shelf.Response> _handleCreateCheckoutToken(
   }
 
   final rawBody = await _readJson(request);
-  final body = _parsePrepareCheckoutBody(rawBody);
+  final body = _parsePrepareCheckoutBody(request, rawBody);
   final isReplay = store.getByIdempotencyKey(idempotencyKey) != null;
 
   final checkoutToken = prepareCheckout(body, idempotencyKey, config, store);
@@ -526,7 +527,6 @@ shelf_router.Router _buildRouter(
     _registeredRoutes.add((method: 'POST', path: path));
   }
 
-  get('/api/v1/health', (shelf.Request request) => _handleHealth(config));
   get(
     '/.well-known/assetlinks.json',
     (shelf.Request request) => _handleWellKnown('assetlinks.json'),
@@ -581,7 +581,9 @@ shelf.Handler buildHandler(
   return (shelf.Request request) async {
     final startTime = DateTime.now();
     final clientIp = _clientIp(request);
-    final requestId = createZpMupid().value;
+    final requestId =
+        _normalizeRequestId(request.headers[_HeaderNames.xRequestId]) ??
+        createZpMupid().value;
     var withRequestId = request.change(
       context: {'requestId': requestId, 'events': <Map<String, Object?>>[]},
     );
@@ -595,7 +597,7 @@ shelf.Handler buildHandler(
           headers: {
             'access-control-allow-origin': config.allowedAppOrigin,
             'access-control-allow-methods': 'GET,POST,OPTIONS',
-            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization,X-Firebase-AppCheck',
+            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization,X-Firebase-AppCheck,X-Client,X-Request-Id',
           },
         );
       } else {
@@ -632,14 +634,14 @@ shelf.Handler buildHandler(
         'userAgent': request.headers[_HeaderNames.userAgent] ?? 'unknown',
         'method': request.method,
         'path': request.requestedUri.path,
-        'requestHeaders': request.headers,
-        'requestBody': _decodeBody(
-          utf8.decode(requestBody, allowMalformed: true),
+        'requestHeaders': _redactSensitiveHeaders(request.headers),
+        'requestBody': _maskSensitiveBody(
+          _decodeBody(utf8.decode(requestBody, allowMalformed: true)),
         ),
         'status': response.statusCode,
-        'responseHeaders': response.headers,
-        'responseBody': _decodeBody(
-          utf8.decode(responseBody, allowMalformed: true),
+        'responseHeaders': _redactSensitiveHeaders(response.headers),
+        'responseBody': _maskSensitiveBody(
+          _decodeBody(utf8.decode(responseBody, allowMalformed: true)),
         ),
         'durationMs': DateTime.now().difference(startTime).inMilliseconds,
         if (events.isNotEmpty) 'events': events,
@@ -650,7 +652,13 @@ shelf.Handler buildHandler(
         _logger.info(record);
       }
     }
-    return response;
+
+    // Echoed on every response (preflight included) so the client can quote
+    // it back and both sides' logs stay correlatable.
+    return response.change(headers: {
+      _HeaderNames.xRequestId: requestId,
+      ...response.headers,
+    });
   };
 }
 
@@ -670,6 +678,36 @@ void _recordEvent(
 
 final _logger = Logger('zenpay_example_backend');
 const _encoder = JsonEncoder.withIndent('  ');
+
+/// Partial-masks a sensitive header value: first and last 3 characters kept,
+/// everything between replaced with `...` (e.g. `eyJ...w7E`). Values too
+/// short to hide anything become `...`.
+String _maskSensitiveHeaderValue(String value) {
+  if (value.length <= 6) return '...';
+  return '${value.substring(0, 3)}...${value.substring(value.length - 3)}';
+}
+
+/// Redacts only `authorization` and `x-firebase-appcheck` — the two headers
+/// that carry bearer secrets — in logged header maps. Everything else
+/// (including `x-request-id`) is logged as-is for correlation.
+Map<String, String> _redactSensitiveHeaders(Map<String, String> headers) => {
+  for (final entry in headers.entries)
+    entry.key: entry.key == _HeaderNames.authorization ||
+            entry.key == _HeaderNames.xFirebaseAppCheck
+        ? _maskSensitiveHeaderValue(entry.value)
+        : entry.value,
+};
+
+/// Masks the top-level `checkoutToken` field of a logged JSON body with the
+/// same partial mask as [_maskSensitiveHeaderValue]. Backend bodies are
+/// flat single-level JSON objects, so one pass is all that's needed.
+Object? _maskSensitiveBody(Object? body) {
+  if (body is! Map<String, Object?>) return body;
+  final token = body['checkoutToken'];
+  return token is String
+      ? <String, Object?>{...body, 'checkoutToken': _maskSensitiveHeaderValue(token)}
+      : body;
+}
 
 Object? _decodeBody(String raw) {
   if (raw.isEmpty) return null;

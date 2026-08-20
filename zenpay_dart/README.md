@@ -111,7 +111,6 @@ and security posture: [example/backend/README.md](../example/backend/README.md).
 
 | Method | Path                              |          Auth           | Description                                                                              |
 | :----- | :--------------------------------- | :----------------------: | :------------------------------------------------------------------------------------------ |
-| `GET`  | `/api/v1/health`                  |                          | Readiness probe. Reports `sessionReady` and `callbackReady` based on env configuration.  |
 | `POST` | `/api/v1/checkout/token`          |                          | Step 1 — prepares a checkout, returns a signed `checkoutToken`. Requires `Idempotency-Key` header (16–128 chars). |
 | `POST` | `/api/v1/checkout/exchange`       | `Bearer <checkoutToken>` | Step 2 — builds (or, on replay, reuses) the ZenPay checkout URL; returns it with a `sessionToken`. |
 | `POST` | `/api/v1/checkout/retry-token`    | `Bearer <sessionToken>`  | Mints a fresh `checkoutToken` for a new attempt under the same session.                  |

@@ -40,8 +40,10 @@ void main() {
         );
         expect(
           jsonDecode(captured.body) as Map<String, Object?>,
-          containsPair('client', 'mobile'),
+          isNot(contains('client')),
         );
+        expect(captured.headers['x-client'], 'mobile');
+        expect(captured.headers['x-request-id'], isNotEmpty);
         expect(captured.headers['x-firebase-appcheck'], isNull);
         expect(checkoutToken, 'checkout-token-1');
       },

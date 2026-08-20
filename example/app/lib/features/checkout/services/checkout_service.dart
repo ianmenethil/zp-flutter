@@ -17,6 +17,8 @@ const _headerContentType = 'content-type';
 const _headerIdempotencyKey = 'idempotency-key';
 const _headerAuthorization = 'authorization';
 const _headerAppCheck = 'x-firebase-appcheck';
+const _headerXClient = 'x-client';
+const _headerXRequestId = 'x-request-id';
 const _contentTypeJson = 'application/json';
 const _clientWeb = 'web';
 const _clientMobile = 'mobile';
@@ -115,6 +117,10 @@ class StatusResponse {
 /// A fresh `idempotency-key` header value.
 String _idempotencyKey() => '$_idempotencyPrefix-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(_idempotencySaltMax)}';
 
+/// A fresh `x-request-id` header value, for correlating this call's logs
+/// client-side with the backend's `http_trace` line.
+String _requestId() => 'req-${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(_idempotencySaltMax)}';
+
 /// Step 1 — prepares a checkout and returns a signed, short-lived checkout
 /// token. [fields] is the order/customer data; `client` is set automatically.
 ///
@@ -139,13 +145,13 @@ Future<String> prepareCheckout(
           _headerContentType: _contentTypeJson,
           _headerIdempotencyKey: _idempotencyKey(),
           _headerAppCheck: ?appCheckToken,
+          // Transport metadata, not order data — see the backend's
+          // `_parsePrepareCheckoutBody`. Only 'web' and 'mobile' are
+          // accepted; iframe checkout is disabled project-wide.
+          _headerXClient: kIsWeb ? _clientWeb : _clientMobile,
+          _headerXRequestId: _requestId(),
         },
-        // Only 'web' and 'mobile' are accepted; iframe checkout is disabled
-        // project-wide (`backend/lib/src/models.dart`).
-        body: jsonEncode(<String, Object?>{
-          ...fields,
-          'client': kIsWeb ? _clientWeb : _clientMobile,
-        }),
+        body: jsonEncode(fields),
       ),
     ),
     201,
@@ -173,6 +179,7 @@ Future<ExchangeResponse> exchangeCheckout(
         headers: <String, String>{
           _headerAuthorization: 'Bearer $checkoutToken',
           _headerAppCheck: ?appCheckToken,
+          _headerXRequestId: _requestId(),
         },
       ),
     ),
@@ -194,6 +201,7 @@ Future<StatusResponse> fetchStatus(
       client,
       (c) => c.get(
         baseUrl.resolve(_sessionsEndpoint).replace(queryParameters: {'t': token}),
+        headers: <String, String>{_headerXRequestId: _requestId()},
       ),
     ),
     200,
