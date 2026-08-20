@@ -87,8 +87,7 @@ class StatusResponse {
   /// Merchant-facing lifecycle status name (e.g. `'successful'`, `'pending'`).
   final String status;
 
-  /// Whether ZenPay's signed server-to-server callback has verified this
-  /// attempt — a bare return does not.
+  /// Whether ZenPay's signed server-to-server callback has verified this attempt — a bare return does not.
   final bool callbackVerified;
 
   /// Verified payment reference (modes 0/2 only).
@@ -109,8 +108,7 @@ class StatusResponse {
   /// Raw ZenPay wire status code from the verified callback, if any.
   final int? zenPayStatusCode;
 
-  /// The entire verified callback body ZenPay posted —
-  /// `{response, validationCode}` — unfiltered, if any.
+  /// The entire verified callback body ZenPay posted — `{response, validationCode}` — unfiltered, if any.
   final Map<String, Object?>? callbackPayload;
 }
 
@@ -158,10 +156,14 @@ Future<String> prepareCheckout(
 /// Step 2 — exchanges [checkoutToken] for a checkout URL. Safe to call more
 /// than once with the same token: it always resolves to the same attempt,
 /// never a new one.
+///
+/// [appCheckToken] attaches the `X-Firebase-AppCheck` header for backend
+/// attestation verification when configured, as in [prepareCheckout].
 Future<ExchangeResponse> exchangeCheckout(
   Uri baseUrl,
   String checkoutToken, {
   http.Client? client,
+  String? appCheckToken,
 }) async => ExchangeResponse.fromJson(
   _body(
     await _request(
@@ -170,6 +172,7 @@ Future<ExchangeResponse> exchangeCheckout(
         baseUrl.resolve(_checkoutExchangeEndpoint),
         headers: <String, String>{
           _headerAuthorization: 'Bearer $checkoutToken',
+          _headerAppCheck: ?appCheckToken,
         },
       ),
     ),

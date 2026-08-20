@@ -259,12 +259,27 @@ Future<shelf.Response> _handleExchangeCheckout(
   AppConfig config,
   AttemptStore store,
   FixedWindowRateLimiter limiter,
+  AppCheckVerifier? appCheckVerifier,
 ) async {
   _requireRateLimit(request, limiter, 'checkout/exchange');
 
   final missing = sessionConfigurationErrors(config);
   if (missing.isNotEmpty) {
     throw HttpError(503, 'SESSION_CONFIGURATION_REQUIRED:${missing.join(',')}');
+  }
+
+  if (appCheckVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
+    final appCheckToken = request.headers[_HeaderNames.xFirebaseAppCheck];
+    if (appCheckToken == null || appCheckToken.isEmpty) {
+      throw HttpError(401, 'APP_CHECK_TOKEN_MISSING');
+    }
+    final valid = await appCheckVerifier.verify(
+      appCheckToken,
+      config.firebaseProjectNumber,
+    );
+    if (!valid) {
+      throw HttpError(401, 'APP_CHECK_INVALID');
+    }
   }
 
   final checkoutToken = _requireBearerToken(request, 'CHECKOUT_TOKEN_REQUIRED');
@@ -532,7 +547,7 @@ shelf_router.Router _buildRouter(
   );
   post(
     '/api/v1/checkout/exchange',
-    (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter),
+    (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter, appCheckVerifier),
   );
   get(
     '/api/v1/sessions',
@@ -580,7 +595,7 @@ shelf.Handler buildHandler(
           headers: {
             'access-control-allow-origin': config.allowedAppOrigin,
             'access-control-allow-methods': 'GET,POST,OPTIONS',
-            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization',
+            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization,X-Firebase-AppCheck',
           },
         );
       } else {
@@ -593,11 +608,11 @@ shelf.Handler buildHandler(
       }
     } on HttpError catch (error) {
       _recordEvent(withRequestId, 'request_error', {'code': error.code});
-      response = _json(error.statusCode, {'error': error.code});
+      response = _json(error.statusCode, {'error': error.code}, allowedOrigin: config.allowedAppOrigin);
     } on Object catch (error) {
       final code = error.toString().replaceAll(_sanitizePattern, '_');
       _recordEvent(withRequestId, 'request_error', {'code': code});
-      response = _json(500, {'error': code});
+      response = _json(500, {'error': code}, allowedOrigin: config.allowedAppOrigin);
     }
 
     if (request.method != 'OPTIONS') {

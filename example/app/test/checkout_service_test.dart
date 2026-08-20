@@ -117,9 +117,38 @@ void main() {
         expect(captured.method, 'POST');
         expect(captured.url.path, '/api/v1/checkout/exchange');
         expect(captured.headers['authorization'], 'Bearer checkout-token-1');
+        expect(captured.headers['x-firebase-appcheck'], isNull);
         expect(
           exchanged.checkoutUrl,
           'https://pay.sandbox.travelpay.com.au/launch',
+        );
+      },
+    );
+
+    test(
+      'attaches x-firebase-appcheck header when appCheckToken is provided',
+      () async {
+        late http.Request captured;
+        final client = MockClient((request) async {
+          captured = request;
+          return http.Response(
+            jsonEncode(<String, Object?>{
+              'checkoutUrl': 'https://pay.sandbox.travelpay.com.au/launch',
+            }),
+            200,
+          );
+        });
+
+        await exchangeCheckout(
+          base,
+          'checkout-token-1',
+          client: client,
+          appCheckToken: 'test-app-check-token-456',
+        );
+
+        expect(
+          captured.headers['x-firebase-appcheck'],
+          'test-app-check-token-456',
         );
       },
     );

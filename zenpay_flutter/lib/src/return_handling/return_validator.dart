@@ -40,6 +40,7 @@ bool _matchesReturnUriAddress(Uri candidate, Uri expected) {
 final class ZpReturnValidator {
   /// Creates a [ZpReturnValidator].
   const ZpReturnValidator();
+
   /// Validates a [candidate] return URI against [configuration] security rules.
   ///
   /// Returns a normalized, sanitized [Uri] if validation succeeds, or `null` if

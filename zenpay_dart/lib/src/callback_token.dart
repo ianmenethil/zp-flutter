@@ -7,97 +7,10 @@ import 'dart:typed_data';
 
 import 'package:hashlib/hashlib.dart';
 
+import 'package:zenpay_dart/src/constants.dart';
 import 'package:zenpay_dart/src/crypto.dart';
-import 'package:zenpay_dart/src/enums.dart';
-
-const _minSecretBytes = 32;
-const _signatureBytes = 16;
-
-const _tokenKeyMode = 'm';
-const _tokenKeyMupid = 'u';
-const _tokenKeyTimestamp = 't';
-const _tokenKeyIssuedAt = 'iat';
-const _tokenKeyAmount = 'a';
-const _tokenKeyExpiresAt = 'exp';
-
-/// Payload stored inside a signed callback URL token.
-class ZpCallbackUrlTokenPayload {
-  /// Creates a [ZpCallbackUrlTokenPayload].
-  const ZpCallbackUrlTokenPayload({
-    required this.mode,
-    required this.merchantUniquePaymentId,
-    required this.timestamp,
-    this.paymentAmount,
-    this.extra = const {},
-  });
-
-  /// Payment operating mode.
-  final ZpPluginMode mode;
-
-  /// Per-payment idempotency key.
-  final String merchantUniquePaymentId;
-
-  /// ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SS`).
-  final String timestamp;
-
-  /// Payment amount in dollars.
-  final Object? paymentAmount;
-
-  /// Arbitrary extra key-value pairs stored in the token payload.
-  final Map<String, Object?> extra;
-}
-
-/// Options for token creation, such as expiration.
-class ZpCallbackUrlTokenOptions {
-  /// Creates a [ZpCallbackUrlTokenOptions].
-  const ZpCallbackUrlTokenOptions({
-    this.expiresInSeconds,
-  });
-
-  /// Token lifetime in seconds.
-  ///
-  /// `null` means the token does not expire.
-  final int? expiresInSeconds;
-}
-
-/// Result of [verifyZpCallbackUrlToken].
-///
-/// Exhaustively pattern-match with a `switch` over
-/// [ZpCallbackUrlTokenVerified] and [ZpCallbackUrlTokenFailure].
-sealed class ZpCallbackUrlTokenResult {
-  /// Base constructor for callback URL token results.
-  const ZpCallbackUrlTokenResult();
-}
-
-/// A successfully verified and decoded callback URL token.
-final class ZpCallbackUrlTokenVerified extends ZpCallbackUrlTokenResult {
-  /// Creates a [ZpCallbackUrlTokenVerified] result with the decoded [payload].
-  const ZpCallbackUrlTokenVerified(this.payload);
-
-  /// The recovered token payload.
-  final ZpCallbackUrlTokenPayload payload;
-}
-
-/// Why a callback URL token failed verification.
-enum ZpCallbackUrlTokenFailureReason {
-  /// The token could not be decoded into its expected shape.
-  malformed,
-
-  /// The signature does not match the supplied secret.
-  badSignature,
-
-  /// The token's expiration time is in the past.
-  expired,
-}
-
-/// A failed callback URL token verification.
-final class ZpCallbackUrlTokenFailure extends ZpCallbackUrlTokenResult {
-  /// Creates a [ZpCallbackUrlTokenFailure] result with the failure [reason].
-  const ZpCallbackUrlTokenFailure(this.reason);
-
-  /// Why verification failed.
-  final ZpCallbackUrlTokenFailureReason reason;
-}
+import 'package:zenpay_dart/src/models/callback_token_models.dart';
+import 'package:zenpay_dart/src/models/enums.dart';
 
 Uint8List _keyBytes(Object secret) {
   final bytes = switch (secret) {
@@ -110,20 +23,19 @@ Uint8List _keyBytes(Object secret) {
     ),
   };
 
-  if (bytes.length < _minSecretBytes) {
-    throw RangeError(
-      'secret must be at least $_minSecretBytes bytes '
-      '(got ${bytes.length})',
+  if (bytes.length < ZpCore.minSecretBytes) {
+    throw ArgumentError(
+      'secret must be at least $ZpCore.minSecretBytes bytes long (provided ${bytes.length})',
     );
   }
 
   return bytes;
 }
 
-String _base64UrlEncode(List<int> bytes) => base64Url.encode(bytes).replaceAll(zpBase64Padding, '');
+String _base64UrlEncode(List<int> bytes) => base64Url.encode(bytes).replaceAll(ZpCore.base64Padding, '');
 
 Uint8List _base64UrlDecode(String value) {
-  final padded = value.padRight(((value.length + 3) ~/ 4) * 4, zpBase64Padding);
+  final padded = value.padRight(((value.length + 3) ~/ 4) * 4, ZpCore.base64Padding);
 
   return base64Url.decode(padded);
 }
@@ -131,7 +43,7 @@ Uint8List _base64UrlDecode(String value) {
 Uint8List _sign(String body, Uint8List key) {
   final mac = sha3_512.hmac.by(key).sign(utf8.encode(body));
 
-  return Uint8List.fromList(mac.bytes.sublist(0, _signatureBytes));
+  return Uint8List.fromList(mac.bytes.sublist(0, ZpCore.signatureBytes));
 }
 
 bool _isAmountShaped(Object? value) => value == null || value is String || value is num;
@@ -188,12 +100,12 @@ String createZpCallbackUrlToken(
 
   final wire = <String, Object?>{
     ...payload.extra,
-    _tokenKeyMode: payload.mode.wireValue,
-    _tokenKeyMupid: payload.merchantUniquePaymentId,
-    _tokenKeyTimestamp: payload.timestamp,
-    _tokenKeyIssuedAt: issuedAt,
-    _tokenKeyAmount: ?payload.paymentAmount,
-    _tokenKeyExpiresAt: ?expiresAt,
+    ZpCbTokenKeys.mode: payload.mode.wireValue,
+    ZpCbTokenKeys.mupid: payload.merchantUniquePaymentId,
+    ZpCbTokenKeys.timestamp: payload.timestamp,
+    ZpCbTokenKeys.issuedAt: issuedAt,
+    ZpCbTokenKeys.amount: ?payload.paymentAmount,
+    ZpCbTokenKeys.expiresAt: ?expiresAt,
   };
 
   final body = _base64UrlEncode(utf8.encode(jsonEncode(wire)));
@@ -208,7 +120,7 @@ String createZpCallbackUrlToken(
 ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
   final key = _keyBytes(secret);
 
-  final signatureLength = _base64UrlEncode(Uint8List(_signatureBytes)).length;
+  final signatureLength = _base64UrlEncode(Uint8List(ZpCore.signatureBytes)).length;
 
   if (token.length <= signatureLength) {
     return const ZpCallbackUrlTokenFailure(
@@ -244,12 +156,12 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
     );
   }
 
-  final modeValue = data[_tokenKeyMode];
-  final merchantUniquePaymentId = data[_tokenKeyMupid];
-  final timestamp = data[_tokenKeyTimestamp];
-  final paymentAmount = data[_tokenKeyAmount];
-  final issuedAt = data[_tokenKeyIssuedAt];
-  final expiresAt = data[_tokenKeyExpiresAt];
+  final modeValue = data[ZpCbTokenKeys.mode];
+  final merchantUniquePaymentId = data[ZpCbTokenKeys.mupid];
+  final timestamp = data[ZpCbTokenKeys.timestamp];
+  final paymentAmount = data[ZpCbTokenKeys.amount];
+  final issuedAt = data[ZpCbTokenKeys.issuedAt];
+  final expiresAt = data[ZpCbTokenKeys.expiresAt];
 
   if (modeValue is! int ||
       merchantUniquePaymentId is! String ||
@@ -282,12 +194,12 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
   }
 
   final extra = Map<String, Object?>.from(data)
-    ..remove(_tokenKeyMode)
-    ..remove(_tokenKeyMupid)
-    ..remove(_tokenKeyTimestamp)
-    ..remove(_tokenKeyAmount)
-    ..remove(_tokenKeyIssuedAt)
-    ..remove(_tokenKeyExpiresAt);
+    ..remove(ZpCbTokenKeys.mode)
+    ..remove(ZpCbTokenKeys.mupid)
+    ..remove(ZpCbTokenKeys.timestamp)
+    ..remove(ZpCbTokenKeys.amount)
+    ..remove(ZpCbTokenKeys.issuedAt)
+    ..remove(ZpCbTokenKeys.expiresAt);
 
   return ZpCallbackUrlTokenVerified(
     ZpCallbackUrlTokenPayload(

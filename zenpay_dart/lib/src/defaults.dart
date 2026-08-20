@@ -12,8 +12,7 @@
 ///   `ZpPresentationDismissed` outcome, not a launch option.
 library;
 
-import 'package:zenpay_dart/src/checkout_url.dart' show ZpCheckoutOptions;
-import 'package:zenpay_dart/src/enums.dart';
+import 'package:zenpay_dart/src/models/enums.dart';
 import 'package:zenpay_dart/zenpay_dart.dart' show ZpCheckoutOptions;
 
 /// The default value for every optional [ZpCheckoutOptions] field that has one.

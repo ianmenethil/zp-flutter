@@ -157,8 +157,8 @@ void main() {
       timestamp: '2026-02-01T09:00:00',
     );
     expect(
-      () => createZpCallbackUrlToken(payload, 'too-short'),
-      throwsRangeError,
+      () => createZpCallbackUrlToken(payload, 'short'),
+      throwsA(isA<ArgumentError>()),
     );
   });
 

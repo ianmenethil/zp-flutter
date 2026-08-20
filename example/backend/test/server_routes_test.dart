@@ -252,7 +252,7 @@ void main() {
       expect(response.statusCode, 201);
     });
 
-    test('mode 1 never sends an amount to ZenPay', () async {
+    test('mode 1 without a paymentAmount omits it from the launch URL', () async {
       final result = await freshCheckout(
         body: _prepareBody(mode: 1, paymentAmount: null),
         idempotencyKey: 'idempotency-key-tokenise-unpriced',
@@ -261,13 +261,13 @@ void main() {
       expect(checkoutUrl.queryParameters.containsKey('paymentAmount'), isFalse);
     });
 
-    test('mode 1 never trusts a client-supplied paymentAmount', () async {
+    test('mode 1 with a paymentAmount passes it through for fee display', () async {
       final result = await freshCheckout(
         body: _prepareBody(mode: 1, paymentAmount: 999),
-        idempotencyKey: 'idempotency-key-tokenise-untrusted-amount',
+        idempotencyKey: 'idempotency-key-tokenise-priced',
       );
       final checkoutUrl = Uri.parse(result.exchanged['checkoutUrl']! as String);
-      expect(checkoutUrl.queryParameters.containsKey('paymentAmount'), isFalse);
+      expect(checkoutUrl.queryParameters['paymentAmount'], '999');
     });
 
     test('mode 2 (Custom Payment) requires a positive paymentAmount', () async {

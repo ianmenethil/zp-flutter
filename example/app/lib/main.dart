@@ -28,7 +28,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await FirebaseAppCheck.instance.activate(
-    providerWeb: ReCaptchaV3Provider('recaptcha-v3-site-key'),
+    providerWeb: ReCaptchaEnterpriseProvider('6LcMto4tAAAAABbToTnAcvrbyNrV4iltvsIZwHaX'),
     providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
     providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestProvider(),
   );

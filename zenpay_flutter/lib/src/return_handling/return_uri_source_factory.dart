@@ -4,7 +4,9 @@
 /// `WebPopupReturnUriSource` (`dart.library.js_interop`) for Web.
 library;
 
-import 'package:zenpay_flutter/src/return_handling/mobile/app_links_return_uri_source.dart' if (dart.library.js_interop) 'package:zenpay_flutter/src/return_handling/web/web_popup_return_uri_source.dart' as impl;
+import 'package:zenpay_flutter/src/return_handling/mobile/app_links_return_uri_source.dart'
+    if (dart.library.js_interop) 'package:zenpay_flutter/src/return_handling/web/web_popup_return_uri_source.dart'
+    as impl;
 import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
 
 /// Creates a platform-specific default [ZpReturnUriSource] instance.

@@ -39,12 +39,14 @@ Uri appReturnUriFor(CheckoutAttempt attempt, AppConfig config) =>
 bool _isPaymentLike(int mode) => mode == 0 || mode == 2 || mode == 3;
 
 /// Resolves the trusted amount for [mode] from [paymentAmount]. [mode] is
-/// assumed already validated to 0–3; Tokenise (mode 1) takes no amount, every
-/// other mode requires a positive client-supplied amount. The fingerprint
-/// still hashes `"0"` for Custom Payment regardless of what's sent
+/// assumed already validated to 0–3. Every mode requires a positive
+/// client-supplied amount when one is present; Tokenise (mode 1) treats it
+/// as optional — absent means plain card storage, present means the amount
+/// is shown for pricing/fee display, never charged. The fingerprint still
+/// hashes `"0"` for Custom Payment regardless of what's sent
 /// (`zenpay_dart`'s `resolveZpHashAmountField`), unchanged here.
 num? _resolveAmount(int mode, num? paymentAmount) {
-  if (mode == 1) return null;
+  if (mode == 1 && paymentAmount == null) return null;
   if (paymentAmount == null || paymentAmount <= 0) {
     throw HttpError(400, 'INVALID_CHECKOUT_AMOUNT');
   }

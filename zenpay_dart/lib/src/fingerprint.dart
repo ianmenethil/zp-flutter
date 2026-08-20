@@ -1,96 +1,29 @@
 /// Outgoing ZenPay HCP Authorise fingerprint generation.
 library;
 
+import 'package:zenpay_dart/src/constants.dart';
 import 'package:zenpay_dart/src/crypto.dart';
-import 'package:zenpay_dart/src/enums.dart';
-
-const _errApiKeyLength = 'apiKey must be at least $zpMinCredentialLength characters';
-const _errUsernameLength = 'username must be at least $zpMinCredentialLength characters';
-const _errPasswordLength = 'password must be at least $zpMinCredentialLength characters';
-const _errMupidLength = 'merchantUniquePaymentId must be at least $zpMinCredentialLength characters';
-const _errTimestampFormat = 'timestamp must be in YYYY-MM-DDTHH:MM:SS format';
-
-/// Fields required to generate an Authorise fingerprint.
-class ZpFingerprintInput {
-  /// Creates a [ZpFingerprintInput].
-  const ZpFingerprintInput({
-    required this.apiKey,
-    required this.username,
-    required this.password,
-    required this.mode,
-    required this.merchantUniquePaymentId,
-    required this.timestamp,
-    this.paymentAmount,
-  });
-
-  /// Merchant API key — hash field 1.
-  final String apiKey;
-
-  /// Merchant username — hash field 2.
-  final String username;
-
-  /// Merchant password — hash field 3.
-  final String password;
-
-  /// Payment operating mode — hash field 4.
-  final ZpPluginMode mode;
-
-  /// Per-payment Merchant Unique Payment ID — hash field 6.
-  final ZpMupid merchantUniquePaymentId;
-
-  /// UTC `yyyy-MM-ddTHH:mm:ss` timestamp — hash field 7.
-  final ZpTimestamp timestamp;
-
-  /// Payment amount in dollars — hash field 5.
-  ///
-  /// Optional for tokenisation. Modes 0, 2 and 3 require a positive amount.
-  /// Mode 2 still hashes `"0"` regardless of the supplied amount.
-  final Object? paymentAmount;
-}
-
-/// Result of [createZpFingerprint].
-sealed class ZpFingerprintResult {
-  /// Base constructor for fingerprint results.
-  const ZpFingerprintResult();
-}
-
-/// A successfully generated fingerprint.
-final class ZpFingerprintSuccess extends ZpFingerprintResult {
-  /// Creates a [ZpFingerprintSuccess] result with the computed [fingerprint].
-  const ZpFingerprintSuccess(this.fingerprint);
-
-  /// 128-character lowercase SHA3-512 digest.
-  final String fingerprint;
-}
-
-/// A fingerprint validation failure.
-final class ZpFingerprintFailure extends ZpFingerprintResult {
-  /// Creates a [ZpFingerprintFailure] result with the failure [message].
-  const ZpFingerprintFailure(this.message);
-
-  /// Why fingerprint creation failed.
-  final String message;
-}
+import 'package:zenpay_dart/src/models/fingerprint_models.dart';
 
 (ZpCents?, ZpFingerprintFailure?) _validate(ZpFingerprintInput request) {
-  if (request.apiKey.length < zpMinCredentialLength) {
-    return (null, const ZpFingerprintFailure(_errApiKeyLength));
+  if (request.apiKey.length < ZpCore.minCredentialLength) {
+    return (null, const ZpFingerprintFailure(ZpErrors.apiKeyLength));
   }
 
-  if (request.username.length < zpMinCredentialLength) {
-    return (null, const ZpFingerprintFailure(_errUsernameLength));
+  if (request.username.length < ZpCore.minCredentialLength) {
+    return (null, const ZpFingerprintFailure(ZpErrors.usernameLength));
   }
 
-  if (request.password.length < zpMinCredentialLength) {
-    return (null, const ZpFingerprintFailure(_errPasswordLength));
+  if (request.password.length < ZpCore.minCredentialLength) {
+    return (null, const ZpFingerprintFailure(ZpErrors.passwordLength));
   }
 
-  if (request.merchantUniquePaymentId.value.length < zpMinCredentialLength) {
-    return (null, const ZpFingerprintFailure(_errMupidLength));
+  if (request.merchantUniquePaymentId.value.length < ZpCore.minCredentialLength) {
+    return (null, const ZpFingerprintFailure(ZpErrors.mupidLength));
   }
 
   if (!isValidZpTimestamp(request.timestamp.value)) {
-    return (null, const ZpFingerprintFailure(_errTimestampFormat));
+    return (null, const ZpFingerprintFailure(ZpErrors.timestampFormat));
   }
 
   final (amount, failureReason) = resolveZpHashAmountChecked(
@@ -106,14 +39,13 @@ final class ZpFingerprintFailure extends ZpFingerprintResult {
     null,
     switch (failureReason) {
       ZpAmountFailureReason.notANumber => const ZpFingerprintFailure(
-        zpErrPaymentAmountNumber,
+        ZpErrors.paymentAmountNumber,
       ),
       ZpAmountFailureReason.notPositive => const ZpFingerprintFailure(
-        zpErrPaymentAmountPositive,
+        ZpErrors.paymentAmountPositive,
       ),
       ZpAmountFailureReason.unresolvable => ZpFingerprintFailure(
-        'invalid amount "${request.paymentAmount}" — expected a '
-        'non-negative number with at most 2 decimal places',
+        ZpErrors.paymentAmountUnresolvable(request.paymentAmount),
       ),
     },
   );
@@ -146,7 +78,7 @@ ZpFingerprintResult createZpFingerprint(ZpFingerprintInput request) {
     amount!.value,
     request.merchantUniquePaymentId.value,
     request.timestamp.value,
-  ].join(zpPipeDelimiter);
+  ].join(ZpCore.pipeDelimiter);
 
   return ZpFingerprintSuccess(createSha3_512(pipe));
 }

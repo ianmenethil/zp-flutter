@@ -57,14 +57,17 @@ Future<void> main() async {
     poweredByHeader: null,
   );
 
-  logEvent('server_started', fields: {
-    'port': server.port,
-    'sessionReady': sessionConfigurationErrors(config).isEmpty,
-    'callbackReady': callbackConfigurationErrors(config).isEmpty,
-    'routes': [
-      for (final route in describeRoutes()) '${route.method} ${route.path}',
-    ],
-  });
+  logEvent(
+    'server_started',
+    fields: {
+      'port': server.port,
+      'sessionReady': sessionConfigurationErrors(config).isEmpty,
+      'callbackReady': callbackConfigurationErrors(config).isEmpty,
+      'routes': [
+        for (final route in describeRoutes()) '${route.method} ${route.path}',
+      ],
+    },
+  );
 
   // Without this, Ctrl-C leaves the listening socket (and the Timer.periodic
   // above) keeping the isolate alive, which is what makes the terminal that

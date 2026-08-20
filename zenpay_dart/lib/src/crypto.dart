@@ -7,27 +7,10 @@ import 'dart:typed_data';
 import 'package:hashlib/hashlib.dart';
 import 'package:hashlib/random.dart';
 
-import 'package:zenpay_dart/src/enums.dart';
+import 'package:zenpay_dart/src/constants.dart';
+import 'package:zenpay_dart/src/models/enums.dart';
 
-final _amountPattern = RegExp(r'^\d+(?:\.\d{1,2})?$');
-final _timestampPattern = RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$');
 
-const _zeroCents = ZpCents('0');
-
-/// Padding character stripped from base64url output.
-const zpBase64Padding = '=';
-
-/// Pipe delimiter joining fields in ZenPay hash strings.
-const zpPipeDelimiter = '|';
-
-/// Minimum length required for ZenPay hash-pipe credential fields.
-const zpMinCredentialLength = 5;
-
-/// Error returned when `paymentAmount` is not numeric.
-const zpErrPaymentAmountNumber = 'paymentAmount must be a valid number';
-
-/// Error returned when `paymentAmount` must be positive but is not.
-const zpErrPaymentAmountPositive = 'paymentAmount must be greater than 0';
 
 /// Strongly typed cents value to prevent accidental dollar hashing.
 extension type const ZpCents(String value) {}
@@ -44,6 +27,8 @@ String createSha3_512(String input) => sha3_512.string(input).hex();
 /// Compares two SHA3-512 hexadecimal digests using [HashDigest.isEqual].
 bool constantTimeHexEqual(String a, String b) => HashDigest(Uint8List.fromList(utf8.encode(a))).isEqual(utf8.encode(b));
 
+const _zeroCents = ZpCents('0');
+
 /// Converts a dollar [amount] to whole-number cents.
 ///
 /// Accepts non-negative values with at most two decimal places.
@@ -52,7 +37,7 @@ ZpCents? zpAmountToCents(Object? amount) {
   if (amount == null) return null;
 
   final value = amount.toString().trim();
-  if (!_amountPattern.hasMatch(value)) return null;
+  if (!ZpPatterns.amount.hasMatch(value)) return null;
 
   final parts = value.split('.');
   final whole = parts[0];
@@ -115,7 +100,7 @@ enum ZpAmountFailureReason {
 ///
 /// Generates 16 random bytes encoded as unpadded base64url. Create a new value
 /// for every plugin open; do not reuse a previous payment attempt's MUPID.
-ZpMupid createZpMupid() => ZpMupid(base64Url.encode(randomBytes(16)).replaceAll(zpBase64Padding, ''));
+ZpMupid createZpMupid() => ZpMupid(base64Url.encode(randomBytes(16)).replaceAll(ZpCore.base64Padding, ''));
 
 /// Creates the UTC timestamp required by ZenPay.
 ///
@@ -124,4 +109,4 @@ ZpMupid createZpMupid() => ZpMupid(base64Url.encode(randomBytes(16)).replaceAll(
 ZpTimestamp createZpTimestamp() => ZpTimestamp(DateTime.now().toUtc().toIso8601String().substring(0, 19));
 
 /// Whether [timestamp] matches the `yyyy-MM-ddTHH:mm:ss` wire format.
-bool isValidZpTimestamp(String timestamp) => _timestampPattern.hasMatch(timestamp);
+bool isValidZpTimestamp(String timestamp) => ZpPatterns.timestamp.hasMatch(timestamp);

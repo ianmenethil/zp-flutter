@@ -20,8 +20,7 @@ abstract interface class AppLinksPlatformAdapter {
 /// Default implementation of [AppLinksPlatformAdapter] backed by `package:app_links`.
 final class DefaultAppLinksAdapter implements AppLinksPlatformAdapter {
   /// Creates a [DefaultAppLinksAdapter].
-  DefaultAppLinksAdapter({AppLinks? appLinks})
-      : _appLinks = appLinks ?? AppLinks();
+  DefaultAppLinksAdapter({AppLinks? appLinks}) : _appLinks = appLinks ?? AppLinks();
 
   final AppLinks _appLinks;
 
@@ -42,12 +41,12 @@ final class AppLinksReturnUriSource implements ZpReturnUriSource {
   AppLinksReturnUriSource({
     AppLinksPlatformAdapter? adapter,
     AppLinks? appLinks,
-  })  : assert(
-          adapter == null || appLinks == null,
-          'Supply either adapter or appLinks, not both — appLinks is ignored '
-          'once adapter is set.',
-        ),
-        _adapter = adapter ?? DefaultAppLinksAdapter(appLinks: appLinks);
+  }) : assert(
+         adapter == null || appLinks == null,
+         'Supply either adapter or appLinks, not both — appLinks is ignored '
+         'once adapter is set.',
+       ),
+       _adapter = adapter ?? DefaultAppLinksAdapter(appLinks: appLinks);
 
   final AppLinksPlatformAdapter _adapter;
 

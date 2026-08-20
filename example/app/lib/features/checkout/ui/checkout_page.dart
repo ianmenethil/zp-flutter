@@ -140,7 +140,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     try {
       String? appCheckToken;
       try {
-        appCheckToken = await FirebaseAppCheck.instance.getToken();
+        appCheckToken = await FirebaseAppCheck.instance.getToken(true);
         if (appCheckToken == null) {
           debugPrint('Firebase App Check returned a null token.');
         } else {
@@ -162,7 +162,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
         },
         appCheckToken: appCheckToken,
       );
-      final exchanged = await exchangeCheckout(backendBaseUrl, checkoutToken);
+      final exchanged = await exchangeCheckout(
+        backendBaseUrl,
+        checkoutToken,
+        appCheckToken: appCheckToken,
+      );
 
       await _resolve(
         await _checkout.open(checkoutUrl: Uri.parse(exchanged.checkoutUrl)),

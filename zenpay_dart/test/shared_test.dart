@@ -130,12 +130,11 @@ void main() {
       );
       final result = createZpCheckoutUrl(options);
       expect(result, isA<ZpUrlFailure>());
-      if (result is ZpUrlFailure) {
-        expect(result.message, contains('cannot both be empty'));
-      }
+      final failure = createZpCheckoutUrl(options) as ZpUrlFailure;
+      expect(failure.message, contains('at least one of callbackUrl or redirectUrl'));
       expect(
         validateZpCheckoutUrlRequest(options)?.message,
-        contains('cannot both be empty'),
+        contains('at least one of callbackUrl or redirectUrl'),
       );
     });
 

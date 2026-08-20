@@ -46,3 +46,12 @@ flutter:
           weight: 700
         - asset: assets/fonts/Poppins-Black.ttf
           weight: 900
+    # Bundled so widgets that fall back to Material's default family don't
+    # fetch Roboto from fonts.gstatic.com on web (engine fonts, same TTFs
+    # Flutter itself ships).
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Roboto-Medium.ttf
+          weight: 500
