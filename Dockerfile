@@ -1,21 +1,17 @@
-# 1. Build Stage: Resolve workspace dependencies and compile to a native binary
+# 1. Build Stage: Resolve backend workspace dependencies and compile
 FROM dart:stable AS build
 
 WORKDIR /app
 
-# Copy root workspace and package manifests for efficient layer caching
-COPY pubspec.yaml ./
-COPY zenpay_dart/pubspec.yaml ./zenpay_dart/
-COPY zenpay_flutter/pubspec.yaml ./zenpay_flutter/
-COPY example/backend/pubspec.yaml ./example/backend/
-COPY example/app/pubspec.yaml ./example/app/
-
-# Download and resolve all workspace dependencies
-RUN dart pub get
-
-# Copy source code required by the backend
+# Copy the packages required for the backend
 COPY zenpay_dart/ ./zenpay_dart/
 COPY example/backend/ ./example/backend/
+
+# Generate a workspace manifest that only includes pure-Dart packages (excluding Flutter app)
+RUN printf "name: backend_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\nworkspace:\n  - zenpay_dart\n  - example/backend\n" > pubspec.yaml
+
+# Download and resolve all backend workspace dependencies
+RUN dart pub get
 
 # Compile the Shelf backend into a standalone native AOT binary
 RUN dart compile exe example/backend/bin/server.dart -o /app/server

@@ -969,6 +969,10 @@ Future<void> _dockerRun(String root) async {
   if (envFile.existsSync()) {
     args.addAll(['--env-file', 'example/backend/.env']);
   }
+  final serviceAccountFile = File('$root/example/backend/service-account.json');
+  if (serviceAccountFile.existsSync()) {
+    args.addAll(['-v', '${serviceAccountFile.absolute.path}:/app/service-account.json:ro']);
+  }
   args.add('zenpay-backend');
 
   _info('Running Docker container (zenpay-backend on http://localhost:7000)...');
