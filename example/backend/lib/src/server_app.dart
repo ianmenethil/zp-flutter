@@ -581,9 +581,7 @@ shelf.Handler buildHandler(
   return (shelf.Request request) async {
     final startTime = DateTime.now();
     final clientIp = _clientIp(request);
-    final requestId =
-        _normalizeRequestId(request.headers[_HeaderNames.xRequestId]) ??
-        createZpMupid().value;
+    final requestId = _normalizeRequestId(request.headers[_HeaderNames.xRequestId]) ?? createZpMupid().value;
     var withRequestId = request.change(
       context: {'requestId': requestId, 'events': <Map<String, Object?>>[]},
     );
@@ -655,10 +653,12 @@ shelf.Handler buildHandler(
 
     // Echoed on every response (preflight included) so the client can quote
     // it back and both sides' logs stay correlatable.
-    return response.change(headers: {
-      _HeaderNames.xRequestId: requestId,
-      ...response.headers,
-    });
+    return response.change(
+      headers: {
+        _HeaderNames.xRequestId: requestId,
+        ...response.headers,
+      },
+    );
   };
 }
 
@@ -692,10 +692,7 @@ String _maskSensitiveHeaderValue(String value) {
 /// (including `x-request-id`) is logged as-is for correlation.
 Map<String, String> _redactSensitiveHeaders(Map<String, String> headers) => {
   for (final entry in headers.entries)
-    entry.key: entry.key == _HeaderNames.authorization ||
-            entry.key == _HeaderNames.xFirebaseAppCheck
-        ? _maskSensitiveHeaderValue(entry.value)
-        : entry.value,
+    entry.key: entry.key == _HeaderNames.authorization || entry.key == _HeaderNames.xFirebaseAppCheck ? _maskSensitiveHeaderValue(entry.value) : entry.value,
 };
 
 /// Masks the top-level `checkoutToken` field of a logged JSON body with the
@@ -704,9 +701,7 @@ Map<String, String> _redactSensitiveHeaders(Map<String, String> headers) => {
 Object? _maskSensitiveBody(Object? body) {
   if (body is! Map<String, Object?>) return body;
   final token = body['checkoutToken'];
-  return token is String
-      ? <String, Object?>{...body, 'checkoutToken': _maskSensitiveHeaderValue(token)}
-      : body;
+  return token is String ? <String, Object?>{...body, 'checkoutToken': _maskSensitiveHeaderValue(token)} : body;
 }
 
 Object? _decodeBody(String raw) {

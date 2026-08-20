@@ -692,17 +692,11 @@ void main() {
         expect(response.statusCode, 401);
 
         await subscription.cancel();
-        final traces = records
-            .map((r) => r.message)
-            .where((m) => m.contains('http_trace'))
-            .toList();
+        final traces = records.map((r) => r.message).where((m) => m.contains('http_trace')).toList();
         final exchangeTrace = traces.singleWhere(
-          (m) => (jsonDecode(m) as Map<String, Object?>)['path'] ==
-              '/api/v1/checkout/exchange',
+          (m) => (jsonDecode(m) as Map<String, Object?>)['path'] == '/api/v1/checkout/exchange',
         );
-        final headers =
-            (jsonDecode(exchangeTrace) as Map<String, Object?>)['requestHeaders']!
-                as Map<String, Object?>;
+        final headers = (jsonDecode(exchangeTrace) as Map<String, Object?>)['requestHeaders']! as Map<String, Object?>;
 
         expect(headers['authorization'], 'Bea...ken');
         expect(headers['x-firebase-appcheck'], 'app...lue');
@@ -718,23 +712,14 @@ void main() {
         idempotencyKey: 'idempotency-key-redaction-body',
       );
       expect(response.statusCode, 201);
-      final token =
-          (jsonDecode(response.body) as Map<String, Object?>)['checkoutToken']!
-              as String;
+      final token = (jsonDecode(response.body) as Map<String, Object?>)['checkoutToken']! as String;
 
       await subscription.cancel();
-      final traces = records
-          .map((r) => r.message)
-          .where((m) => m.contains('http_trace'))
-          .toList();
+      final traces = records.map((r) => r.message).where((m) => m.contains('http_trace')).toList();
       final tokenTrace = traces.singleWhere(
-        (m) =>
-            (jsonDecode(m) as Map<String, Object?>)['path'] ==
-            '/api/v1/checkout/token',
+        (m) => (jsonDecode(m) as Map<String, Object?>)['path'] == '/api/v1/checkout/token',
       );
-      final body =
-          (jsonDecode(tokenTrace) as Map<String, Object?>)['responseBody']!
-              as Map<String, Object?>;
+      final body = (jsonDecode(tokenTrace) as Map<String, Object?>)['responseBody']! as Map<String, Object?>;
 
       expect(
         body['checkoutToken'],
