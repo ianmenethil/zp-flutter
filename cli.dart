@@ -60,6 +60,7 @@ String _usage() {
     row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
     row('--docker-build', 'Build the backend Docker image (zenpay-backend).'),
     row('--docker-run', 'Run the backend Docker container (port 7000).'),
+    row('--docker-rebuild', 'Delete existing image, build fresh, and run.'),
     row('--register-device', 'Register Firebase App Check debug token.'),
     row(
       '--release:dart:minor',
@@ -106,6 +107,7 @@ String _usage() {
     _dim('  dart run $_scriptName --quick-tunnel'),
     _dim('  dart run $_scriptName --docker-build'),
     _dim('  dart run $_scriptName --docker-run'),
+    _dim('  dart run $_scriptName --docker-rebuild'),
     _dim('  dart run $_scriptName --release:dart:minor'),
     _dim('  dart run $_scriptName --release:flutter:major'),
   ].join('\n');
@@ -156,6 +158,11 @@ Future<void> main(List<String> arguments) async {
       'docker-run',
       negatable: false,
       help: 'Run the backend Docker container (port 7000).',
+    )
+    ..addFlag(
+      'docker-rebuild',
+      negatable: false,
+      help: 'Delete existing image, build fresh, and run.',
     )
     ..addFlag(
       'release:dart:minor',
@@ -228,6 +235,7 @@ Future<void> main(List<String> arguments) async {
     if (args['distribute'] as bool) 'distribute',
     if (args['docker-build'] as bool) 'docker-build',
     if (args['docker-run'] as bool) 'docker-run',
+    if (args['docker-rebuild'] as bool) 'docker-rebuild',
     if (args['register-device'] as bool) 'register-device',
     if (args['release:dart:minor'] as bool) 'release:dart:minor',
     if (args['release:dart:major'] as bool) 'release:dart:major',
@@ -239,7 +247,7 @@ Future<void> main(List<String> arguments) async {
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --ios --web '
                 '--stream --tunnel --quick-tunnel --distribute --docker-build '
-                '--docker-run --register-device --release:dart:minor --release:dart:major '
+                '--docker-run --docker-rebuild --register-device --release:dart:minor --release:dart:major '
                 '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
@@ -284,6 +292,8 @@ Future<void> main(List<String> arguments) async {
     await _dockerBuild(root);
   } else if (mode == 'docker-run') {
     await _dockerRun(root);
+  } else if (mode == 'docker-rebuild') {
+    await _dockerRebuild(root);
   } else if (mode == 'register-device') {
     await _registerDevice(root, deviceId: args['device'] as String?);
   } else if (mode.startsWith('release:')) {
@@ -977,6 +987,20 @@ Future<void> _dockerRun(String root) async {
 
   _info('Running Docker container (zenpay-backend on http://localhost:7000)...');
   await _execForeground('docker', args, cwd: root);
+}
+
+Future<void> _dockerRebuild(String root) async {
+  if (!_hasCommand('docker')) {
+    _error('docker command not found. Please install Docker Desktop.');
+    exit(1);
+  }
+
+  _info('Cleaning up existing Docker image (zenpay-backend)...');
+  // Ignore failure if image doesn't exist
+  await Process.run('docker', ['rmi', '-f', 'zenpay-backend']);
+
+  await _dockerBuild(root);
+  await _dockerRun(root);
 }
 
 Future<void> _registerDevice(String root, {String? deviceId}) async {
