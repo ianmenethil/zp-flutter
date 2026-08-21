@@ -151,9 +151,13 @@ ZpUrlResult createZpCheckoutUrl(ZpCheckoutOptions request) {
 
   final basePath = base.path.endsWith('/') ? base.path.substring(0, base.path.length - 1) : base.path;
 
+  // Uri.replace(queryParameters:) drops `=` for empty-string values; build the
+  // query manually so every param matches ZenPay's own URLSearchParams output.
+  final query = _buildQueryParams(request).entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&');
+
   final url = base.replace(
     path: '$basePath/${request.merchantCode}/${ZpCore.authoriseActionPath}',
-    queryParameters: _buildQueryParams(request),
+    query: query,
   );
 
   return ZpUrlSuccess(url.toString());
