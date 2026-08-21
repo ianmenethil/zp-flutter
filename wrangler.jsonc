@@ -1,0 +1,30 @@
+{
+  // Fronts the zenpay-backend Docker image (see Dockerfile) as a Cloudflare
+  // Container — see src/index.ts for the Worker entrypoint. Deploy with
+  // `npm run cf:deploy` (needs Docker running locally and a Workers Paid
+  // plan). Secrets (ZENPAY_*, TOKEN_SECRET, etc. from example/backend/.env)
+  // are set separately via `wrangler secret put <NAME>`, not committed here.
+  "name": "zenpay-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-21",
+  "containers": [
+    {
+      "class_name": "ZenpayContainer",
+      "image": "./Dockerfile",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "ZenpayContainer",
+        "name": "ZENPAY_CONTAINER",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ZenpayContainer"],
+    },
+  ],
+}

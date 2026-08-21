@@ -1,36 +1,52 @@
-# 1. Build Stage: Resolve backend workspace dependencies and compile
-FROM dart:stable AS build
+# Multi-stage build: backend + frontend in one image
+# Stage 1: Build backend (Dart AOT executable)
+FROM dart:latest AS backend-build
 
 WORKDIR /app
 
-# Copy the packages required for the backend
 COPY zenpay_dart/ ./zenpay_dart/
 COPY example/backend/ ./example/backend/
 
-# Generate a workspace manifest that only includes pure-Dart packages (excluding Flutter app)
 RUN printf "name: backend_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\nworkspace:\n  - zenpay_dart\n  - example/backend\n" > pubspec.yaml
 
-# Download and resolve all backend workspace dependencies
 RUN dart pub get
-
-# Compile the Shelf backend into a standalone native AOT binary
 RUN dart compile exe example/backend/bin/server.dart -o /app/server
 
-# -----------------------------------------------------------------------------
-# 2. Runtime Stage: Minimal production container
+# Stage 2: Build frontend (Flutter Web)
+FROM dart:latest AS frontend-build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 https://github.com/flutter/flutter.git /flutter
+ENV PATH="/flutter/bin:${PATH}"
+
+RUN flutter config --enable-web
+RUN flutter --version
+
+WORKDIR /app
+
+COPY zenpay_dart/ ./zenpay_dart/
+COPY zenpay_flutter/ ./zenpay_flutter/
+COPY example/app/ ./example/app/
+
+# Generate Flutter-only workspace pubspec (zenpay_flutter + example/app only)
+RUN printf "name: flutter_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\n  flutter: '>=3.44.0'\nworkspace:\n  - zenpay_flutter\n  - example/app\n" > pubspec.yaml
+
+RUN cd example/app && flutter pub get && flutter build web --release
+
+# Stage 3: Runtime (minimal)
 FROM debian:bookworm-slim
 
 WORKDIR /app
 
-# Copy the compiled standalone executable
-COPY --from=build /app/server /app/server
-
-# Copy static .well-known files (App Links / Universal Links associations)
+COPY --from=backend-build /app/server /app/server
+COPY --from=frontend-build /app/example/app/build/web /app/web
 COPY example/backend/well_known/ /app/well_known/
 
-# Default environment variables
 ENV PORT=7000
 EXPOSE 7000
 
-# Run the server
 CMD ["/app/server"]

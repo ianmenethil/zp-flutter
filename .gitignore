@@ -76,3 +76,8 @@ google-services.json
 GoogleService-Info.plist
 *service-account*.json
 *.service-account.json
+
+# Cloudflare Worker deploy tooling (wrangler.jsonc, src/index.ts, package.json)
+node_modules/
+.wrangler/
+worker-configuration.d.ts

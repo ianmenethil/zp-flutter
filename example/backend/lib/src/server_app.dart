@@ -19,6 +19,7 @@ import 'dart:io';
 import 'package:logging/logging.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf_router/shelf_router.dart' as shelf_router;
+import 'package:shelf_static/shelf_static.dart' show createStaticHandler;
 import 'package:zenpay_dart/zenpay_dart.dart'
     show ZpCallbackUrlTokenFailure, ZpCallbackUrlTokenPayload, ZpCallbackUrlTokenVerified, createZpMupid, verifyZpCallbackUrlToken;
 
@@ -41,6 +42,7 @@ abstract final class _HeaderNames {
   static const xFirebaseAppCheck = 'x-firebase-appcheck';
   static const xClient = 'x-client';
   static const xRequestId = 'x-request-id';
+  static const cookie = 'cookie';
 }
 
 /// Adopts the caller's `X-Request-Id` so client and server logs correlate,
@@ -562,6 +564,13 @@ shelf_router.Router _buildRouter(
     (shelf.Request request) => _handleReturn(request.requestedUri, config, store),
   );
 
+  // Serves the Flutter Web build (see Dockerfile) when present; absent in
+  // local non-Docker dev, where this stays an API-only backend.
+  final webDir = Directory('web');
+  if (webDir.existsSync()) {
+    router.mount('/', createStaticHandler('web', defaultDocument: 'index.html'));
+  }
+
   return router;
 }
 
@@ -633,14 +642,10 @@ shelf.Handler buildHandler(
         'method': request.method,
         'path': request.requestedUri.path,
         'requestHeaders': _redactSensitiveHeaders(request.headers),
-        'requestBody': _maskSensitiveBody(
-          _decodeBody(utf8.decode(requestBody, allowMalformed: true)),
-        ),
+        'requestBody': _loggableBody(requestBody, request.headers[_HeaderNames.contentType]),
         'status': response.statusCode,
         'responseHeaders': _redactSensitiveHeaders(response.headers),
-        'responseBody': _maskSensitiveBody(
-          _decodeBody(utf8.decode(responseBody, allowMalformed: true)),
-        ),
+        'responseBody': _loggableBody(responseBody, response.headers[_HeaderNames.contentType]),
         'durationMs': DateTime.now().difference(startTime).inMilliseconds,
         if (events.isNotEmpty) 'events': events,
       });
@@ -687,12 +692,28 @@ String _maskSensitiveHeaderValue(String value) {
   return '${value.substring(0, 3)}...${value.substring(value.length - 3)}';
 }
 
-/// Redacts only `authorization` and `x-firebase-appcheck` — the two headers
-/// that carry bearer secrets — in logged header maps. Everything else
-/// (including `x-request-id`) is logged as-is for correlation.
+/// Masks the `token` cookie's value within a raw `Cookie` header, leaving
+/// every other cookie in the string untouched.
+String _redactTokenCookie(String cookieHeader) => cookieHeader
+    .split('; ')
+    .map((pair) {
+      final i = pair.indexOf('=');
+      if (i == -1 || pair.substring(0, i) != 'token') return pair;
+      return 'token=${_maskSensitiveHeaderValue(pair.substring(i + 1))}';
+    })
+    .join('; ');
+
+/// Redacts `authorization`, `x-firebase-appcheck`, and the `token` cookie —
+/// the values that carry bearer secrets — in logged header maps. Everything
+/// else (including `x-request-id` and other cookies) is logged as-is for
+/// correlation.
 Map<String, String> _redactSensitiveHeaders(Map<String, String> headers) => {
   for (final entry in headers.entries)
-    entry.key: entry.key == _HeaderNames.authorization || entry.key == _HeaderNames.xFirebaseAppCheck ? _maskSensitiveHeaderValue(entry.value) : entry.value,
+    entry.key: switch (entry.key) {
+      _HeaderNames.authorization || _HeaderNames.xFirebaseAppCheck => _maskSensitiveHeaderValue(entry.value),
+      _HeaderNames.cookie => _redactTokenCookie(entry.value),
+      _ => entry.value,
+    },
 };
 
 /// Masks the top-level `checkoutToken` field of a logged JSON body with the
@@ -711,6 +732,24 @@ Object? _decodeBody(String raw) {
   } on Object catch (_) {
     return raw;
   }
+}
+
+/// Content types worth decoding and logging as text. Everything else (images,
+/// fonts, wasm — all now reachable through the Flutter Web static mount) is
+/// summarized instead: `utf8.decode` on binary bytes produces garbage
+/// codepoints that corrupt the terminal when the log line is printed.
+bool _isLoggableText(String? contentType) {
+  if (contentType == null) return true;
+  final type = contentType.toLowerCase();
+  return type.startsWith('text/') || type.contains('json') || type.contains('javascript') || type.contains('xml');
+}
+
+/// Builds the `requestBody`/`responseBody` value for [buildHandler]'s log
+/// record from raw [bytes] and their `content-type`. See [_isLoggableText].
+Object? _loggableBody(List<int> bytes, String? contentType) {
+  if (bytes.isEmpty) return null;
+  if (!_isLoggableText(contentType)) return '<binary $contentType, ${bytes.length} bytes>';
+  return _maskSensitiveBody(_decodeBody(utf8.decode(bytes, allowMalformed: true)));
 }
 
 /// Logs a structured [event] payload with optional [fields] and [isError] flag.

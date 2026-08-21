@@ -25,7 +25,7 @@ Uint8List _keyBytes(Object secret) {
 
   if (bytes.length < ZpCore.minSecretBytes) {
     throw ArgumentError(
-      'secret must be at least $ZpCore.minSecretBytes bytes long (provided ${bytes.length})',
+      'secret must be at least ${ZpCore.minSecretBytes} bytes long (provided ${bytes.length})',
     );
   }
 

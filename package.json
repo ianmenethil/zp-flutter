@@ -1,0 +1,15 @@
+{
+  "name": "zenpay-backend-worker",
+  "private": true,
+  "description": "Cloudflare Workers entrypoint that fronts the zenpay-backend Docker container (see Dockerfile, wrangler.jsonc).",
+  "scripts": {
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7"
+  },
+  "devDependencies": {
+    "wrangler": "^4.125.0"
+  }
+}

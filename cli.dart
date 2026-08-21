@@ -58,8 +58,14 @@ String _usage() {
     row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
     row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
     row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
-    row('--docker-build', 'Build the backend Docker image (zenpay-backend).'),
-    row('--docker-run', 'Run the backend Docker container (port 7000).'),
+    row(
+      '--docker-build',
+      'Build the combined backend + Flutter Web image (zenpay-backend).',
+    ),
+    row(
+      '--docker-run',
+      'Run the combined image (API + Flutter Web) on port 7000.',
+    ),
     row('--docker-rebuild', 'Delete existing image, build fresh, and run.'),
     row('--register-device', 'Register Firebase App Check debug token.'),
     row(
@@ -152,12 +158,12 @@ Future<void> main(List<String> arguments) async {
     ..addFlag(
       'docker-build',
       negatable: false,
-      help: 'Build the backend Docker image (zenpay-backend).',
+      help: 'Build the combined backend + Flutter Web image (zenpay-backend).',
     )
     ..addFlag(
       'docker-run',
       negatable: false,
-      help: 'Run the backend Docker container (port 7000).',
+      help: 'Run the combined image (API + Flutter Web) on port 7000.',
     )
     ..addFlag(
       'docker-rebuild',
@@ -952,8 +958,8 @@ Future<void> _dockerBuild(String root) async {
     exit(1);
   }
 
-  _info('Building backend Docker image (zenpay-backend)...');
-  await _execForeground('docker', [
+  _info('Building backend + Flutter Web Docker image (zenpay-backend)...');
+  await _runChecked('docker', [
     'build',
     '-t',
     'zenpay-backend',
@@ -962,30 +968,79 @@ Future<void> _dockerBuild(String root) async {
   _success('Docker image zenpay-backend built successfully.');
 }
 
+const _dockerPort = 7000;
+
+/// True if [port] can be bound on localhost right now. Checked before `-p`
+/// publishing it, since Docker's own "port is already allocated" failure
+/// only happens for other Docker containers — a native process (e.g. a
+/// `--server` dev instance) holding the port instead lets `docker run`
+/// succeed with a container that starts fine but can never be reached, which
+/// looks identical to a broken image from the outside.
+Future<bool> _isPortFree(int port) async {
+  try {
+    final socket = await ServerSocket.bind(InternetAddress.anyIPv4, port);
+    await socket.close();
+    return true;
+  } on Object {
+    return false;
+  }
+}
+
 Future<void> _dockerRun(String root) async {
   if (!_hasCommand('docker')) {
     _error('docker command not found. Please install Docker Desktop.');
     exit(1);
   }
 
-  final envFile = File('$root/example/backend/.env');
+  if (!await _isPortFree(_dockerPort)) {
+    _error(
+      'Port $_dockerPort is already in use — the container would start but '
+      'never be reachable. Stop whatever is bound to it (a native '
+      '`--server` dev instance, or another container) and re-run. Find it '
+      'with: ${Platform.isWindows ? 'netstat -ano | findstr :$_dockerPort' : 'lsof -i:$_dockerPort'}',
+    );
+    exit(1);
+  }
+
+  final backendDir = '$root/example/backend';
+  final envFile = File('$backendDir/.env');
   final args = [
     'run',
     '--rm',
     '-it',
     '-p',
-    '7000:7000',
+    '$_dockerPort:$_dockerPort',
   ];
   if (envFile.existsSync()) {
     args.addAll(['--env-file', 'example/backend/.env']);
-  }
-  final serviceAccountFile = File('$root/example/backend/service-account.json');
-  if (serviceAccountFile.existsSync()) {
-    args.addAll(['-v', '${serviceAccountFile.absolute.path}:/app/service-account.json:ro']);
+
+    // The server reads this eagerly at startup (buildHandler), relative to
+    // its own CWD (/app in the image) — a value that's set but unmounted
+    // crashes the container immediately instead of just skipping App Check.
+    final serviceAccountValue =
+        RegExp(
+          r'^FIREBASE_SERVICE_ACCOUNT_JSON\s*=\s*(.*)$',
+          multiLine: true,
+        ).firstMatch(envFile.readAsStringSync())?.group(1)?.trim() ??
+        '';
+    if (serviceAccountValue.isNotEmpty && !serviceAccountValue.startsWith('{')) {
+      final serviceAccountFile = File('$backendDir/$serviceAccountValue');
+      if (!serviceAccountFile.existsSync()) {
+        _error(
+          'example/backend/.env sets FIREBASE_SERVICE_ACCOUNT_JSON='
+          '$serviceAccountValue, but $backendDir${Platform.pathSeparator}'
+          '$serviceAccountValue does not exist — the container would start '
+          'and crash immediately. Place the file there, put the raw JSON '
+          'directly in .env instead of a path, or clear the variable.',
+        );
+        exit(1);
+      }
+      args.addAll(['-v', '${serviceAccountFile.absolute.path}:/app/service-account.json:ro']);
+    }
   }
   args.add('zenpay-backend');
 
-  _info('Running Docker container (zenpay-backend on http://localhost:7000)...');
+  _info('Running Docker container (zenpay-backend on http://localhost:$_dockerPort)...');
   await _execForeground('docker', args, cwd: root);
 }
 

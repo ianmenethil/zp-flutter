@@ -6,7 +6,6 @@
 .agent
 .agents
 build
-example/app
 example/backend/.dart_tool
 example/backend/.env
 .env
