@@ -1,28 +1,32 @@
 {
   // Fronts two Cloudflare Containers as one Worker — see src/index.ts, which
   // routes each request by path to whichever container owns it. Backend
-  // (docker/Dockerfile.backend) serves /api/v1/*, /return, /.well-known/*;
-  // frontend (docker/Dockerfile.frontend, nginx) serves the built Flutter
-  // Web app for everything else. Deploy with `npm run cf:deploy` (needs
-  // Docker running locally and a Workers Paid plan). Secrets (ZENPAY_*,
-  // TOKEN_SECRET, etc. from example/backend/.env) are set separately via
-  // `wrangler secret put <NAME>`, not committed here.
+  // (docker/cloudflare/Dockerfile.backend) serves /api/v1/*, /return,
+  // /.well-known/*; frontend (docker/cloudflare/Dockerfile.frontend, nginx)
+  // serves the built Flutter Web app for everything else. These are
+  // Cloudflare-specific Dockerfiles, deliberately separate from
+  // docker/local/ (used by docker/local/docker-compose.yml for local dev)
+  // — the local ones need mkcert TLS + compose networking that don't apply
+  // once Cloudflare's own edge is terminating HTTPS. Deploy with
+  // `npm run cf:deploy` (needs Docker running locally and a Workers Paid
+  // plan). Secrets (ZENPAY_*, TOKEN_SECRET, etc. from example/backend/.env)
+  // are set separately via `wrangler secret put <NAME>`, not committed here.
   "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
   "containers": [
     {
       "class_name": "ZenpayBackendContainer",
-      "image": "./docker/Dockerfile.backend",
+      "image": "./docker/cloudflare/Dockerfile.backend",
       // Both Dockerfiles COPY from repo-root paths (zenpay_dart/,
       // example/backend/, ...) — without this, Wrangler defaults the build
-      // context to the Dockerfile's own directory (./docker), where none of
-      // those paths exist, and every COPY fails "not found".
+      // context to the Dockerfile's own directory, where none of those
+      // paths exist, and every COPY fails "not found".
       "image_build_context": ".",
     },
     {
       "class_name": "ZenpayFrontendContainer",
-      "image": "./docker/Dockerfile.frontend",
+      "image": "./docker/cloudflare/Dockerfile.frontend",
       "image_build_context": ".",
     },
   ],

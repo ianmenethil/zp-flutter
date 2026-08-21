@@ -1,0 +1,28 @@
+# Multi-stage build: Dart backend only
+FROM dart:latest AS backend-build
+
+WORKDIR /app
+
+COPY zenpay_dart/ ./zenpay_dart/
+COPY example/backend/ ./example/backend/
+
+RUN printf "name: backend_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\nworkspace:\n  - zenpay_dart\n  - example/backend\n" > pubspec.yaml
+
+RUN dart pub get
+RUN dart compile exe example/backend/bin/server.dart -o /app/server
+
+# Stage 2: Runtime
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY --from=backend-build /app/server /app/server
+COPY example/backend/well_known/ /app/well_known/
+
+ENV PORT=7000
+EXPOSE 7000
+
+CMD ["/app/server"]

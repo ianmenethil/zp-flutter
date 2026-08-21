@@ -60,7 +60,7 @@ String _usage() {
     row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
     row(
       '--docker-build',
-      'Build backend + frontend images (docker/docker-compose.yml).',
+      'Build backend + frontend images (docker/local/docker-compose.yml).',
     ),
     row(
       '--docker-run',
@@ -957,7 +957,7 @@ Future<void> _distribute(String root) async {
 /// `docker/`,
 /// so `context: ..`/`env_file: ../example/backend/.env` inside it keep
 /// resolving relative to the compose file's own location, not the shell cwd.
-const _composeFile = 'docker/docker-compose.yml';
+const _composeFile = 'docker/local/docker-compose.yml';
 
 const _dockerBackendPort = 7000;
 const _dockerFrontendPort = 8080;
@@ -980,7 +980,7 @@ Future<void> _requireDockerCompose() async {
 }
 
 /// Backend container needs `example/backend/service-account.json` to exist
-/// unconditionally — `docker/docker-compose.yml` bind-mounts it by a fixed
+/// unconditionally — `docker/local/docker-compose.yml` bind-mounts it by a fixed
 /// path, so a missing file fails the whole `docker compose up`, not just
 /// App Check enforcement (unlike the old single-image flow, which only
 /// mounted it when `.env` pointed at one).
@@ -996,17 +996,17 @@ void _requireServiceAccountFile(String root) {
   final serviceAccountFile = File('$root/example/backend/service-account.json');
   if (!serviceAccountFile.existsSync()) {
     _error(
-      'docker/docker-compose.yml bind-mounts example/backend/service-account.json '
+      'docker/local/docker-compose.yml bind-mounts example/backend/service-account.json '
       'into the backend container — that file does not exist, so `docker compose up` '
       'will fail. Place your Firebase service account key there, or remove the '
-      '`volumes:` line for the backend service in docker/docker-compose.yml if you '
+      '`volumes:` line for the backend service in docker/local/docker-compose.yml if you '
       "don't need App Check enforcement.",
     );
     exit(1);
   }
 }
 
-/// Docker's frontend (`docker/Dockerfile.frontend`) terminates TLS with the
+/// Docker's frontend (`docker/local/Dockerfile.frontend`) terminates TLS with the
 /// same mkcert cert [_web] uses, since the SDK requires an https return URI
 /// (see [_web]'s doc comment). Unlike [_web], this hard-blocks instead of
 /// falling back to plain http: a container failing deep inside its own logs
@@ -1033,7 +1033,7 @@ Future<void> _requireDockerTlsCert(String root) async {
 
   if (!(cert.existsSync() && key.existsSync())) {
     _error(
-      "Docker's frontend requires https (docker/Dockerfile.frontend "
+      "Docker's frontend requires https (docker/local/Dockerfile.frontend "
       'terminates TLS with this cert) and no TLS cert was found. Install '
       'mkcert (choco install mkcert), run "mkcert -install" once, then '
       're-run this command.',
