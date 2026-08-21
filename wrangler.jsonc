@@ -14,6 +14,11 @@
   "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
+  // Required to see the container's OWN stdout/stderr (not just the Worker's)
+  // in the dashboard/tail — see https://developers.cloudflare.com/containers/faq/.
+  "observability": {
+    "enabled": true,
+  },
   // Non-secret backend config, forwarded into the container via envVars in
   // src/index.ts — production values (this Worker's own URL), NOT the
   // localhost ones in example/backend/.env. Secrets (ZENPAY_*, TOKEN_SECRET,
