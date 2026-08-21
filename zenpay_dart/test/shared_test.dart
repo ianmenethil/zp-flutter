@@ -217,5 +217,89 @@ void main() {
         expect(Uri.parse(result.url).queryParameters['isJsPlugin'], 'false');
       }
     });
+
+    test('falls back to "Process Payment" when title is omitted', () {
+      final result = createZpCheckoutUrl(baseOptions());
+      expect(result, isA<ZpUrlSuccess>());
+      if (result is ZpUrlSuccess) {
+        expect(Uri.parse(result.url).queryParameters['title'], 'Process Payment');
+      }
+    });
+
+    test('falls back to "Tokenize Card" when title is omitted and mode is tokenise', () {
+      final result = createZpCheckoutUrl(
+        ZpCheckoutOptions(
+          url: 'https://pay.sandbox.b2bpay.com.au/Online/v5',
+          merchantCode: 'ZenTest1',
+          apiKey: 'api-key-value',
+          fingerprint: 'f'.padLeft(128, 'f'),
+          merchantUniquePaymentId: const ZpMupid('mupid-0001'),
+          timestamp: const ZpTimestamp('2026-01-15T10:30:00'),
+          customerEmail: 'jane@example.com',
+          redirectUrl: 'https://merchant.example/return',
+          mode: ZpPluginMode.tokenise,
+        ),
+      );
+      expect(result, isA<ZpUrlSuccess>());
+      if (result is ZpUrlSuccess) {
+        expect(Uri.parse(result.url).queryParameters['title'], 'Tokenize Card');
+      }
+    });
+
+    test('an explicit title overrides the fallback', () {
+      final options = ZpCheckoutOptions(
+        url: 'https://pay.sandbox.b2bpay.com.au/Online/v5',
+        merchantCode: 'ZenTest1',
+        apiKey: 'api-key-value',
+        fingerprint: 'f'.padLeft(128, 'f'),
+        merchantUniquePaymentId: const ZpMupid('mupid-0001'),
+        timestamp: const ZpTimestamp('2026-01-15T10:30:00'),
+        customerEmail: 'jane@example.com',
+        paymentAmount: '49.90',
+        customerName: 'Jane Smith',
+        customerReference: 'ORD-1001',
+        redirectUrl: 'https://merchant.example/return',
+        title: 'Book Your Stay',
+      );
+      final result = createZpCheckoutUrl(options);
+      expect(result, isA<ZpUrlSuccess>());
+      if (result is ZpUrlSuccess) {
+        expect(Uri.parse(result.url).queryParameters['title'], 'Book Your Stay');
+      }
+    });
+
+    test('height is 450px for tokenise mode and 725px for every other mode', () {
+      final tokenise = createZpCheckoutUrl(
+        ZpCheckoutOptions(
+          url: 'https://pay.sandbox.b2bpay.com.au/Online/v5',
+          merchantCode: 'ZenTest1',
+          apiKey: 'api-key-value',
+          fingerprint: 'f'.padLeft(128, 'f'),
+          merchantUniquePaymentId: const ZpMupid('mupid-0001'),
+          timestamp: const ZpTimestamp('2026-01-15T10:30:00'),
+          customerEmail: 'jane@example.com',
+          redirectUrl: 'https://merchant.example/return',
+          mode: ZpPluginMode.tokenise,
+        ),
+      );
+      expect(tokenise, isA<ZpUrlSuccess>());
+      if (tokenise is ZpUrlSuccess) {
+        expect(tokenise.height, '450px');
+      }
+
+      final payment = createZpCheckoutUrl(baseOptions());
+      expect(payment, isA<ZpUrlSuccess>());
+      if (payment is ZpUrlSuccess) {
+        expect(payment.height, '725px');
+      }
+    });
+
+    test('maxWidth is always "600px", regardless of mode', () {
+      final result = createZpCheckoutUrl(baseOptions());
+      expect(result, isA<ZpUrlSuccess>());
+      if (result is ZpUrlSuccess) {
+        expect(result.maxWidth, '600px');
+      }
+    });
   });
 }

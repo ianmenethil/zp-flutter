@@ -20,6 +20,25 @@ export class ZenpayBackendContainer extends Container {
   defaultPort: number = 7000;
   /** Stops the container instance after this long with no requests. */
   sleepAfter: string = "10m";
+  /**
+   * `envVars` is the only way values reach the container process — Worker
+   * bindings (`vars` in wrangler.jsonc, `wrangler secret put`) populate
+   * `this.env` but are NOT auto-forwarded into the container's environment.
+   * Without this, example/backend/bin/server.dart finds every required var
+   * missing and calls `exit(1)` before binding its port at all.
+   */
+  envVars = {
+    ZENPAY_MERCHANT_CODE: this.env.ZENPAY_MERCHANT_CODE,
+    ZENPAY_API_KEY: this.env.ZENPAY_API_KEY,
+    ZENPAY_USERNAME: this.env.ZENPAY_USERNAME,
+    ZENPAY_PASSWORD: this.env.ZENPAY_PASSWORD,
+    TOKEN_SECRET: this.env.TOKEN_SECRET,
+    PUBLIC_BASE_URL: this.env.PUBLIC_BASE_URL,
+    ALLOWED_APP_ORIGIN: this.env.ALLOWED_APP_ORIGIN,
+    APP_RETURN_URI_WEB: this.env.APP_RETURN_URI_WEB,
+    FIREBASE_PROJECT_NUMBER: this.env.FIREBASE_PROJECT_NUMBER,
+    FIREBASE_SERVICE_ACCOUNT_JSON: this.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+  };
 }
 
 /**

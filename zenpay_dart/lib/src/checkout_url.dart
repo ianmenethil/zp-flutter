@@ -8,6 +8,7 @@
 library;
 
 import 'package:zenpay_dart/src/constants.dart';
+import 'package:zenpay_dart/src/defaults.dart';
 import 'package:zenpay_dart/src/models/checkout_options.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
@@ -22,11 +23,20 @@ sealed class ZpUrlResult {
 
 /// A successfully built checkout URL.
 final class ZpUrlSuccess extends ZpUrlResult {
-  /// Creates a [ZpUrlSuccess] result with the assembled [url].
-  const ZpUrlSuccess(this.url);
+  /// Creates a [ZpUrlSuccess] result with the assembled [url], [height], and
+  /// [maxWidth] hints.
+  const ZpUrlSuccess(this.url, {required this.height, this.maxWidth = ZpUiDefaults.maxWidth});
 
   /// Fully assembled and percent-encoded checkout URL.
   final String url;
+
+  /// Min-height hint in px — [ZpUiDefaults.heightTokenise] for
+  /// [ZpPluginMode.tokenise], [ZpUiDefaults.heightDefault] otherwise.
+  final String height;
+
+  /// Max-width hint in px — always [ZpUiDefaults.maxWidth]. Informational
+  /// only; a rendering surface may ignore it.
+  final String maxWidth;
 }
 
 /// A checkout URL validation failure.
@@ -128,7 +138,9 @@ Map<String, String> _buildQueryParams(
   'customerNameLabel': request.customerNameLabel ?? '',
   'customerReferenceLabel': request.customerReferenceLabel ?? '',
   'paymentAmountLabel': request.paymentAmountLabel ?? '',
-  'title': request.title ?? '',
+  'title': (request.title != null && request.title!.isNotEmpty)
+      ? request.title!
+      : (request.mode == ZpPluginMode.tokenise ? ZpUiDefaults.titleFallbackTokenise : ZpUiDefaults.titleFallback),
   'token': request.cardProxy ?? '',
   'AustralianBusinessNumber': request.abn ?? '',
   'sku1': request.sku1 ?? '',
@@ -160,5 +172,7 @@ ZpUrlResult createZpCheckoutUrl(ZpCheckoutOptions request) {
     query: query,
   );
 
-  return ZpUrlSuccess(url.toString());
+  final height = request.mode == ZpPluginMode.tokenise ? ZpUiDefaults.heightTokenise : ZpUiDefaults.heightDefault;
+
+  return ZpUrlSuccess(url.toString(), height: height);
 }

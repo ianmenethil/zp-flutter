@@ -1,19 +1,25 @@
-/// Default option values applied when the caller omits them.
+/// Default option and UI-hint values applied when the caller omits them.
 ///
-/// Mirrors the TypeScript SDK's `defaults.ts` 1:1 so the two can be diffed as a
-/// unit when either side changes. Internal — deliberately not exported from
-/// `zenpay_dart.dart`, matching the TypeScript package, which declares
-/// `defaults` but exports neither the value nor its type.
+/// [ZpCheckoutDefaults] mirrors the TypeScript SDK's `defaults.ts` 1:1 so the
+/// two can be diffed as a unit when either side changes. Internal —
+/// deliberately not exported from `zenpay_dart.dart`, matching the TypeScript
+/// package, which declares `defaults` but exports neither the value nor its
+/// type.
 ///
-/// Two of the sixteen TypeScript keys have no entry here:
+/// Two of the sixteen TypeScript keys have no entry in [ZpCheckoutDefaults]:
 /// - `action: "Authorise"` is not caller-configurable; it is the URL path
 ///   segment, held in `checkout_url.dart`.
 /// - `onPluginClose` is a browser modal callback. The Flutter equivalent is the
 ///   `ZpPresentationDismissed` outcome, not a launch option.
+///
+/// [ZpUiDefaults] ports a *different* TypeScript file — `ZP_DEFAULTS` in
+/// `plugin/core/constants.ts` — output/rendering hints applied at URL-build
+/// time, not merged into the request. Its title fallbacks additionally go
+/// beyond that TypeScript source: see the class doc for details.
 library;
 
+import 'package:zenpay_dart/src/models/checkout_options.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
-import 'package:zenpay_dart/zenpay_dart.dart' show ZpCheckoutOptions;
 
 /// The default value for every optional [ZpCheckoutOptions] field that has one.
 abstract final class ZpCheckoutDefaults {
@@ -66,4 +72,32 @@ abstract final class ZpCheckoutDefaults {
 
   /// Value sent as the `isJsPlugin` query parameter.
   static const bool isJsPlugin = true;
+}
+
+/// Default UI/output hints applied when the caller omits them.
+///
+/// The height and [maxWidth] hints mirror the TypeScript SDK's `ZP_DEFAULTS`
+/// (`plugin/core/constants.ts`). The title fallbacks do not: TypeScript has a
+/// single mode-independent title constant. Per-mode title fallbacks are a
+/// zenpay_dart-specific addition, not a TypeScript SDK port.
+abstract final class ZpUiDefaults {
+  /// Checkout title used when the caller's `title` option is omitted or empty,
+  /// for every mode except `ZpPluginMode.tokenise`.
+  static const titleFallback = 'Process Payment';
+
+  /// Checkout title used when the caller's `title` option is omitted or empty
+  /// and `mode` is `ZpPluginMode.tokenise`.
+  static const titleFallbackTokenise = 'Tokenize Card';
+
+  /// Modal max-width hint (px). Matches TypeScript's `ZP_DEFAULTS.WIDTH_MODAL`
+  /// — fixed, not mode-dependent, not caller-overridable. TypeScript documents
+  /// this as informational only: a host rendering an iframe/modal is CSS-driven
+  /// and may ignore it.
+  static const maxWidth = '600px';
+
+  /// Min-height hint (px) for `ZpPluginMode.tokenise`.
+  static const heightTokenise = '450px';
+
+  /// Min-height hint (px) for every other mode.
+  static const heightDefault = '725px';
 }

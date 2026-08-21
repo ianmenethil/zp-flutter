@@ -14,6 +14,17 @@
   "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
+  // Non-secret backend config, forwarded into the container via envVars in
+  // src/index.ts — production values (this Worker's own URL), NOT the
+  // localhost ones in example/backend/.env. Secrets (ZENPAY_*, TOKEN_SECRET,
+  // FIREBASE_SERVICE_ACCOUNT_JSON) stay out of this file, via
+  // `wrangler secret put <NAME>`.
+  "vars": {
+    "PUBLIC_BASE_URL": "https://flutter-demo.ianmenethil.workers.dev",
+    "ALLOWED_APP_ORIGIN": "https://flutter-demo.ianmenethil.workers.dev",
+    "APP_RETURN_URI_WEB": "https://flutter-demo.ianmenethil.workers.dev/return",
+    "FIREBASE_PROJECT_NUMBER": "356498821161",
+  },
   "containers": [
     {
       "class_name": "ZenpayBackendContainer",
