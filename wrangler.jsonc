@@ -1,30 +1,47 @@
 {
-  // Fronts the zenpay-backend Docker image (see Dockerfile) as a Cloudflare
-  // Container — see src/index.ts for the Worker entrypoint. Deploy with
-  // `npm run cf:deploy` (needs Docker running locally and a Workers Paid
-  // plan). Secrets (ZENPAY_*, TOKEN_SECRET, etc. from example/backend/.env)
-  // are set separately via `wrangler secret put <NAME>`, not committed here.
-  "name": "zenpay-backend",
+  // Fronts two Cloudflare Containers as one Worker — see src/index.ts, which
+  // routes each request by path to whichever container owns it. Backend
+  // (docker/Dockerfile.backend) serves /api/v1/*, /return, /.well-known/*;
+  // frontend (docker/Dockerfile.frontend, nginx) serves the built Flutter
+  // Web app for everything else. Deploy with `npm run cf:deploy` (needs
+  // Docker running locally and a Workers Paid plan). Secrets (ZENPAY_*,
+  // TOKEN_SECRET, etc. from example/backend/.env) are set separately via
+  // `wrangler secret put <NAME>`, not committed here.
+  "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
   "containers": [
     {
-      "class_name": "ZenpayContainer",
-      "image": "./Dockerfile",
+      "class_name": "ZenpayBackendContainer",
+      "image": "./docker/Dockerfile.backend",
+      // Both Dockerfiles COPY from repo-root paths (zenpay_dart/,
+      // example/backend/, ...) — without this, Wrangler defaults the build
+      // context to the Dockerfile's own directory (./docker), where none of
+      // those paths exist, and every COPY fails "not found".
+      "image_build_context": ".",
+    },
+    {
+      "class_name": "ZenpayFrontendContainer",
+      "image": "./docker/Dockerfile.frontend",
+      "image_build_context": ".",
     },
   ],
   "durable_objects": {
     "bindings": [
       {
-        "class_name": "ZenpayContainer",
-        "name": "ZENPAY_CONTAINER",
+        "class_name": "ZenpayBackendContainer",
+        "name": "ZENPAY_BACKEND_CONTAINER",
+      },
+      {
+        "class_name": "ZenpayFrontendContainer",
+        "name": "ZENPAY_FRONTEND_CONTAINER",
       },
     ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["ZenpayContainer"],
+      "new_sqlite_classes": ["ZenpayBackendContainer", "ZenpayFrontendContainer"],
     },
   ],
 }

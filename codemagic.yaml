@@ -28,7 +28,7 @@ workflows:
           dart pub global activate melos
           melos bs
       - name: Format check
-        script: dart format --output=none --set-exit-if-changed .
+        script: dart format --output=none --set-exit-if-changed zenpay_dart zenpay_flutter example scripts cli.dart
       - name: Analyze (all packages)
         script: melos run analyze
       - name: Test (all packages)
