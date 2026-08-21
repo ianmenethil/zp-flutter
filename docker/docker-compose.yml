@@ -1,3 +1,5 @@
+name: zenpay
+
 services:
   backend:
     build:
