@@ -17,6 +17,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    buildFeatures {
+        // AGP 8+ generates BuildConfig only when opted in — needed for the
+        // BuildConfig.DEBUG check gating Firebase App Distribution below.
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "au.com.zenithpayments.zenpay_example_app"
         // You can update the following values to match your application needs.
@@ -41,6 +47,15 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+dependencies {
+    // Official Firebase App Distribution SDK — replaces the third-party
+    // firebase_app_distribution pub package. API-only lib is safe for every
+    // variant; the full implementation only goes in the release variant,
+    // matching what `cli.dart --distribute` actually builds and uploads.
+    implementation("com.google.firebase:firebase-appdistribution-api:16.0.0-beta20")
+    releaseImplementation("com.google.firebase:firebase-appdistribution:16.0.0-beta20")
 }
 
 flutter {

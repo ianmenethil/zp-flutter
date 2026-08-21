@@ -21,7 +21,8 @@ COPY example/app/ ./example/app/
 RUN printf "name: flutter_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\n  flutter: '>=3.44.0'\nworkspace:\n  - zenpay_flutter\n  - example/app\n" > pubspec.yaml
 
 ARG APP_RETURN_URI_WEB
-RUN cd example/app && flutter pub get && flutter build web --release --dart-define=APP_RETURN_URI_WEB=${APP_RETURN_URI_WEB}
+ARG BACKEND_BASE_URL
+RUN cd example/app && flutter pub get && flutter build web --release --dart-define=APP_RETURN_URI_WEB=${APP_RETURN_URI_WEB} --dart-define=BACKEND_BASE_URL=${BACKEND_BASE_URL}
 
 # Stage 2: nginx serving static files
 FROM nginx:alpine
@@ -40,6 +41,15 @@ RUN printf "server {\n    listen 8080;\n    root /usr/share/nginx/html;\n    ind
 # the memory budget and crashing on start. Pin it to 1, which is plenty for a
 # static-file SPA.
 RUN sed -i 's/worker_processes.*/worker_processes 1;/' /etc/nginx/nginx.conf
+
+# nginx:alpine ships /var/log/nginx/{access,error}.log as symlinks to
+# /dev/stdout / /dev/stderr (normal under a Docker daemon). Cloudflare's
+# Firecracker container runtime fails to open() those device symlinks
+# (ENXIO), which is fatal for nginx's error_log at startup — it dies before
+# parsing any config. Replacing them with real files avoids the open()
+# entirely; this container is disposable, so on-disk logs are fine.
+RUN rm -f /var/log/nginx/access.log /var/log/nginx/error.log \
+    && touch /var/log/nginx/access.log /var/log/nginx/error.log
 
 EXPOSE 8080
 

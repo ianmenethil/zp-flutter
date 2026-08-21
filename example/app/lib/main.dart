@@ -1,10 +1,7 @@
 /// Entry point for the combined ZenPay example app.
 library;
 
-import 'dart:async';
-
 import 'package:firebase_app_check/firebase_app_check.dart';
-import 'package:firebase_app_distribution/firebase_app_distribution.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -35,14 +32,6 @@ Future<void> main() async {
     providerAndroid: kDebugMode ? const AndroidDebugProvider() : const AndroidPlayIntegrityProvider(),
     providerApple: kDebugMode ? const AppleDebugProvider() : const AppleAppAttestProvider(),
   );
-
-  if (!kIsWeb && kReleaseMode) {
-    // This runs asynchronously in the background. If a new version exists,
-    // Google's native SDK will pop a "New Version Available" dialog over the app.
-    // firebase_app_distribution 1.x exposes top-level functions, not the old
-    // FirebaseAppDistribution class API.
-    unawaited(updateIfNewReleaseAvailable());
-  }
 
   runApp(const ZenPayExampleApp());
 }

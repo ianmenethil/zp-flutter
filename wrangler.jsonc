@@ -44,6 +44,15 @@
       "class_name": "ZenpayFrontendContainer",
       "image": "./docker/cloudflare/Dockerfile.frontend",
       "image_build_context": ".",
+      // --build-arg equivalent — baked into the Flutter web build's
+      // --dart-define. Unset here means Docker's ARG defaults to an empty
+      // string (not absent), which example/app/lib/core/config/app_config.dart
+      // then uses AS-IS instead of falling back to its own default, so it
+      // must be set explicitly to this Worker's real URL.
+      "image_vars": {
+        "APP_RETURN_URI_WEB": "https://flutter-demo.ianmenethil.workers.dev/return",
+        "BACKEND_BASE_URL": "https://flutter-demo.ianmenethil.workers.dev",
+      },
     },
   ],
   "durable_objects": {
