@@ -1,7 +1,8 @@
 /**
  * Cloudflare Worker entrypoint fronting two containers: the zenpay-backend
- * API (see ../docker/Dockerfile.backend) and the Flutter Web frontend served
- * by nginx (see ../docker/Dockerfile.frontend) — mirrors running `dart run
+ * API (see ../docker/cloudflare/Dockerfile.backend) and the Flutter Web
+ * frontend served by nginx (see ../docker/cloudflare/Dockerfile.frontend) —
+ * mirrors running `dart run
  * cli.dart --server` and `--web` as two separate local processes. Fronts the
  * required Worker -> Durable Object -> Container request path for each;
  * there is no way for a client to reach a container directly.
@@ -15,7 +16,7 @@ import { Container, getContainer } from "@cloudflare/containers";
  * backend is a single shared service, not spun up per session/user.
  */
 export class ZenpayBackendContainer extends Container {
-  /** Must match docker/Dockerfile.backend's `ENV PORT` / `EXPOSE`. */
+  /** Must match docker/cloudflare/Dockerfile.backend's `ENV PORT` / `EXPOSE`. */
   defaultPort: number = 7000;
   /** Stops the container instance after this long with no requests. */
   sleepAfter: string = "10m";
@@ -27,7 +28,7 @@ export class ZenpayBackendContainer extends Container {
  * {@link ZenpayBackendContainer}.
  */
 export class ZenpayFrontendContainer extends Container {
-  /** Must match docker/Dockerfile.frontend's nginx `listen` / `EXPOSE`. */
+  /** Must match docker/cloudflare/Dockerfile.frontend's nginx `listen` / `EXPOSE`. */
   defaultPort: number = 8080;
   /** Stops the container instance after this long with no requests. */
   sleepAfter: string = "10m";
