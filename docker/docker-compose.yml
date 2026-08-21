@@ -1,0 +1,33 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: zenpay-backend
+    ports:
+      - "7000:7000"
+    environment:
+      PORT: 7000
+    env_file: ../example/backend/.env
+    volumes:
+      - ../example/backend/service-account.json:/app/service-account.json:ro
+    networks:
+      - zenpay-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: zenpay-frontend
+    ports:
+      - "8080:8080"
+    networks:
+      - zenpay-net
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+networks:
+  zenpay-net:
+    driver: bridge

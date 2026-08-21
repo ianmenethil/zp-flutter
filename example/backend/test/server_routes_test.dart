@@ -727,5 +727,31 @@ void main() {
       );
       expect(body['checkoutToken'], isNot(token));
     });
+
+    test('masks token and zp_session cookies, leaves other cookies as-is', () async {
+      final records = <LogRecord>[];
+      final subscription = Logger.root.onRecord.listen(records.add);
+
+      final response = await call(
+        '/api/v1/checkout/exchange',
+        method: 'POST',
+        headers: {
+          'cookie': 'zp.last_used_login_method=email; zp_session=super-secret-session-value; token=super-secret-token-value',
+        },
+      );
+      expect(response.statusCode, 401);
+
+      await subscription.cancel();
+      final traces = records.map((r) => r.message).where((m) => m.contains('http_trace')).toList();
+      final exchangeTrace = traces.singleWhere(
+        (m) => (jsonDecode(m) as Map<String, Object?>)['path'] == '/api/v1/checkout/exchange',
+      );
+      final headers = (jsonDecode(exchangeTrace) as Map<String, Object?>)['requestHeaders']! as Map<String, Object?>;
+
+      expect(
+        headers['cookie'],
+        'zp.last_used_login_method=email; zp_session=sup...lue; token=sup...lue',
+      );
+    });
   });
 }

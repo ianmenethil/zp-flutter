@@ -60,13 +60,13 @@ String _usage() {
     row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
     row(
       '--docker-build',
-      'Build the combined backend + Flutter Web image (zenpay-backend).',
+      'Build backend + frontend images (docker/docker-compose.yml).',
     ),
     row(
       '--docker-run',
-      'Run the combined image (API + Flutter Web) on port 7000.',
+      'Run both via Compose: backend :7000, frontend :8080.',
     ),
-    row('--docker-rebuild', 'Delete existing image, build fresh, and run.'),
+    row('--docker-rebuild', 'Stop, remove images, rebuild fresh, and run.'),
     row('--register-device', 'Register Firebase App Check debug token.'),
     row(
       '--release:dart:minor',
@@ -952,23 +952,72 @@ Future<void> _distribute(String root) async {
   ], cwd: '$root/example/app');
 }
 
-Future<void> _dockerBuild(String root) async {
+/// Path to the Compose file, relative to the repo root — every `docker
+/// compose` invocation below passes this via `-f` rather than `cd`-ing into
+/// `docker/`,
+/// so `context: ..`/`env_file: ../example/backend/.env` inside it keep
+/// resolving relative to the compose file's own location, not the shell cwd.
+const _composeFile = 'docker/docker-compose.yml';
+
+const _dockerBackendPort = 7000;
+const _dockerFrontendPort = 8080;
+
+/// Verifies `docker compose` is installed (the v2 plugin subcommand, not the
+/// standalone `docker-compose` v1 binary) and Docker Desktop is available.
+Future<void> _requireDockerCompose() async {
   if (!_hasCommand('docker')) {
     _error('docker command not found. Please install Docker Desktop.');
     exit(1);
   }
-
-  _info('Building backend + Flutter Web Docker image (zenpay-backend)...');
-  await _runChecked('docker', [
-    'build',
-    '-t',
-    'zenpay-backend',
-    '.',
-  ], cwd: root);
-  _success('Docker image zenpay-backend built successfully.');
+  final result = await Process.run('docker', ['compose', 'version']);
+  if (result.exitCode != 0) {
+    _error(
+      '`docker compose` is not available (Docker Compose v2 plugin). '
+      'Update Docker Desktop, or install the compose plugin separately.',
+    );
+    exit(1);
+  }
 }
 
-const _dockerPort = 7000;
+/// Backend container needs `example/backend/service-account.json` to exist
+/// unconditionally — `docker/docker-compose.yml` bind-mounts it by a fixed
+/// path, so a missing file fails the whole `docker compose up`, not just
+/// App Check enforcement (unlike the old single-image flow, which only
+/// mounted it when `.env` pointed at one).
+void _requireServiceAccountFile(String root) {
+  final envFile = File('$root/example/backend/.env');
+  if (!envFile.existsSync()) {
+    _error(
+      'No example/backend/.env — copy .env.example and fill in your ZenPay '
+      'credentials before running Docker.',
+    );
+    exit(1);
+  }
+  final serviceAccountFile = File('$root/example/backend/service-account.json');
+  if (!serviceAccountFile.existsSync()) {
+    _error(
+      'docker/docker-compose.yml bind-mounts example/backend/service-account.json '
+      'into the backend container — that file does not exist, so `docker compose up` '
+      'will fail. Place your Firebase service account key there, or remove the '
+      '`volumes:` line for the backend service in docker/docker-compose.yml if you '
+      "don't need App Check enforcement.",
+    );
+    exit(1);
+  }
+}
+
+Future<void> _dockerBuild(String root) async {
+  await _requireDockerCompose();
+
+  _info('Building backend + frontend Docker images (docker compose)...');
+  await _runChecked('docker', [
+    'compose',
+    '-f',
+    _composeFile,
+    'build',
+  ], cwd: root);
+  _success('Docker images built successfully.');
+}
 
 /// True if [port] can be bound on localhost right now. Checked before `-p`
 /// publishing it, since Docker's own "port is already allocated" failure
@@ -987,72 +1036,46 @@ Future<bool> _isPortFree(int port) async {
 }
 
 Future<void> _dockerRun(String root) async {
-  if (!_hasCommand('docker')) {
-    _error('docker command not found. Please install Docker Desktop.');
-    exit(1);
-  }
+  await _requireDockerCompose();
+  _requireServiceAccountFile(root);
 
-  if (!await _isPortFree(_dockerPort)) {
-    _error(
-      'Port $_dockerPort is already in use — the container would start but '
-      'never be reachable. Stop whatever is bound to it (a native '
-      '`--server` dev instance, or another container) and re-run. Find it '
-      'with: ${Platform.isWindows ? 'netstat -ano | findstr :$_dockerPort' : 'lsof -i:$_dockerPort'}',
-    );
-    exit(1);
-  }
-
-  final backendDir = '$root/example/backend';
-  final envFile = File('$backendDir/.env');
-  final args = [
-    'run',
-    '--rm',
-    '-it',
-    '-p',
-    '$_dockerPort:$_dockerPort',
-  ];
-  if (envFile.existsSync()) {
-    args.addAll(['--env-file', 'example/backend/.env']);
-
-    // The server reads this eagerly at startup (buildHandler), relative to
-    // its own CWD (/app in the image) — a value that's set but unmounted
-    // crashes the container immediately instead of just skipping App Check.
-    final serviceAccountValue =
-        RegExp(
-          r'^FIREBASE_SERVICE_ACCOUNT_JSON\s*=\s*(.*)$',
-          multiLine: true,
-        ).firstMatch(envFile.readAsStringSync())?.group(1)?.trim() ??
-        '';
-    if (serviceAccountValue.isNotEmpty && !serviceAccountValue.startsWith('{')) {
-      final serviceAccountFile = File('$backendDir/$serviceAccountValue');
-      if (!serviceAccountFile.existsSync()) {
-        _error(
-          'example/backend/.env sets FIREBASE_SERVICE_ACCOUNT_JSON='
-          '$serviceAccountValue, but $backendDir${Platform.pathSeparator}'
-          '$serviceAccountValue does not exist — the container would start '
-          'and crash immediately. Place the file there, put the raw JSON '
-          'directly in .env instead of a path, or clear the variable.',
-        );
-        exit(1);
-      }
-      args.addAll(['-v', '${serviceAccountFile.absolute.path}:/app/service-account.json:ro']);
+  for (final port in [_dockerBackendPort, _dockerFrontendPort]) {
+    if (!await _isPortFree(port)) {
+      _error(
+        'Port $port is already in use — the container would start but '
+        'never be reachable. Stop whatever is bound to it (a native '
+        '`--server` dev instance, or another container) and re-run. Find it '
+        'with: ${Platform.isWindows ? 'netstat -ano | findstr :$port' : 'lsof -i:$port'}',
+      );
+      exit(1);
     }
   }
-  args.add('zenpay-backend');
 
-  _info('Running Docker container (zenpay-backend on http://localhost:$_dockerPort)...');
-  await _execForeground('docker', args, cwd: root);
+  _info(
+    'Running Docker Compose (zenpay-backend on http://localhost:$_dockerBackendPort, '
+    'zenpay-frontend on http://localhost:$_dockerFrontendPort)...',
+  );
+  await _execForeground('docker', [
+    'compose',
+    '-f',
+    _composeFile,
+    'up',
+  ], cwd: root);
 }
 
 Future<void> _dockerRebuild(String root) async {
-  if (!_hasCommand('docker')) {
-    _error('docker command not found. Please install Docker Desktop.');
-    exit(1);
-  }
+  await _requireDockerCompose();
 
-  _info('Cleaning up existing Docker image (zenpay-backend)...');
-  // Ignore failure if image doesn't exist
-  await Process.run('docker', ['rmi', '-f', 'zenpay-backend']);
+  _info('Stopping containers and removing existing images (docker compose down)...');
+  // Ignore failure if nothing is running yet.
+  await Process.run('docker', [
+    'compose',
+    '-f',
+    _composeFile,
+    'down',
+    '--rmi',
+    'local',
+  ], workingDirectory: root);
 
   await _dockerBuild(root);
   await _dockerRun(root);

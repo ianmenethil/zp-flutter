@@ -628,31 +628,36 @@ shelf.Handler buildHandler(
       final responseBody = await response.read().expand((c) => c).toList();
       response = response.change(body: responseBody);
 
-      // One record per request — everything about it in one place, instead
-      // of a full raw trace and a separate curated summary that made it easy
-      // to mistake one for the other. `events` carries whatever business
-      // annotations (`_recordEvent`) fired along the way; empty on a plain
-      // request nothing noteworthy happened to.
-      final events = withRequestId.context['events']! as List<Map<String, Object?>>;
-      String record() => _encoder.convert({
-        'event': 'http_trace',
-        'requestId': requestId,
-        'ip': clientIp,
-        'userAgent': request.headers[_HeaderNames.userAgent] ?? 'unknown',
-        'method': request.method,
-        'path': request.requestedUri.path,
-        'requestHeaders': _redactSensitiveHeaders(request.headers),
-        'requestBody': _loggableBody(requestBody, request.headers[_HeaderNames.contentType]),
-        'status': response.statusCode,
-        'responseHeaders': _redactSensitiveHeaders(response.headers),
-        'responseBody': _loggableBody(responseBody, response.headers[_HeaderNames.contentType]),
-        'durationMs': DateTime.now().difference(startTime).inMilliseconds,
-        if (events.isNotEmpty) 'events': events,
-      });
-      if (response.statusCode >= 400) {
-        _logger.warning(record);
-      } else {
-        _logger.info(record);
+      // Only the API surface is traced — the Flutter Web static mount
+      // (`/`, `/assets/...`, etc.) would otherwise flood this log with every
+      // asset request on page load.
+      if (request.requestedUri.path.startsWith('/api/v1/')) {
+        // One record per request — everything about it in one place, instead
+        // of a full raw trace and a separate curated summary that made it easy
+        // to mistake one for the other. `events` carries whatever business
+        // annotations (`_recordEvent`) fired along the way; empty on a plain
+        // request nothing noteworthy happened to.
+        final events = withRequestId.context['events']! as List<Map<String, Object?>>;
+        String record() => _encoder.convert({
+          'event': 'http_trace',
+          'requestId': requestId,
+          'ip': clientIp,
+          'userAgent': request.headers[_HeaderNames.userAgent] ?? 'unknown',
+          'method': request.method,
+          'path': request.requestedUri.path,
+          'requestHeaders': _redactSensitiveHeaders(request.headers),
+          'requestBody': _loggableBody(requestBody, request.headers[_HeaderNames.contentType]),
+          'status': response.statusCode,
+          'responseHeaders': _redactSensitiveHeaders(response.headers),
+          'responseBody': _loggableBody(responseBody, response.headers[_HeaderNames.contentType]),
+          'durationMs': DateTime.now().difference(startTime).inMilliseconds,
+          if (events.isNotEmpty) 'events': events,
+        });
+        if (response.statusCode >= 400) {
+          _logger.warning(record);
+        } else {
+          _logger.info(record);
+        }
       }
     }
 
@@ -692,21 +697,25 @@ String _maskSensitiveHeaderValue(String value) {
   return '${value.substring(0, 3)}...${value.substring(value.length - 3)}';
 }
 
-/// Masks the `token` cookie's value within a raw `Cookie` header, leaving
-/// every other cookie in the string untouched.
+/// Cookie names carrying bearer secrets, masked wherever they appear in a
+/// logged `Cookie` header.
+const _sensitiveCookieNames = {'token', 'zp_session'};
+
+/// Masks the value of any [_sensitiveCookieNames] cookie within a raw
+/// `Cookie` header, leaving every other cookie in the string untouched.
 String _redactTokenCookie(String cookieHeader) => cookieHeader
     .split('; ')
     .map((pair) {
       final i = pair.indexOf('=');
-      if (i == -1 || pair.substring(0, i) != 'token') return pair;
-      return 'token=${_maskSensitiveHeaderValue(pair.substring(i + 1))}';
+      if (i == -1 || !_sensitiveCookieNames.contains(pair.substring(0, i))) return pair;
+      return '${pair.substring(0, i)}=${_maskSensitiveHeaderValue(pair.substring(i + 1))}';
     })
     .join('; ');
 
-/// Redacts `authorization`, `x-firebase-appcheck`, and the `token` cookie —
-/// the values that carry bearer secrets — in logged header maps. Everything
-/// else (including `x-request-id` and other cookies) is logged as-is for
-/// correlation.
+/// Redacts `authorization`, `x-firebase-appcheck`, and the sensitive cookies
+/// in [_sensitiveCookieNames] — the values that carry bearer secrets — in
+/// logged header maps. Everything else (including `x-request-id` and other
+/// cookies) is logged as-is for correlation.
 Map<String, String> _redactSensitiveHeaders(Map<String, String> headers) => {
   for (final entry in headers.entries)
     entry.key: switch (entry.key) {
