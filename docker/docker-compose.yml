@@ -10,6 +10,8 @@ services:
       - "7000:7000"
     environment:
       PORT: 7000
+      ALLOWED_APP_ORIGIN: https://localhost:8080
+      APP_RETURN_URI_WEB: https://localhost:8080/
     env_file: ../example/backend/.env
     volumes:
       - ../example/backend/service-account.json:/app/service-account.json:ro
@@ -21,9 +23,14 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.frontend
+      args:
+        APP_RETURN_URI_WEB: https://localhost:8080/
     container_name: zenpay-frontend
     ports:
       - "8080:8080"
+    volumes:
+      - ../example/app/localhost+2.pem:/etc/nginx/certs/localhost+2.pem:ro
+      - ../example/app/localhost+2-key.pem:/etc/nginx/certs/localhost+2-key.pem:ro
     networks:
       - zenpay-net
     restart: unless-stopped

@@ -20,15 +20,26 @@ COPY example/app/ ./example/app/
 
 RUN printf "name: flutter_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\n  flutter: '>=3.44.0'\nworkspace:\n  - zenpay_flutter\n  - example/app\n" > pubspec.yaml
 
-RUN cd example/app && flutter pub get && flutter build web --release
+ARG APP_RETURN_URI_WEB
+RUN cd example/app && flutter pub get && flutter build web --release --dart-define=APP_RETURN_URI_WEB=${APP_RETURN_URI_WEB}
 
 # Stage 2: nginx serving static files
 FROM nginx:alpine
 
 COPY --from=frontend-build /app/example/app/build/web /usr/share/nginx/html
 
-# Optional: Configure nginx to serve SPA (single page app) with fallback to index.html
-RUN printf "server {\n    listen 8080;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / {\n        try_files \$uri \$uri/ /index.html;\n    }\n}\n" > /etc/nginx/conf.d/default.conf
+# SPA fallback to index.html, TLS via the mkcert cert docker-compose.yml
+# bind-mounts at /etc/nginx/certs — the SDK requires an https return URI
+# (see cli.dart's _requireDockerTlsCert doc comment).
+RUN printf "server {\n    listen 8080 ssl;\n    ssl_certificate /etc/nginx/certs/localhost+2.pem;\n    ssl_certificate_key /etc/nginx/certs/localhost+2-key.pem;\n    root /usr/share/nginx/html;\n    index index.html;\n    location / {\n        try_files \$uri \$uri/ /index.html;\n    }\n}\n" > /etc/nginx/conf.d/default.conf
+
+# Cloudflare's "lite" instance type (the default) gives this container 1/16
+# vCPU and 256MiB — nginx's default `worker_processes auto;` spawns one
+# worker per host-visible CPU core, which on a shared/virtualized node can
+# report far more cores than this container is actually allocated, exhausting
+# the memory budget and crashing on start. Pin it to 1, which is plenty for a
+# static-file SPA.
+RUN sed -i 's/worker_processes.*/worker_processes 1;/' /etc/nginx/nginx.conf
 
 EXPOSE 8080
 

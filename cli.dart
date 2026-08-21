@@ -64,7 +64,7 @@ String _usage() {
     ),
     row(
       '--docker-run',
-      'Run both via Compose: backend :7000, frontend :8080.',
+      'Run both via Compose (:7000/:8080) + tunnel if .env has a token.',
     ),
     row('--docker-rebuild', 'Stop, remove images, rebuild fresh, and run.'),
     row('--register-device', 'Register Firebase App Check debug token.'),
@@ -1006,6 +1006,42 @@ void _requireServiceAccountFile(String root) {
   }
 }
 
+/// Docker's frontend (`docker/Dockerfile.frontend`) terminates TLS with the
+/// same mkcert cert [_web] uses, since the SDK requires an https return URI
+/// (see [_web]'s doc comment). Unlike [_web], this hard-blocks instead of
+/// falling back to plain http: a container failing deep inside its own logs
+/// is much harder to diagnose than failing here, before anything builds.
+/// Deliberately not running `mkcert -install` here either — same reasoning
+/// as [_web].
+Future<void> _requireDockerTlsCert(String root) async {
+  final appDir = '$root/example/app';
+  final cert = File('$appDir/localhost+2.pem');
+  final key = File('$appDir/localhost+2-key.pem');
+
+  if (!(cert.existsSync() && key.existsSync()) && _hasCommand('mkcert')) {
+    _info('No TLS cert — running mkcert in example/app.');
+    final code = await _runLive('mkcert', [
+      'localhost',
+      '127.0.0.1',
+      '::1',
+    ], cwd: appDir);
+    if (code != 0) {
+      _error('mkcert failed (exit $code).');
+      exit(1);
+    }
+  }
+
+  if (!(cert.existsSync() && key.existsSync())) {
+    _error(
+      "Docker's frontend requires https (docker/Dockerfile.frontend "
+      'terminates TLS with this cert) and no TLS cert was found. Install '
+      'mkcert (choco install mkcert), run "mkcert -install" once, then '
+      're-run this command.',
+    );
+    exit(1);
+  }
+}
+
 Future<void> _dockerBuild(String root) async {
   await _requireDockerCompose();
 
@@ -1035,9 +1071,24 @@ Future<bool> _isPortFree(int port) async {
   }
 }
 
+/// Reads `CLOUDFLARE_TUNNEL_TOKEN` from example/backend/.env without
+/// prompting — unlike [_tunnel], which is interactive by design. Empty/
+/// absent is not an error here: `--docker-run` must still work standalone
+/// for anyone not routing live ZenPay callbacks through it.
+String _readTunnelToken(String root) {
+  final envFile = File('$root/example/backend/.env');
+  if (!envFile.existsSync()) return '';
+  return RegExp(
+        r'^CLOUDFLARE_TUNNEL_TOKEN\s*=\s*(.*)$',
+        multiLine: true,
+      ).firstMatch(envFile.readAsStringSync())?.group(1)?.trim() ??
+      '';
+}
+
 Future<void> _dockerRun(String root) async {
   await _requireDockerCompose();
   _requireServiceAccountFile(root);
+  await _requireDockerTlsCert(root);
 
   for (final port in [_dockerBackendPort, _dockerFrontendPort]) {
     if (!await _isPortFree(port)) {
@@ -1051,16 +1102,43 @@ Future<void> _dockerRun(String root) async {
     }
   }
 
+  // Tunnel runs natively (not in Compose) pointed at localhost:$_dockerBackendPort
+  // — the same target that already works via Docker's -p publishing — so no
+  // Cloudflare-side ingress reconfiguration is needed. Started before Compose
+  // and killed after it exits so nothing outlives this command (see file-level
+  // "nothing runs detached in the background" note at the top of this file).
+  Process? tunnelProcess;
+  final tunnelToken = _readTunnelToken(root);
+  if (tunnelToken.isNotEmpty) {
+    if (!_hasCommand('cloudflared')) {
+      _error(_cloudflaredInstallHint);
+      exit(1);
+    }
+    _info('Starting cloudflared tunnel (CLOUDFLARE_TUNNEL_TOKEN from .env)...');
+    tunnelProcess = await Process.start('cloudflared', [
+      'tunnel',
+      'run',
+      '--token',
+      tunnelToken,
+    ]);
+    tunnelProcess.stdout.listen(stdout.add);
+    tunnelProcess.stderr.listen(stderr.add);
+  } else {
+    _info('No CLOUDFLARE_TUNNEL_TOKEN in .env — skipping tunnel, backend/frontend only.');
+  }
+
   _info(
     'Running Docker Compose (zenpay-backend on http://localhost:$_dockerBackendPort, '
     'zenpay-frontend on http://localhost:$_dockerFrontendPort)...',
   );
-  await _execForeground('docker', [
+  final exitCode = await _runLive('docker', [
     'compose',
     '-f',
     _composeFile,
     'up',
   ], cwd: root);
+  tunnelProcess?.kill();
+  exit(exitCode);
 }
 
 Future<void> _dockerRebuild(String root) async {
