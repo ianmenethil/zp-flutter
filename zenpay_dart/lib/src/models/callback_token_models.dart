@@ -1,3 +1,7 @@
+/// Models for the signed callback URL token payload, options, and results.
+library;
+
+import 'package:zenpay_dart/src/crypto.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 /// Payload stored inside a signed callback URL token.
@@ -15,10 +19,10 @@ class ZpCallbackUrlTokenPayload {
   final ZpPluginMode mode;
 
   /// Per-payment idempotency key.
-  final String merchantUniquePaymentId;
+  final ZpMupid merchantUniquePaymentId;
 
   /// ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SS`).
-  final String timestamp;
+  final ZpTimestamp timestamp;
 
   /// Payment amount in dollars.
   final Object? paymentAmount;

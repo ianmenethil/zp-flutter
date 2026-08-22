@@ -330,7 +330,7 @@ shelf.Response _handleGetSession(
   AttemptStore store,
 ) {
   final payload = _requireToken(requestedUri, config);
-  final attempt = store.getByMerchantPaymentId(payload.merchantUniquePaymentId);
+  final attempt = store.getByMerchantPaymentId(payload.merchantUniquePaymentId.value);
   if (attempt == null) throw HttpError(404, 'CHECKOUT_NOT_FOUND');
 
   return _json(200, {
@@ -530,13 +530,13 @@ shelf.Response _handleReturn(
 ) {
   final payload = _requireToken(requestedUri, config);
 
-  final attempt = store.getByMerchantPaymentId(payload.merchantUniquePaymentId);
+  final attempt = store.getByMerchantPaymentId(payload.merchantUniquePaymentId.value);
   if (attempt == null) {
     throw HttpError(400, 'RETURN_TOKEN_UNKNOWN_ATTEMPT');
   }
 
   store.replace(
-    payload.merchantUniquePaymentId,
+    payload.merchantUniquePaymentId.value,
     attempt.copyWith(
       status: _terminalStatuses.contains(attempt.status) ? attempt.status : MerchantPaymentStatus.browserReturned,
     ),

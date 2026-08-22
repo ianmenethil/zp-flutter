@@ -45,8 +45,8 @@ void main() {
   test('create then verify round-trips the payload', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.tokenise,
-      merchantUniquePaymentId: 'mupid-0002',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0002'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
       extra: {'orderId': 'ORD-42'},
     );
     final token = createZpCallbackUrlToken(payload, secret);
@@ -65,8 +65,8 @@ void main() {
   test('round-trips an optional paymentAmount', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0003',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0003'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
       paymentAmount: '49.90',
     );
     final token = createZpCallbackUrlToken(payload, secret);
@@ -81,8 +81,8 @@ void main() {
   test('rejects a token verified with the wrong secret', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0004',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0004'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
     final token = createZpCallbackUrlToken(payload, secret);
     final result = verifyZpCallbackUrlToken(token, 'b'.padLeft(32, 'b'));
@@ -96,8 +96,8 @@ void main() {
   test('rejects a token with a single flipped signature character', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0005',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0005'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
     final token = createZpCallbackUrlToken(payload, secret);
     final flipped = token.substring(0, token.length - 1) + (token[token.length - 1] == 'A' ? 'B' : 'A');
@@ -121,8 +121,8 @@ void main() {
   test('rejects an expired token', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0006',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0006'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
     final token = createZpCallbackUrlToken(
       payload,
@@ -140,8 +140,8 @@ void main() {
   test('a token with no expiresInSeconds never expires', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0007',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0007'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
     final token = createZpCallbackUrlToken(payload, secret);
     expect(
@@ -153,8 +153,8 @@ void main() {
   test('throws RangeError for a secret shorter than 32 bytes', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0008',
-      timestamp: '2026-02-01T09:00:00',
+      merchantUniquePaymentId: ZpMupid('mupid-0008'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
     expect(
       () => createZpCallbackUrlToken(payload, 'short'),
@@ -165,8 +165,8 @@ void main() {
   test('throws ArgumentError for a malformed timestamp', () {
     const payload = ZpCallbackUrlTokenPayload(
       mode: ZpPluginMode.makePayment,
-      merchantUniquePaymentId: 'mupid-0009',
-      timestamp: 'not-a-timestamp',
+      merchantUniquePaymentId: ZpMupid('mupid-0009'),
+      timestamp: ZpTimestamp('not-a-timestamp'),
     );
     expect(
       () => createZpCallbackUrlToken(payload, secret),
@@ -179,8 +179,8 @@ void main() {
     () {
       const payload = ZpCallbackUrlTokenPayload(
         mode: ZpPluginMode.makePayment,
-        merchantUniquePaymentId: 'mupid-0010',
-        timestamp: '2026-02-01T09:00:00',
+        merchantUniquePaymentId: ZpMupid('mupid-0010'),
+        timestamp: ZpTimestamp('2026-02-01T09:00:00'),
         paymentAmount: {'amount': 1},
       );
       expect(

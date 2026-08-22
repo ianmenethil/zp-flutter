@@ -58,14 +58,6 @@ Map<String, Object?>? _decodeBody(String body) {
   }
 }
 
-ZpPluginMode? _parseMode(int value) => switch (value) {
-  0 => ZpPluginMode.makePayment,
-  1 => ZpPluginMode.tokenise,
-  2 => ZpPluginMode.customPayment,
-  3 => ZpPluginMode.preauthorization,
-  _ => null,
-};
-
 /// Mints a signed, stateless callback URL token.
 ///
 /// Sign with your own HMAC [secret] of at least 32 bytes, separate from the
@@ -76,7 +68,7 @@ String createZpCallbackUrlToken(
   Object secret, [
   ZpCallbackUrlTokenOptions options = const ZpCallbackUrlTokenOptions(),
 ]) {
-  if (!isValidZpTimestamp(payload.timestamp)) {
+  if (!isValidZpTimestamp(payload.timestamp.value)) {
     throw ArgumentError.value(
       payload.timestamp,
       'timestamp',
@@ -175,7 +167,7 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
     );
   }
 
-  final mode = _parseMode(modeValue);
+  final mode = ZpPluginMode.tryFromWireValue(modeValue);
 
   if (mode == null) {
     return const ZpCallbackUrlTokenFailure(
@@ -204,8 +196,8 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
   return ZpCallbackUrlTokenVerified(
     ZpCallbackUrlTokenPayload(
       mode: mode,
-      merchantUniquePaymentId: merchantUniquePaymentId,
-      timestamp: timestamp,
+      merchantUniquePaymentId: ZpMupid(merchantUniquePaymentId),
+      timestamp: ZpTimestamp(timestamp),
       paymentAmount: paymentAmount,
       extra: extra,
     ),

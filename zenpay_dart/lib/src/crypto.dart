@@ -76,7 +76,7 @@ enum ZpAmountFailureReason {
   final value = amount?.toString().trim() ?? '';
 
   if (mode == ZpPluginMode.tokenise && value.isEmpty) {
-    return (_zeroCents, null);
+    return (resolveZpHashAmountField(mode, amount), null);
   }
 
   final numericAmount = num.tryParse(value);

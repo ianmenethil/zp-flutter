@@ -56,11 +56,6 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 **File Path:** [lib/src/crypto.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/crypto.dart)  
 **Overview:** Provides shared cryptographic primitives, constant-time comparisons, dollar-to-cents hash conversions, and ID generation utilities. Also holds hash-pipe constants shared across `fingerprint.dart`, `callback.dart`, and `callback_token.dart` — public (no leading `_`) so sibling files in `lib/src/` can import them, but omitted from `zenpay_dart.dart`'s `show` list so they are not part of the package's public API.
 
-- **`zpBase64Padding`**: The `'='` base64url padding character stripped after encoding; shared by `createZpMupid` here and the callback URL token codec in `callback_token.dart`.
-- **`zpPipeDelimiter`**: The `'|'` delimiter joining hash-pipe fields; shared by `fingerprint.dart` and `callback.dart`.
-- **`zpMinCredentialLength`**: Minimum length (`5`) required for each hash-pipe credential field; shared by `fingerprint.dart` and `callback.dart`.
-- **`zpErrPaymentAmountNumber`**: Error message for an unparsable `paymentAmount`; shared by `fingerprint.dart` and `callback.dart`.
-- **`zpErrPaymentAmountPositive`**: Error message for a `paymentAmount` that must be positive but isn't; shared by `fingerprint.dart` and `callback.dart`.
 - **`extension type const ZpCents(String value)`**: Type-safe wrapper around whole-number cents strings to prevent accidental dollar-to-cents unit confusion in hash pipes; used across fingerprinting and callback hashing.
 - **`extension type const ZpMupid(String value)`**: Type-safe wrapper representing the unique Merchant Unique Payment Identifier; used throughout launch URLs, fingerprints, and callback contexts.
 - **`extension type const ZpTimestamp(String value)`**: Type-safe wrapper representing an ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SS`); used in fingerprint calculations and launch parameters.
@@ -74,7 +69,19 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 5. `lib/src/defaults.dart`
+## 5. `lib/src/constants.dart`
+
+**File Path:** [lib/src/constants.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/constants.dart)  
+**Overview:** Internal constants and error messages for ZenPay HCP — hash-pipe constraints, regex patterns, error message text, and callback URL token payload keys, shared across `crypto.dart`, `fingerprint.dart`, `callback.dart`, and `callback_token.dart`.
+
+- **`abstract final class ZpCore`**: Namespace for fundamental constraints and primitives — `base64Padding`, `pipeDelimiter`, `minCredentialLength`, `minSecretBytes`, `signatureBytes`, `authoriseActionPath`.
+- **`abstract final class ZpPatterns`**: Namespace for validation regular expressions — `amount`, `timestamp`, `validationCode`, `email`, `hcpEndpoint`.
+- **`abstract final class ZpErrors`**: Namespace for every error message used internally by ZenPay HCP, covering crypto/primitives, fingerprint, checkout URL, and callback verification failures.
+- **`abstract final class ZpCbTokenKeys`**: Namespace for the short keys (`m`, `u`, `t`, `iat`, `a`, `exp`) used in JWT-style callback URL tokens to compress payload size.
+
+---
+
+## 6. `lib/src/defaults.dart`
 
 **File Path:** [lib/src/defaults.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/defaults.dart)  
 **Overview:** Defines default configuration values for hosted checkout options, closely mirroring the TypeScript SDK's defaults.
@@ -83,7 +90,7 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 6. `lib/src/enums.dart`
+## 7. `lib/src/enums.dart`
 
 **File Path:** [lib/src/enums.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/enums.dart)  
 **Overview:** Defines strongly typed vocabularies and wire integer mappings for ZenPay HCP modes, display styles, user types, fee payers, and payment status codes.
@@ -102,7 +109,7 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 7. `lib/src/fingerprint.dart`
+## 8. `lib/src/fingerprint.dart`
 
 **File Path:** [lib/src/fingerprint.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/src/fingerprint.dart)  
 **Overview:** Implements outgoing Authorise fingerprint calculation using SHA3-512 over pipe-delimited merchant credential and order fields.
@@ -116,7 +123,7 @@ This document outlines all source files in the core `zenpay_dart` package (`lib/
 
 ---
 
-## 8. `lib/zenpay_dart.dart`
+## 9. `lib/zenpay_dart.dart`
 
 **File Path:** [lib/zenpay_dart.dart](file:///g:/_zp-repos/zp-flutter-sdk/zenpay_dart/lib/zenpay_dart.dart)  
 **Overview:** The root library barrel file exporting the public API for pure-Dart server environments while encapsulating internal implementation files in `src/`.

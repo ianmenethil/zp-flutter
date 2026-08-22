@@ -145,8 +145,8 @@ String _token({
 }) => createZpCallbackUrlToken(
   ZpCallbackUrlTokenPayload(
     mode: ZpPluginMode.fromWireValue(mode),
-    merchantUniquePaymentId: merchantUniquePaymentId,
-    timestamp: createZpTimestamp().value,
+    merchantUniquePaymentId: ZpMupid(merchantUniquePaymentId),
+    timestamp: createZpTimestamp(),
     paymentAmount: amount,
   ),
   callbackTokenKey(_config()),

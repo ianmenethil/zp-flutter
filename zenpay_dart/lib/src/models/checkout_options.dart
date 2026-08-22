@@ -1,3 +1,6 @@
+/// Models for the hosted-checkout Authorise request options.
+library;
+
 import 'package:zenpay_dart/src/crypto.dart';
 import 'package:zenpay_dart/src/defaults.dart';
 import 'package:zenpay_dart/src/fingerprint.dart';

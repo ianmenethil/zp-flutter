@@ -111,8 +111,8 @@ void main() {
     final returnToken = createZpCallbackUrlToken(
       const ZpCallbackUrlTokenPayload(
         mode: ZpPluginMode.makePayment,
-        merchantUniquePaymentId: 'M1',
-        timestamp: '2026-01-01T00:00:00',
+        merchantUniquePaymentId: ZpMupid('M1'),
+        timestamp: ZpTimestamp('2026-01-01T00:00:00'),
         paymentAmount: 10,
       ),
       _secret,

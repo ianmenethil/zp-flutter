@@ -220,8 +220,8 @@ Uri _buildCheckoutUrl({
   final returnToken = createZpCallbackUrlToken(
     ZpCallbackUrlTokenPayload(
       mode: pluginMode,
-      merchantUniquePaymentId: merchantUniquePaymentId,
-      timestamp: timestamp,
+      merchantUniquePaymentId: ZpMupid(merchantUniquePaymentId),
+      timestamp: ZpTimestamp(timestamp),
       paymentAmount: amount,
     ),
     callbackTokenKey(config),

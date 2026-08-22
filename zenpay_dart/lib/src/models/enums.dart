@@ -32,6 +32,15 @@ enum const ZpPluginMode(
     _ => throw ArgumentError.value(value, 'value', 'Unsupported mode.'),
   };
 
+  /// Resolves [value] to a known mode, or `null`.
+  static ZpPluginMode? tryFromWireValue(int value) => switch (value) {
+    0 => makePayment,
+    1 => tokenise,
+    2 => customPayment,
+    3 => preauthorization,
+    _ => null,
+  };
+
   /// Whether the Authorise request requires a positive `paymentAmount`.
   ///
   /// Modes 0, 2 and 3 require a positive amount. Tokenise may omit it.

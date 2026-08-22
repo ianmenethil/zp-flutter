@@ -1,3 +1,6 @@
+/// Models for outgoing Authorise fingerprint generation.
+library;
+
 import 'package:zenpay_dart/src/crypto.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
