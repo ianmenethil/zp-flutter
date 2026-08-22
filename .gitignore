@@ -81,3 +81,9 @@ GoogleService-Info.plist
 node_modules/
 .wrangler/
 worker-configuration.d.ts
+fraud.md
+recaptcha-express.md
+recaptcha-mob.md
+recaptcha.md
+recaptcha2.md
+schema.md

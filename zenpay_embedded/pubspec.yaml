@@ -1,0 +1,25 @@
+name: zenpay_embedded
+description: Optional embedded in-app WebView presentation for ZenPay Hosted Checkout.
+version: 0.1.0
+homepage: https://www.zenithpayments.com.au
+repository: https://github.com/ianmenethil/zp-flutter/tree/main/zenpay_embedded
+
+resolution: workspace
+
+environment:
+  sdk: ^3.13.0
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  meta: ^1.18.0
+  webview_flutter: ^4.14.1
+  webview_flutter_android: ^4.13.0
+  zenpay_flutter: ^0.1.0
+
+dev_dependencies:
+  dart_code_linter: ^4.1.9
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

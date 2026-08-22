@@ -1,15 +1,26 @@
 # Strict local gate — any finding (info, warning, error, unformatted file,
 # unused code, failing test) aborts the commit entirely, so nothing broken
 # ever syncs to GitHub from this machine.
+#
+# format/analyze-root are scoped to staged Dart files (glob + {staged_files})
+# so an unrelated, still-in-progress file elsewhere in the working tree
+# cannot block a commit that never touches it. lint/test still run per
+# package, not per file — a package with any staged change gets its whole
+# suite run, since there is no reliable way to know which tests a partial
+# diff affects.
 pre-commit:
   commands:
     format:
-      run: dart format --output=none --set-exit-if-changed .
+      glob: '*.dart'
+      run: dart format --output=none --set-exit-if-changed {staged_files}
     analyze:
       run: dart run melos exec -- "dart analyze --fatal-infos ."
     analyze-root:
-      run: dart analyze --fatal-infos .
+      glob: '*.dart'
+      run: dart analyze --fatal-infos {staged_files}
     lint:
       run: dart run melos run lint
     test:
       run: dart run melos run test
+    no-js-bridge:
+      run: '! grep -rnE "addJavaScriptChannel|setOnConsoleMessage" zenpay_embedded/lib'

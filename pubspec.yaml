@@ -10,6 +10,7 @@ environment:
 workspace:
   - zenpay_dart
   - zenpay_flutter
+  - zenpay_embedded
   - example/app
   - example/backend
 
@@ -30,6 +31,7 @@ melos:
   packages:
     - zenpay_dart
     - zenpay_flutter
+    - zenpay_embedded
     - example/*
   scripts:
     test:

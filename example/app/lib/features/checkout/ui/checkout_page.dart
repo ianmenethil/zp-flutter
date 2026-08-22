@@ -13,9 +13,9 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
 import 'package:zenpay_example_app/core/config/app_config.dart';
 import 'package:zenpay_example_app/features/checkout/models/checkout_modes.dart';
 import 'package:zenpay_example_app/features/checkout/models/mock_customer.dart';
@@ -67,7 +67,23 @@ String? _validatePhone(String rawValue) {
 /// results slot — everything the real checkout flow will attach to.
 final class CheckoutPage extends StatefulWidget {
   /// Creates the checkout page.
-  const CheckoutPage({super.key});
+  ///
+  /// [presenter] and [returnUriSource] are both optional and null by
+  /// default, which reproduces today's behavior exactly: `ZpCheckout` falls
+  /// back to its default Custom Tabs/`SFSafariViewController` presenter and
+  /// `createDefaultReturnUriSource()`. Supplying both together (e.g. an
+  /// `EmbeddedCheckoutPresenter` and its `returnUriSource` from
+  /// `package:zenpay_embedded`) swaps only how checkout is presented —
+  /// nothing else on this page changes.
+  const CheckoutPage({super.key, this.presenter, this.returnUriSource});
+
+  /// Overrides the default checkout presentation surface.
+  final CheckoutPresenter? presenter;
+
+  /// Overrides the default return URI source. Must be supplied together
+  /// with [presenter] when the presenter has its own (e.g. embedded mode's
+  /// `WebViewReturnUriSource`) — see the constructor doc.
+  final ZpReturnUriSource? returnUriSource;
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -108,7 +124,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
         allowedCheckoutHosts: allowedCheckoutHosts,
         expectedReturnUri: appReturnUri,
       ),
-      returnUriSource: createDefaultReturnUriSource(),
+      returnUriSource: widget.returnUriSource ?? createDefaultReturnUriSource(),
+      presenter: widget.presenter,
     );
   }
 
@@ -138,16 +155,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
     });
 
     try {
-      String? appCheckToken;
-      try {
-        appCheckToken = await FirebaseAppCheck.instance.getToken(true);
-        if (appCheckToken == null) {
-          debugPrint('Firebase App Check returned a null token.');
-        } else {
-          debugPrint('Firebase App Check successfully fetched a token.');
+      String? recaptchaToken;
+      final client = recaptchaClient;
+      if (client != null) {
+        try {
+          recaptchaToken = await client.execute(RecaptchaAction.custom('checkout'));
+          if (recaptchaToken.isEmpty) recaptchaToken = null;
+        } on Object catch (e, st) {
+          debugPrint('reCAPTCHA failed to get token: $e\n$st');
         }
-      } on Object catch (e, st) {
-        debugPrint('Firebase App Check failed to get token: $e\n$st');
       }
 
       final checkoutToken = await prepareCheckout(
@@ -160,12 +176,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
           'mode': _mode.wireValue,
           if (_mode.usesAmount) 'paymentAmount': double.tryParse(_amount.text.trim()) ?? _placeholderAmount,
         },
-        appCheckToken: appCheckToken,
+        recaptchaToken: recaptchaToken,
       );
       final exchanged = await exchangeCheckout(
         backendBaseUrl,
         checkoutToken,
-        appCheckToken: appCheckToken,
       );
 
       await _resolve(

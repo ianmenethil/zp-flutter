@@ -4,7 +4,21 @@
 /// backend; anything real comes from `.env`.
 library;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
+
+/// reCAPTCHA Enterprise site key for the current platform.
+final String recaptchaSiteKey = () {
+  if (kIsWeb) return '6LcMto4tAAAAABbToTnAcvrbyNrV4iltvsIZwHaX';
+  if (defaultTargetPlatform == TargetPlatform.android) return const String.fromEnvironment('RECAPTCHA_ANDROID_KEY', defaultValue: 'YOUR_ANDROID_KEY');
+  if (defaultTargetPlatform == TargetPlatform.iOS) return const String.fromEnvironment('RECAPTCHA_IOS_KEY', defaultValue: 'YOUR_IOS_KEY');
+  return '';
+}();
+
+/// The reCAPTCHA Enterprise client, set once `main()`'s `Recaptcha.fetchClient`
+/// call resolves. Null until then, and permanently null when
+/// [recaptchaSiteKey] is empty, since reCAPTCHA is never initialized at all.
+RecaptchaClient? recaptchaClient;
 
 const _backendBaseUrlEnvKey = 'BACKEND_BASE_URL';
 const _defaultBackendBaseUrl = 'http://localhost:7000';

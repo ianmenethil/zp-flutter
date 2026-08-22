@@ -9,6 +9,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' show MockClient;
+import 'package:zenpay_example_app/core/config/app_config.dart' show recaptchaSiteKey;
 
 const _checkoutTokenEndpoint = '/api/v1/checkout/token';
 const _checkoutExchangeEndpoint = '/api/v1/checkout/exchange';
@@ -16,7 +17,8 @@ const _sessionsEndpoint = '/api/v1/sessions';
 const _headerContentType = 'content-type';
 const _headerIdempotencyKey = 'idempotency-key';
 const _headerAuthorization = 'authorization';
-const _headerAppCheck = 'x-firebase-appcheck';
+const _headerRecaptcha = 'x-recaptcha-token';
+
 const _headerXClient = 'x-client';
 const _headerXRequestId = 'x-request-id';
 const _contentTypeJson = 'application/json';
@@ -127,14 +129,11 @@ String _requestId() => 'req-${DateTime.now().microsecondsSinceEpoch}-${Random().
 /// [client] overrides the HTTP client, so tests can inject a
 /// `package:http/testing.dart` [MockClient]; a null client owns and closes its
 /// own, like the top-level `http.post` helper.
-///
-/// [appCheckToken] attaches the `X-Firebase-AppCheck` header for backend
-/// attestation verification when configured.
 Future<String> prepareCheckout(
   Uri baseUrl,
   Map<String, Object?> fields, {
   http.Client? client,
-  String? appCheckToken,
+  String? recaptchaToken,
 }) async {
   final json = _body(
     await _request(
@@ -144,10 +143,14 @@ Future<String> prepareCheckout(
         headers: <String, String>{
           _headerContentType: _contentTypeJson,
           _headerIdempotencyKey: _idempotencyKey(),
-          _headerAppCheck: ?appCheckToken,
+
           // Transport metadata, not order data — see the backend's
           // `_parsePrepareCheckoutBody`. Only 'web' and 'mobile' are
           // accepted; iframe checkout is disabled project-wide.
+          if (recaptchaToken != null) ...{
+            _headerRecaptcha: recaptchaToken,
+            'x-recaptcha-site-key': recaptchaSiteKey,
+          },
           _headerXClient: kIsWeb ? _clientWeb : _clientMobile,
           _headerXRequestId: _requestId(),
         },
@@ -162,14 +165,10 @@ Future<String> prepareCheckout(
 /// Step 2 — exchanges [checkoutToken] for a checkout URL. Safe to call more
 /// than once with the same token: it always resolves to the same attempt,
 /// never a new one.
-///
-/// [appCheckToken] attaches the `X-Firebase-AppCheck` header for backend
-/// attestation verification when configured, as in [prepareCheckout].
 Future<ExchangeResponse> exchangeCheckout(
   Uri baseUrl,
   String checkoutToken, {
   http.Client? client,
-  String? appCheckToken,
 }) async => ExchangeResponse.fromJson(
   _body(
     await _request(
@@ -178,7 +177,7 @@ Future<ExchangeResponse> exchangeCheckout(
         baseUrl.resolve(_checkoutExchangeEndpoint),
         headers: <String, String>{
           _headerAuthorization: 'Bearer $checkoutToken',
-          _headerAppCheck: ?appCheckToken,
+
           _headerXRequestId: _requestId(),
         },
       ),

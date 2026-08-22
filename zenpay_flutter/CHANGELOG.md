@@ -1,5 +1,9 @@
 ## 0.1.0
 
+- Public `CheckoutPresenter` interface for custom presentation surfaces:
+  enables external packages to implement custom browser presentations (e.g.
+  embedded WebView) and provide them via the optional `presenter` constructor
+  parameter on `ZpCheckout`.
 - Initial release of `ZpCheckout`: opens a ZenPay hosted checkout URL in a
   platform-native browser surface and resolves with one sealed
   `ZpCheckoutOutcome` (`ZpReturnReceived`, `ZpPresentationDismissed`,

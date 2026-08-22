@@ -23,11 +23,11 @@ import 'package:shelf_static/shelf_static.dart' show createStaticHandler;
 import 'package:zenpay_dart/zenpay_dart.dart'
     show ZpCallbackUrlTokenFailure, ZpCallbackUrlTokenPayload, ZpCallbackUrlTokenVerified, createZpMupid, verifyZpCallbackUrlToken;
 
-import 'package:zenpay_example_backend/src/app_check.dart' show AppCheckVerifier, FirebaseAppCheckVerifier;
 import 'package:zenpay_example_backend/src/attempt_store.dart';
 import 'package:zenpay_example_backend/src/config.dart';
 import 'package:zenpay_example_backend/src/models.dart';
 import 'package:zenpay_example_backend/src/rate_limiter.dart' show FixedWindowRateLimiter;
+import 'package:zenpay_example_backend/src/recaptcha_verifier.dart';
 import 'package:zenpay_example_backend/src/security.dart' show constantTimeEqual, verifyCallback;
 import 'package:zenpay_example_backend/src/session_service.dart' show appReturnUriFor, callbacksPath, exchangeCheckout, prepareCheckout, returnPath;
 import 'package:zenpay_example_backend/src/token_keys.dart' show callbackTokenKey;
@@ -39,7 +39,7 @@ abstract final class _HeaderNames {
   static const idempotencyKey = 'idempotency-key';
   static const xForwardedFor = 'x-forwarded-for';
   static const userAgent = 'user-agent';
-  static const xFirebaseAppCheck = 'x-firebase-appcheck';
+  static const xRecaptchaToken = 'x-recaptcha-token';
   static const xClient = 'x-client';
   static const xRequestId = 'x-request-id';
   static const cookie = 'cookie';
@@ -212,27 +212,13 @@ Future<shelf.Response> _handleCreateCheckoutToken(
   AppConfig config,
   AttemptStore store,
   FixedWindowRateLimiter limiter,
-  AppCheckVerifier? appCheckVerifier,
+  RecaptchaVerifier? recaptchaVerifier,
 ) async {
   _requireRateLimit(request, limiter, 'checkout/token');
 
   final missing = sessionConfigurationErrors(config);
   if (missing.isNotEmpty) {
     throw HttpError(503, 'SESSION_CONFIGURATION_REQUIRED:${missing.join(',')}');
-  }
-
-  if (appCheckVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
-    final appCheckToken = request.headers[_HeaderNames.xFirebaseAppCheck];
-    if (appCheckToken == null || appCheckToken.isEmpty) {
-      throw HttpError(401, 'APP_CHECK_TOKEN_MISSING');
-    }
-    final valid = await appCheckVerifier.verify(
-      appCheckToken,
-      config.firebaseProjectNumber,
-    );
-    if (!valid) {
-      throw HttpError(401, 'APP_CHECK_INVALID');
-    }
   }
 
   final idempotencyKey = request.headers[_HeaderNames.idempotencyKey];
@@ -242,9 +228,52 @@ Future<shelf.Response> _handleCreateCheckoutToken(
 
   final rawBody = await _readJson(request);
   final body = _parsePrepareCheckoutBody(request, rawBody);
-  final isReplay = store.getByIdempotencyKey(idempotencyKey) != null;
 
-  final checkoutToken = prepareCheckout(body, idempotencyKey, config, store);
+  String? assessmentName;
+  String? usedSiteKey;
+  if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
+    final recaptchaToken = request.headers[_HeaderNames.xRecaptchaToken];
+    if (recaptchaToken == null || recaptchaToken.isEmpty) {
+      throw HttpError(401, 'RECAPTCHA_TOKEN_MISSING');
+    }
+
+    final siteKey = request.headers['x-recaptcha-site-key'] ?? '';
+    final validSiteKeys = [
+      config.recaptchaSiteKeyWeb,
+      config.recaptchaSiteKeyAndroid,
+      config.recaptchaSiteKeyIos,
+    ].where((k) => k.isNotEmpty).toList();
+    if (!validSiteKeys.contains(siteKey)) {
+      throw HttpError(401, 'RECAPTCHA_SITE_KEY_INVALID');
+    }
+    usedSiteKey = siteKey;
+
+    final recaptchaResult = await recaptchaVerifier.verify(
+      recaptchaToken,
+      config.firebaseProjectNumber,
+      'checkout',
+      siteKey,
+      email: body.customerEmail,
+      phone: body.contactNumber,
+      accountId: body.customerReference,
+      paymentAmount: body.paymentAmount?.toDouble(),
+    );
+    if (!recaptchaResult.valid) {
+      throw HttpError(401, 'RECAPTCHA_INVALID');
+    }
+    assessmentName = recaptchaResult.assessmentName;
+  }
+
+  final isReplay = store.getByIdempotencyKey(idempotencyKey) != null;
+  final checkoutToken = prepareCheckout(
+    body,
+    idempotencyKey,
+    config,
+    store,
+    recaptchaAssessmentName: assessmentName,
+    recaptchaSiteKey: usedSiteKey,
+  );
+
   if (!isReplay) {
     _recordEvent(request, 'checkout.attempt_created', {'mode': body.mode ?? 0});
   }
@@ -262,27 +291,13 @@ Future<shelf.Response> _handleExchangeCheckout(
   AppConfig config,
   AttemptStore store,
   FixedWindowRateLimiter limiter,
-  AppCheckVerifier? appCheckVerifier,
+  RecaptchaVerifier? recaptchaVerifier,
 ) async {
   _requireRateLimit(request, limiter, 'checkout/exchange');
 
   final missing = sessionConfigurationErrors(config);
   if (missing.isNotEmpty) {
     throw HttpError(503, 'SESSION_CONFIGURATION_REQUIRED:${missing.join(',')}');
-  }
-
-  if (appCheckVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
-    final appCheckToken = request.headers[_HeaderNames.xFirebaseAppCheck];
-    if (appCheckToken == null || appCheckToken.isEmpty) {
-      throw HttpError(401, 'APP_CHECK_TOKEN_MISSING');
-    }
-    final valid = await appCheckVerifier.verify(
-      appCheckToken,
-      config.firebaseProjectNumber,
-    );
-    if (!valid) {
-      throw HttpError(401, 'APP_CHECK_INVALID');
-    }
   }
 
   final checkoutToken = _requireBearerToken(request, 'CHECKOUT_TOKEN_REQUIRED');
@@ -339,6 +354,7 @@ Future<shelf.Response> _handleCallback(
   AppConfig config,
   AttemptStore store,
   FixedWindowRateLimiter limiter,
+  RecaptchaVerifier? recaptchaVerifier,
 ) async {
   _requireRateLimit(request, limiter, 'callbacks');
 
@@ -390,6 +406,48 @@ Future<shelf.Response> _handleCallback(
     if (fields.failureReason != null) 'failureReason': fields.failureReason,
   });
 
+  double? postHocRiskScore;
+  if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
+    final responsePayload = payload['response'] as Map<String, Object?>?;
+    if (responsePayload != null) {
+      final maskedCard = (responsePayload['accountOrCardNo'] as String?) ?? (responsePayload['cardNumber'] as String?);
+      if (maskedCard != null && maskedCard.contains('X')) {
+        final parts = maskedCard.split(RegExp('X+'));
+        if (parts.length == 2 && parts[0].length >= 6 && parts[1].length >= 4) {
+          final cardBin = parts[0];
+          final cardLastFour = parts[1];
+          final siteKey = attempt.recaptchaSiteKey ?? config.recaptchaSiteKeyWeb;
+          // `paymentAccount` only appears on payment/preauth callbacks (never
+          // tokenise) and reads 'Card' for a manually-entered card. Any other
+          // value (e.g. a wallet rail) maps to Google's `custom-{name}`
+          // pattern rather than a guessed/hardcoded list of known rails.
+          final paymentAccount = responsePayload['paymentAccount'] as String?;
+          final paymentMethod = (paymentAccount == null || paymentAccount == 'Card') ? 'credit-card' : 'custom-${paymentAccount.toLowerCase()}';
+
+          final apiOnlyResult = await recaptchaVerifier.createApiOnlyAssessment(
+            config.firebaseProjectNumber,
+            siteKey,
+            cardBin: cardBin,
+            cardLastFour: cardLastFour,
+            paymentMethod: paymentMethod,
+            email: attempt.customerEmail,
+            phone: attempt.contactNumber,
+            accountId: attempt.customerReference,
+            paymentAmount: attempt.amount?.toDouble(),
+            transactionId: fields.reference,
+            currencyCode: 'AUD',
+          );
+          postHocRiskScore = apiOnlyResult.transactionRisk;
+          _recordEvent(request, 'recaptcha.api_only_assessment', {
+            'cardBin': cardBin,
+            'cardLastFour': cardLastFour,
+            'transactionRisk': postHocRiskScore,
+          });
+        }
+      }
+    }
+  }
+
   if (attempt.verifiedCallbackReference != null &&
       (!constantTimeEqual(
             attempt.verifiedCallbackReference!,
@@ -411,6 +469,7 @@ Future<shelf.Response> _handleCallback(
       verifiedCallbackReference: fields.reference,
       verifiedCallbackStatusCode: fields.statusCode,
       verifiedCallbackPayload: fields.rawPayload,
+      postHocRiskScore: postHocRiskScore,
     ),
   );
 
@@ -425,6 +484,28 @@ Future<shelf.Response> _handleCallback(
       if (fields.failureCode != null) 'failureCode': fields.failureCode,
       if (fields.failureReason != null) 'failureReason': fields.failureReason,
     });
+  }
+
+  if (recaptchaVerifier != null && attempt.recaptchaAssessmentName != null) {
+    final transactionEvent = switch (mappedStatus) {
+      MerchantPaymentStatus.successful => switch (attempt.mode) {
+        3 => 'AUTHORIZATION',
+        _ => 'PAYMENT_CAPTURE',
+      },
+      MerchantPaymentStatus.cancelled => 'CANCEL',
+      MerchantPaymentStatus.error || MerchantPaymentStatus.failed => 'AUTHORIZATION_DECLINE',
+      _ => 'MANUAL_REVIEW',
+    };
+
+    // Non-blocking fire and forget
+    recaptchaVerifier
+        .annotate(
+          projectNumber: config.firebaseProjectNumber,
+          assessmentName: attempt.recaptchaAssessmentName!,
+          transactionEvent: transactionEvent,
+          reason: fields.failureReason ?? fields.failureCode,
+        )
+        .ignore();
   }
 
   return _json(200, {'ok': true});
@@ -502,7 +583,7 @@ List<({String method, String path})> describeRoutes() => List.unmodifiable(_regi
 shelf_router.Router _buildRouter(
   AppConfig config,
   AttemptStore store,
-  AppCheckVerifier? appCheckVerifier,
+  RecaptchaVerifier? recaptchaVerifier,
 ) {
   final checkoutLimiter = FixedWindowRateLimiter(
     config.checkoutRateLimitPerMinute,
@@ -544,12 +625,12 @@ shelf_router.Router _buildRouter(
       config,
       store,
       checkoutLimiter,
-      appCheckVerifier,
+      recaptchaVerifier,
     ),
   );
   post(
     '/api/v1/checkout/exchange',
-    (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter, appCheckVerifier),
+    (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter, recaptchaVerifier),
   );
   get(
     '/api/v1/sessions',
@@ -557,7 +638,7 @@ shelf_router.Router _buildRouter(
   );
   post(
     callbacksPath,
-    (shelf.Request request) => _handleCallback(request, config, store, callbackLimiter),
+    (shelf.Request request) => _handleCallback(request, config, store, callbackLimiter, recaptchaVerifier),
   );
   get(
     returnPath,
@@ -582,9 +663,9 @@ final _sanitizePattern = RegExp('[^A-Za-z0-9_:.-]');
 shelf.Handler buildHandler(
   AppConfig config,
   AttemptStore store, {
-  AppCheckVerifier? appCheckVerifier,
+  RecaptchaVerifier? recaptchaVerifier,
 }) {
-  final verifier = appCheckVerifier ?? (config.firebaseServiceAccountJson.isNotEmpty ? FirebaseAppCheckVerifier(config.firebaseServiceAccountJson) : null);
+  final verifier = recaptchaVerifier ?? (config.firebaseServiceAccountJson.isNotEmpty ? GoogleCloudRecaptchaVerifier(config.firebaseServiceAccountJson) : null);
   final router = _buildRouter(config, store, verifier);
 
   return (shelf.Request request) async {
@@ -719,7 +800,7 @@ String _redactTokenCookie(String cookieHeader) => cookieHeader
 Map<String, String> _redactSensitiveHeaders(Map<String, String> headers) => {
   for (final entry in headers.entries)
     entry.key: switch (entry.key) {
-      _HeaderNames.authorization || _HeaderNames.xFirebaseAppCheck => _maskSensitiveHeaderValue(entry.value),
+      _HeaderNames.authorization || _HeaderNames.xRecaptchaToken => _maskSensitiveHeaderValue(entry.value),
       _HeaderNames.cookie => _redactTokenCookie(entry.value),
       _ => entry.value,
     },

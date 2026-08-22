@@ -95,8 +95,10 @@ String prepareCheckout(
   PrepareCheckoutBody body,
   String idempotencyKey,
   AppConfig config,
-  AttemptStore store,
-) {
+  AttemptStore store, {
+  String? recaptchaAssessmentName,
+  String? recaptchaSiteKey,
+}) {
   final mode = body.mode ?? 0;
 
   final existing = store.getByIdempotencyKey(idempotencyKey);
@@ -120,6 +122,8 @@ String prepareCheckout(
     amount: amount,
     customerReference: body.customerReference,
     contactNumber: body.contactNumber,
+    recaptchaAssessmentName: recaptchaAssessmentName,
+    recaptchaSiteKey: recaptchaSiteKey,
   );
   store.create(attempt);
 

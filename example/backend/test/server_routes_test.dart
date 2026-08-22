@@ -13,11 +13,12 @@ import 'package:logging/logging.dart' show LogRecord, Logger;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
-import 'package:zenpay_example_backend/src/app_check.dart';
+
 import 'package:zenpay_example_backend/src/attempt_store.dart';
 import 'package:zenpay_example_backend/src/checkout_token.dart' show CheckoutTokenVerified, verifyCheckoutToken;
 import 'package:zenpay_example_backend/src/config.dart';
 import 'package:zenpay_example_backend/src/models.dart';
+import 'package:zenpay_example_backend/src/recaptcha_verifier.dart';
 import 'package:zenpay_example_backend/src/server_app.dart';
 import 'package:zenpay_example_backend/src/token_keys.dart' show callbackTokenKey, checkoutTokenKey;
 
@@ -27,12 +28,41 @@ const _password = 'test-password';
 const _tokenSecret = 'test-token-secret-1234567890-abcdef';
 
 /// Always-pass / configurable App Check verifier for tests.
-final class _FakeAppCheckVerifier implements AppCheckVerifier {
-  _FakeAppCheckVerifier({this.shouldPass = true});
+final class _FakeRecaptchaVerifier implements RecaptchaVerifier {
+  _FakeRecaptchaVerifier({this.shouldPass = true});
   bool shouldPass;
 
   @override
-  Future<bool> verify(String token, String projectNumber) async => shouldPass;
+  Future<RecaptchaResult> verify(
+    String token,
+    String projectNumber,
+    String expectedAction,
+    String siteKey, {
+    String? email,
+    String? phone,
+    String? accountId,
+    double? paymentAmount,
+  }) async => RecaptchaResult(valid: shouldPass, assessmentName: 'projects/mock/assessments/123');
+
+  @override
+  Future<void> annotate({required String projectNumber, required String assessmentName, required String transactionEvent, String? reason}) async {}
+
+  @override
+  Future<RecaptchaResult> createApiOnlyAssessment(
+    String projectNumber,
+    String siteKey, {
+    required String cardBin,
+    required String cardLastFour,
+    required String paymentMethod,
+    String? email,
+    String? phone,
+    String? accountId,
+    double? paymentAmount,
+    String? transactionId,
+    String? currencyCode,
+  }) async {
+    return const RecaptchaResult(valid: true, assessmentName: 'api_only_test', transactionRisk: 0.9);
+  }
 }
 
 /// Test [AppConfig] with fixed, known ZenPay credentials so callback
@@ -52,6 +82,9 @@ AppConfig _config({
   checkoutRateLimitPerMinute: checkoutRateLimitPerMinute,
   firebaseProjectNumber: firebaseProjectNumber,
   firebaseServiceAccountJson: firebaseServiceAccountJson,
+  recaptchaSiteKeyWeb: 'web_key',
+  recaptchaSiteKeyAndroid: 'android_key',
+  recaptchaSiteKeyIos: 'ios_key',
   zenPay: ZenPayConfig(
     hppEndpointUrl: Uri.parse('https://pay.sandbox.travelpay.com.au/Online/v5'),
     allowedCheckoutHosts: {'pay.sandbox.travelpay.com.au'},
@@ -140,12 +173,12 @@ void main() {
 
   Future<void> startServer(
     AppConfig testConfig, {
-    AppCheckVerifier? appCheckVerifier,
+    RecaptchaVerifier? recaptchaVerifier,
   }) async {
     config = testConfig;
     store = AttemptStore();
     server = await shelf_io.serve(
-      buildHandler(config, store, appCheckVerifier: appCheckVerifier),
+      buildHandler(config, store, recaptchaVerifier: recaptchaVerifier),
       InternetAddress.loopbackIPv4,
       0,
     );
@@ -577,15 +610,15 @@ void main() {
     });
   });
 
-  group('Firebase App Check enforcement', () {
+  group('reCAPTCHA enforcement', () {
     test(
       'rejects POST /api/v1/checkout/token with 401 when header is missing',
       () async {
         await server.close(force: true);
-        final verifier = _FakeAppCheckVerifier();
+        final verifier = _FakeRecaptchaVerifier();
         await startServer(
           _config(firebaseProjectNumber: '123456789'),
-          appCheckVerifier: verifier,
+          recaptchaVerifier: verifier,
         );
 
         final response = await prepare(
@@ -593,7 +626,7 @@ void main() {
         );
 
         expect(response.statusCode, 401);
-        expect(jsonDecode(response.body), {'error': 'APP_CHECK_TOKEN_MISSING'});
+        expect(jsonDecode(response.body), {'error': 'RECAPTCHA_TOKEN_MISSING'});
       },
     );
 
@@ -601,10 +634,10 @@ void main() {
       'rejects POST /api/v1/checkout/token with 401 when token is invalid',
       () async {
         await server.close(force: true);
-        final verifier = _FakeAppCheckVerifier(shouldPass: false);
+        final verifier = _FakeRecaptchaVerifier(shouldPass: false);
         await startServer(
           _config(firebaseProjectNumber: '123456789'),
-          appCheckVerifier: verifier,
+          recaptchaVerifier: verifier,
         );
 
         final response = await call(
@@ -614,13 +647,14 @@ void main() {
             'content-type': 'application/json',
             'idempotency-key': 'idempotency-key-appcheck-invalid',
             'x-client': 'web',
-            'x-firebase-appcheck': 'invalid-token',
+            'x-recaptcha-token': 'invalid-token',
+            'x-recaptcha-site-key': 'web_key',
           },
           body: _prepareBody(),
         );
 
         expect(response.statusCode, 401);
-        expect(jsonDecode(response.body), {'error': 'APP_CHECK_INVALID'});
+        expect(jsonDecode(response.body), {'error': 'RECAPTCHA_INVALID'});
       },
     );
 
@@ -628,10 +662,10 @@ void main() {
       'accepts POST /api/v1/checkout/token with 201 when token is valid',
       () async {
         await server.close(force: true);
-        final verifier = _FakeAppCheckVerifier();
+        final verifier = _FakeRecaptchaVerifier();
         await startServer(
           _config(firebaseProjectNumber: '123456789'),
-          appCheckVerifier: verifier,
+          recaptchaVerifier: verifier,
         );
 
         final response = await call(
@@ -641,7 +675,8 @@ void main() {
             'content-type': 'application/json',
             'idempotency-key': 'idempotency-key-appcheck-valid',
             'x-client': 'web',
-            'x-firebase-appcheck': 'valid-token',
+            'x-recaptcha-token': 'valid-token',
+            'x-recaptcha-site-key': 'web_key',
           },
           body: _prepareBody(),
         );
@@ -656,10 +691,10 @@ void main() {
       'bypasses App Check when firebaseProjectNumber is unconfigured',
       () async {
         await server.close(force: true);
-        final verifier = _FakeAppCheckVerifier(shouldPass: false);
+        final verifier = _FakeRecaptchaVerifier(shouldPass: false);
         await startServer(
           _config(),
-          appCheckVerifier: verifier,
+          recaptchaVerifier: verifier,
         );
 
         final response = await prepare(
@@ -675,7 +710,7 @@ void main() {
 
   group('http_trace header redaction', () {
     test(
-      'masks only authorization and x-firebase-appcheck in logged headers',
+      'masks only authorization and x-recaptcha-token in logged headers',
       () async {
         final records = <LogRecord>[];
         final subscription = Logger.root.onRecord.listen(records.add);
@@ -685,7 +720,7 @@ void main() {
           method: 'POST',
           headers: {
             'authorization': 'Bearer super-secret-checkout-token',
-            'x-firebase-appcheck': 'app-check-jwt-secret-value',
+            'x-recaptcha-token': 'app-check-jwt-secret-value',
             'x-request-id': 'trace-me-123',
           },
         );
@@ -699,7 +734,7 @@ void main() {
         final headers = (jsonDecode(exchangeTrace) as Map<String, Object?>)['requestHeaders']! as Map<String, Object?>;
 
         expect(headers['authorization'], 'Bea...ken');
-        expect(headers['x-firebase-appcheck'], 'app...lue');
+        expect(headers['x-recaptcha-token'], 'app...lue');
         expect(headers['x-request-id'], 'trace-me-123');
       },
     );

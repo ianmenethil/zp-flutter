@@ -49,33 +49,6 @@ void main() {
       },
     );
 
-    test(
-      'attaches x-firebase-appcheck header when appCheckToken is provided',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return http.Response(
-            jsonEncode(<String, Object?>{'checkoutToken': 'checkout-token-2'}),
-            201,
-          );
-        });
-
-        final checkoutToken = await prepareCheckout(
-          base,
-          <String, Object?>{'mode': 0, 'paymentAmount': 10},
-          client: client,
-          appCheckToken: 'test-app-check-token-123',
-        );
-
-        expect(
-          captured.headers['x-firebase-appcheck'],
-          'test-app-check-token-123',
-        );
-        expect(checkoutToken, 'checkout-token-2');
-      },
-    );
-
     test('throws BackendError carrying the backend error code', () async {
       final client = MockClient(
         (request) async => http.Response(
@@ -123,34 +96,6 @@ void main() {
         expect(
           exchanged.checkoutUrl,
           'https://pay.sandbox.travelpay.com.au/launch',
-        );
-      },
-    );
-
-    test(
-      'attaches x-firebase-appcheck header when appCheckToken is provided',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return http.Response(
-            jsonEncode(<String, Object?>{
-              'checkoutUrl': 'https://pay.sandbox.travelpay.com.au/launch',
-            }),
-            200,
-          );
-        });
-
-        await exchangeCheckout(
-          base,
-          'checkout-token-1',
-          client: client,
-          appCheckToken: 'test-app-check-token-456',
-        );
-
-        expect(
-          captured.headers['x-firebase-appcheck'],
-          'test-app-check-token-456',
         );
       },
     );

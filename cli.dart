@@ -1,7 +1,7 @@
 // Single cross-platform dev launcher, replacing run-*.ps1 (and the .sh
 // duplicates those would otherwise need on Linux/macOS).
 //
-// Usage: dart run <this-file> --bootstrap | --server | --android | --ios | --web | --stream
+// Usage: dart run <this-file> --bootstrap | --server | --android | --android-webview | --ios | --web | --stream
 // (run with --help for the full option list). Findable at any depth in the
 // repo — see _repoRoot below — so it's safe to move/rename.
 //
@@ -52,6 +52,7 @@ String _usage() {
     row('--bootstrap', 'First-run setup on a fresh clone.'),
     row('--server', 'Run example/backend.'),
     row('--android', 'Run example/app on Android.'),
+    row('--android-webview', 'Run the zenpay_embedded WebView checkout demo on Android.'),
     row('--ios', 'Run example/app on iOS (macOS only).'),
     row('--web', 'Run example/app on Chrome.'),
     row('--stream', 'Mirror an Android device via scrcpy.'),
@@ -107,6 +108,7 @@ String _usage() {
       '  dart run $_scriptName --server --public-base-url=https://abc.trycloudflare.com',
     ),
     _dim('  dart run $_scriptName --android --device=emulator-5554'),
+    _dim('  dart run $_scriptName --android-webview'),
     _dim('  dart run $_scriptName --web'),
     _dim('  dart run $_scriptName --stream'),
     _dim('  dart run $_scriptName --tunnel'),
@@ -124,6 +126,11 @@ Future<void> main(List<String> arguments) async {
     ..addFlag('bootstrap', negatable: false, help: 'First-run setup.')
     ..addFlag('server', negatable: false, help: 'Run example/backend.')
     ..addFlag('android', negatable: false, help: 'Run example/app on Android.')
+    ..addFlag(
+      'android-webview',
+      negatable: false,
+      help: 'Run the zenpay_embedded WebView checkout demo on Android.',
+    )
     ..addFlag(
       'ios',
       negatable: false,
@@ -233,6 +240,7 @@ Future<void> main(List<String> arguments) async {
     if (args['bootstrap'] as bool) 'bootstrap',
     if (args['server'] as bool) 'server',
     if (args['android'] as bool) 'android',
+    if (args['android-webview'] as bool) 'android-webview',
     if (args['ios'] as bool) 'ios',
     if (args['web'] as bool) 'web',
     if (args['stream'] as bool) 'stream',
@@ -251,8 +259,8 @@ Future<void> main(List<String> arguments) async {
   if (modes.length != 1) {
     _error(
       modes.isEmpty
-          ? 'Pick exactly one of --bootstrap --server --android --ios --web '
-                '--stream --tunnel --quick-tunnel --distribute --docker-build '
+          ? 'Pick exactly one of --bootstrap --server --android --android-webview '
+                '--ios --web --stream --tunnel --quick-tunnel --distribute --docker-build '
                 '--docker-run --docker-rebuild --register-device --release:dart:minor --release:dart:major '
                 '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
@@ -284,6 +292,8 @@ Future<void> main(List<String> arguments) async {
     );
   } else if (mode == 'android') {
     await _android(root, deviceId: args['device'] as String?);
+  } else if (mode == 'android-webview') {
+    await _android(root, deviceId: args['device'] as String?, target: 'lib/embedded_demo_main.dart');
   } else if (mode == 'ios') {
     await _ios(root, deviceId: args['device'] as String?);
   } else if (mode == 'web') {
@@ -609,7 +619,7 @@ Future<void> _server(
 /// fails with "more than one device/emulator" whenever one phone is
 /// connected by USB and wirelessly at once, which adb reports as two
 /// targets for the same device.
-Future<void> _android(String root, {String? deviceId}) async {
+Future<void> _android(String root, {String? deviceId, String? target}) async {
   final device = deviceId ?? _pickAdbDevice();
 
   _info('Using device: $device');
@@ -619,6 +629,7 @@ Future<void> _android(String root, {String? deviceId}) async {
     'run',
     '-d',
     device,
+    if (target != null) ...['-t', target],
     '--dart-define-from-file=.env',
   ], cwd: '$root/example/app');
 }
