@@ -5,44 +5,30 @@ import 'package:zenpay_dart/src/crypto.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 /// Payload stored inside a signed callback URL token.
-class ZpCallbackUrlTokenPayload {
-  /// Creates a [ZpCallbackUrlTokenPayload].
-  const ZpCallbackUrlTokenPayload({
-    required this.mode,
-    required this.merchantUniquePaymentId,
-    required this.timestamp,
-    this.paymentAmount,
-    this.extra = const {},
-  });
-
+class const ZpCallbackUrlTokenPayload({
   /// Payment operating mode.
-  final ZpPluginMode mode;
+  required final ZpPluginMode mode,
 
   /// Per-payment idempotency key.
-  final ZpMupid merchantUniquePaymentId;
+  required final ZpMupid merchantUniquePaymentId,
 
   /// ISO 8601 UTC timestamp (`YYYY-MM-DDTHH:MM:SS`).
-  final ZpTimestamp timestamp;
+  required final ZpTimestamp timestamp,
 
   /// Payment amount in dollars.
-  final Object? paymentAmount;
+  final Object? paymentAmount,
 
   /// Arbitrary extra key-value pairs stored in the token payload.
-  final Map<String, Object?> extra;
-}
+  final Map<String, Object?> extra = const {},
+}) {}
 
 /// Options for token creation, such as expiration.
-class ZpCallbackUrlTokenOptions {
-  /// Creates a [ZpCallbackUrlTokenOptions].
-  const ZpCallbackUrlTokenOptions({
-    this.expiresInSeconds,
-  });
-
+class const ZpCallbackUrlTokenOptions({
   /// Token lifetime in seconds.
   ///
   /// `null` means the token does not expire.
-  final int? expiresInSeconds;
-}
+  final int? expiresInSeconds,
+}) {}
 
 /// Result of `verifyZpCallbackUrlToken`.
 ///

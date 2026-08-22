@@ -4,33 +4,24 @@ library;
 import 'package:zenpay_dart/src/crypto.dart';
 
 /// Merchant-known credentials, amount, and MUPID used to verify a callback.
-class ZpVerifyCallbackContext {
-  /// Creates a [ZpVerifyCallbackContext].
-  const ZpVerifyCallbackContext({
-    required this.apiKey,
-    required this.username,
-    required this.password,
-    required this.paymentAmount,
-    required this.merchantUniquePaymentId,
-  });
-
+class const ZpVerifyCallbackContext({
   /// Merchant API key — hash field 1.
-  final String apiKey;
+  required final String apiKey,
 
   /// Merchant username — hash field 2.
-  final String username;
+  required final String username,
 
   /// Merchant password — hash field 3.
-  final String password;
+  required final String password,
 
   /// Payment amount in dollars, as launched — hash field 5.
   ///
   /// Ignored for mode 2, which always hashes `"0"`. May be `0` for mode 1.
-  final Object paymentAmount;
+  required final Object paymentAmount,
 
   /// Per-payment idempotency key — hash field 6.
-  final ZpMupid merchantUniquePaymentId;
-}
+  required final ZpMupid merchantUniquePaymentId,
+}) {}
 
 /// Result of `verifyZpCallback`.
 ///

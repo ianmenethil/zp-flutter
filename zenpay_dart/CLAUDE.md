@@ -39,7 +39,7 @@ Adhere strictly to [analysis_options.yaml](file:///G:/_zp-repos/zp-flutter-sdk/z
    - `strict-casts: true`, `strict-inference: true`, `strict-raw-types: true`.
    - Never use untyped `dynamic` or `avoid_dynamic_calls`. Use explicit generics and model types.
 2. **Public API Documentation**:
-   - `public_member_api_docs: error` is enforced on the core package. Every exported class, method, enum, getter, and typedef in `lib/` must have a comprehensive doc comment explaining its parameters, return values, and failure modes.
+   - Every exported class, method, enum, getter, and typedef in `lib/` must have a comprehensive doc comment explaining its parameters, return values, and failure modes — by convention, not lint-enforced. `public_member_api_docs` is disabled package-wide in `analysis_options.yaml`: Dart's primary-constructor syntax (used throughout `lib/src/models/`) gives a class no separate line a constructor doc can attach to, and the rule has no per-construct granularity to exempt just those classes.
 3. **Dead Code & Unused Elements**:
    - Unused private members, unused imports, and unused local variables are compiler errors (`error`). Clean them up immediately rather than adding suppression comments.
 4. **Style**:

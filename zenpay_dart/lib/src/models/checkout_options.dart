@@ -7,205 +7,153 @@ import 'package:zenpay_dart/src/fingerprint.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 /// The Authorise request: every field ZenPay's hosted-checkout endpoint accepts, minus browser-only concerns such as theme, fonts, modal sizing, and lifecycle callbacks.
-class ZpCheckoutOptions {
-  /// Creates a [ZpCheckoutOptions] instance.
-  const ZpCheckoutOptions({
-    required this.url,
-    required this.apiKey,
-    required this.fingerprint,
-    required this.merchantCode,
-    required this.timestamp,
-    required this.merchantUniquePaymentId,
-    required this.customerEmail,
-    this.callbackUrl,
-    this.redirectUrl,
-    this.mode = ZpCheckoutDefaults.mode,
-    this.overrideFeePayer = ZpCheckoutDefaults.overrideFeePayer,
-    this.userMode = ZpCheckoutDefaults.userMode,
-    this.displayMode = ZpCheckoutDefaults.displayMode,
-    this.hideHeader = ZpCheckoutDefaults.hideHeader,
-    this.hideTermsAndConditions = ZpCheckoutDefaults.hideTermsAndConditions,
-    this.showFeeOnTokenising = ZpCheckoutDefaults.showFeeOnTokenising,
-    this.showFailedPaymentFeeOnTokenising = ZpCheckoutDefaults.showFailedPaymentFeeOnTokenising,
-    this.sendConfirmationEmailToCustomer = ZpCheckoutDefaults.sendConfirmationEmailToCustomer,
-    this.isJsPlugin = ZpCheckoutDefaults.isJsPlugin,
-    this.sendConfirmationEmailToMerchant,
-    this.allowBankAcOneOffPayment = ZpCheckoutDefaults.allowBankAcOneOffPayment,
-    this.allowPayIdOneOffPayment = ZpCheckoutDefaults.allowPayIdOneOffPayment,
-    this.allowPayToOneOffPayment,
-    this.allowApplePayOneOffPayment = ZpCheckoutDefaults.allowApplePayOneOffPayment,
-    this.allowGooglePayOneOffPayment,
-    this.allowUnionPayOneOffPayment = ZpCheckoutDefaults.allowUnionPayOneOffPayment,
-    this.allowAliPayPlusOneOffPayment = ZpCheckoutDefaults.allowAliPayPlusOneOffPayment,
-    this.allowLatitudePayOneOffPayment,
-    this.allowSlicePayOneOffPayment,
-    this.allowWeChatPayOneOffPayment,
-    this.allowSaveCardUserOption,
-    this.hideMerchantLogo,
-    this.redirectOnError,
-    this.customerName,
-    this.customerReference,
-    this.paymentAmount,
-    this.customerNameLabel,
-    this.customerReferenceLabel,
-    this.paymentAmountLabel,
-    this.title,
-    this.cardProxy,
-    this.abn,
-    this.sku1,
-    this.sku2,
-    this.additionalReference,
-    this.contactNumber,
-    this.departureDate,
-    this.companyName,
-  });
-
+class const ZpCheckoutOptions({
   /// The HCP Authorise endpoint, for example
   /// `https://pay.sandbox.travelpay.com.au/Online/v5`.
-  final String url;
+  required final String url,
 
   /// Merchant API key sent as `__ApiKey`.
-  final String apiKey;
+  required final String apiKey,
 
   /// Per-transaction SHA3-512 digest from [createZpFingerprint], sent as
   /// `__Fingerprint`.
-  final String fingerprint;
+  required final String fingerprint,
 
   /// Merchant identifier used in the Authorise URL path.
-  final String merchantCode;
+  required final String merchantCode,
 
   /// Timestamp used when computing [fingerprint].
-  final ZpTimestamp timestamp;
+  required final ZpTimestamp timestamp,
 
   /// Merchant Unique Payment Identifier.
-  final ZpMupid merchantUniquePaymentId;
+  required final ZpMupid merchantUniquePaymentId,
 
   /// Customer email address.
-  final String customerEmail;
+  required final String customerEmail,
 
   /// Server-to-server callback destination.
-  final String? callbackUrl;
+  final String? callbackUrl,
 
   /// Browser redirect destination after payment.
-  final String? redirectUrl;
+  final String? redirectUrl,
 
   /// Checkout plugin mode.
-  final ZpPluginMode mode;
+  final ZpPluginMode mode = ZpCheckoutDefaults.mode,
 
   /// Override fee payer setting.
-  final ZpOverrideFeePayer overrideFeePayer;
+  final ZpOverrideFeePayer overrideFeePayer = ZpCheckoutDefaults.overrideFeePayer,
 
   /// Target user mode.
-  final ZpUserMode userMode;
+  final ZpUserMode userMode = ZpCheckoutDefaults.userMode,
 
   /// Target display mode.
-  final ZpDisplayMode displayMode;
+  final ZpDisplayMode displayMode = ZpCheckoutDefaults.displayMode,
 
   /// Whether to hide the top header.
-  final bool hideHeader;
+  final bool hideHeader = ZpCheckoutDefaults.hideHeader,
 
   /// Whether to hide terms and conditions.
-  final bool hideTermsAndConditions;
+  final bool hideTermsAndConditions = ZpCheckoutDefaults.hideTermsAndConditions,
 
   /// Whether to display fees during tokenisation.
-  final bool showFeeOnTokenising;
+  final bool showFeeOnTokenising = ZpCheckoutDefaults.showFeeOnTokenising,
 
   /// Whether to display failed-payment fees during tokenisation.
-  final bool showFailedPaymentFeeOnTokenising;
+  final bool showFailedPaymentFeeOnTokenising = ZpCheckoutDefaults.showFailedPaymentFeeOnTokenising,
 
   /// Whether to send payment confirmation to the customer.
-  final bool sendConfirmationEmailToCustomer;
+  final bool sendConfirmationEmailToCustomer = ZpCheckoutDefaults.sendConfirmationEmailToCustomer,
 
   /// Marks the request as coming from a ZenPay checkout plugin, sent as
   /// `isJsPlugin`. `true` unless overridden.
-  final bool isJsPlugin;
+  final bool isJsPlugin = ZpCheckoutDefaults.isJsPlugin,
 
   /// Whether to send payment confirmation to the merchant.
-  final bool? sendConfirmationEmailToMerchant;
+  final bool? sendConfirmationEmailToMerchant,
 
   /// Allow bank-account payment.
-  final bool allowBankAcOneOffPayment;
+  final bool allowBankAcOneOffPayment = ZpCheckoutDefaults.allowBankAcOneOffPayment,
 
   /// Allow PayID payment.
-  final bool allowPayIdOneOffPayment;
+  final bool allowPayIdOneOffPayment = ZpCheckoutDefaults.allowPayIdOneOffPayment,
 
   /// Allow PayTo payment.
-  final bool? allowPayToOneOffPayment;
+  final bool? allowPayToOneOffPayment,
 
   /// Allow Apple Pay payment.
-  final bool allowApplePayOneOffPayment;
+  final bool allowApplePayOneOffPayment = ZpCheckoutDefaults.allowApplePayOneOffPayment,
 
   /// Allow Google Pay payment.
-  final bool? allowGooglePayOneOffPayment;
+  final bool? allowGooglePayOneOffPayment,
 
   /// Allow UnionPay payment.
-  final bool allowUnionPayOneOffPayment;
+  final bool allowUnionPayOneOffPayment = ZpCheckoutDefaults.allowUnionPayOneOffPayment,
 
   /// Allow Alipay+ payment.
-  final bool allowAliPayPlusOneOffPayment;
+  final bool allowAliPayPlusOneOffPayment = ZpCheckoutDefaults.allowAliPayPlusOneOffPayment,
 
   /// Allow LatitudePay payment.
-  final bool? allowLatitudePayOneOffPayment;
+  final bool? allowLatitudePayOneOffPayment,
 
   /// Allow Slice Pay payment.
   ///
   /// Requires [departureDate] when `true`.
-  final bool? allowSlicePayOneOffPayment;
+  final bool? allowSlicePayOneOffPayment,
 
   /// Allow WeChat Pay payment.
-  final bool? allowWeChatPayOneOffPayment;
+  final bool? allowWeChatPayOneOffPayment,
 
   /// Allow the customer to save their card.
-  final bool? allowSaveCardUserOption;
+  final bool? allowSaveCardUserOption,
 
   /// Whether to hide the merchant logo.
-  final bool? hideMerchantLogo;
+  final bool? hideMerchantLogo,
 
   /// Whether errors should redirect to the return URL.
-  final bool? redirectOnError;
+  final bool? redirectOnError,
 
   /// Required with [customerReference] for payment modes 0 and 2.
-  final String? customerName;
+  final String? customerName,
 
   /// Required with [customerName] for payment modes 0 and 2.
-  final String? customerReference;
+  final String? customerReference,
 
   /// Payment amount in dollars.
-  final Object? paymentAmount;
+  final Object? paymentAmount,
 
   /// Custom customer-name field label.
-  final String? customerNameLabel;
+  final String? customerNameLabel,
 
   /// Custom customer-reference field label.
-  final String? customerReferenceLabel;
+  final String? customerReferenceLabel,
 
   /// Custom payment-amount field label.
-  final String? paymentAmountLabel;
+  final String? paymentAmountLabel,
 
   /// Custom checkout page title.
-  final String? title;
+  final String? title,
 
   /// Card proxy sent to ZenPay as `token`.
-  final String? cardProxy;
+  final String? cardProxy,
 
   /// Australian Business Number sent as `AustralianBusinessNumber`.
-  final String? abn;
+  final String? abn,
 
   /// Product SKU 1.
-  final String? sku1;
+  final String? sku1,
 
   /// Product SKU 2.
-  final String? sku2;
+  final String? sku2,
 
   /// Additional merchant reference.
-  final String? additionalReference;
+  final String? additionalReference,
 
   /// Customer contact number.
-  final String? contactNumber;
+  final String? contactNumber,
 
   /// Departure date required for Slice Pay.
-  final String? departureDate;
+  final String? departureDate,
 
   /// Customer company name.
-  final String? companyName;
-}
+  final String? companyName,
+}) {}
