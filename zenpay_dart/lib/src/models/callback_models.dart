@@ -16,7 +16,8 @@ class const ZpVerifyCallbackContext({
 
   /// Payment amount in dollars, as launched — hash field 5.
   ///
-  /// Ignored for mode 2, which always hashes `"0"`. May be `0` for mode 1.
+  /// Ignored for mode 2 — any value is accepted, since the hash always
+  /// hashes `"0"` regardless of what is supplied. May be `0` for mode 1.
   required final Object paymentAmount,
 
   /// Per-payment idempotency key — hash field 6.

@@ -33,3 +33,10 @@
 - `package:zenpay_flutter/testing.dart` with `FakeReturnUriSource` for
   driving checkout flows deterministically in tests, without platform
   channels or network access.
+- Fix for presenter reservation leaks: `ZpCheckout` now calls
+  `_presenter.releaseReservation()` on all early-exit paths (disposal,
+  concurrent opens, failed security checks) that previously left reservations
+  held, preventing lost presentation slots in rapid-retry scenarios. Extracted
+  return URI matching as public `matchesReturnUriAddress` for shared use across
+  mobile and web return validation; web popup return validation now delegates to
+  this shared predicate to eliminate a duplicated same-origin check.

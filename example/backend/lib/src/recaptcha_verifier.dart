@@ -7,22 +7,35 @@ import 'package:logging/logging.dart';
 
 final _logger = Logger('recaptcha_verifier');
 
+/// Masks a bearer-shaped secret the same partial way `server_app.dart`
+/// redacts headers: first/last 3 characters kept, rest replaced with `...`.
+String _maskSecret(String value) => value.length <= 6 ? '...' : '${value.substring(0, 3)}...${value.substring(value.length - 3)}';
+
+/// Redacts the client token inside a logged assessment request's `event`.
+/// Everything else (email, phone, amount) is logged in the clear, matching
+/// this demo backend's existing body-logging convention (see
+/// server_app.dart's http_trace).
+Map<String, Object?> _redactRequestJson(Map<String, Object?> json) {
+  final event = json['event'];
+  if (event is! Map<String, Object?>) return json;
+  final token = event['token'];
+  if (token is! String || token.isEmpty) return json;
+  return {
+    ...json,
+    'event': {...event, 'token': _maskSecret(token)},
+  };
+}
+
 /// Outcome of a reCAPTCHA Enterprise assessment.
 class RecaptchaResult {
   /// Creates a [RecaptchaResult].
-  const RecaptchaResult({required this.valid, this.assessmentName, this.transactionRisk});
+  const RecaptchaResult({required this.valid});
 
-  /// Whether the assessment passed bot/fraud checks.
+  /// Whether the assessment passed bot detection.
   final bool valid;
-
-  /// The assessment resource name, for later annotation.
-  final String? assessmentName;
-
-  /// Fraud Prevention transaction risk score, when computed.
-  final double? transactionRisk;
 }
 
-/// Verifies reCAPTCHA Enterprise tokens and assessments against Google Cloud.
+/// Verifies reCAPTCHA Enterprise tokens against Google Cloud.
 abstract interface class RecaptchaVerifier {
   /// Verifies a client-supplied [token] for [expectedAction] under [siteKey].
   Future<RecaptchaResult> verify(
@@ -34,30 +47,6 @@ abstract interface class RecaptchaVerifier {
     String? phone,
     String? accountId,
     double? paymentAmount,
-  });
-
-  /// Records the real-world outcome of an assessment, for Google's model.
-  Future<void> annotate({
-    required String projectNumber,
-    required String assessmentName,
-    required String transactionEvent,
-    String? reason,
-  });
-
-  /// Creates a token-less, server-only assessment for callback-side risk
-  /// scoring (no client token is available at that point).
-  Future<RecaptchaResult> createApiOnlyAssessment(
-    String projectNumber,
-    String siteKey, {
-    required String cardBin,
-    required String cardLastFour,
-    required String paymentMethod,
-    String? email,
-    String? phone,
-    String? accountId,
-    double? paymentAmount,
-    String? transactionId,
-    String? currencyCode,
   });
 }
 
@@ -115,110 +104,34 @@ final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
         ),
       );
 
+      _logger.fine('reCAPTCHA assessment request: ${jsonEncode(_redactRequestJson(request.toJson()))}');
       final response = await api.projects.assessments.create(request, 'projects/$projectNumber');
+      _logger.fine('reCAPTCHA assessment response: ${jsonEncode(response.toJson())}');
 
       final valid = response.tokenProperties?.valid ?? false;
-      if (!valid) return const RecaptchaResult(valid: false);
+      if (!valid) {
+        _logger.warning('reCAPTCHA token invalid: reason=${response.tokenProperties?.invalidReason}');
+        return const RecaptchaResult(valid: false);
+      }
 
       final actionMatch = response.tokenProperties?.action == expectedAction;
-      if (!actionMatch) return const RecaptchaResult(valid: false);
+      if (!actionMatch) {
+        _logger.warning('reCAPTCHA action mismatch: expected="$expectedAction" got="${response.tokenProperties?.action}"');
+        return const RecaptchaResult(valid: false);
+      }
 
       final botScore = response.riskAnalysis?.score ?? 0.0;
       final isHuman = botScore >= 0.5;
+      if (!isHuman) {
+        _logger.warning('reCAPTCHA risk rejected: score=$botScore reasons=${response.riskAnalysis?.reasons}');
+      }
 
-      final transactionRisk = response.fraudPreventionAssessment?.transactionRisk;
-      final isFraudulent = transactionRisk != null && transactionRisk >= 0.5;
-
-      return RecaptchaResult(valid: isHuman && !isFraudulent, assessmentName: response.name);
+      return RecaptchaResult(valid: isHuman);
     } on Object catch (e, st) {
       _logger.severe('reCAPTCHA verification error', e, st);
       // In a real integration, consider whether to fail open or fail closed
       // if the verification API is unreachable.
       return const RecaptchaResult(valid: false);
-    }
-  }
-
-  @override
-  Future<RecaptchaResult> createApiOnlyAssessment(
-    String projectNumber,
-    String siteKey, {
-    required String cardBin,
-    required String cardLastFour,
-    required String paymentMethod,
-    String? email,
-    String? phone,
-    String? accountId,
-    double? paymentAmount,
-    String? transactionId,
-    String? currencyCode,
-  }) async {
-    try {
-      final client = await _authClient();
-      final api = recaptcha.RecaptchaEnterpriseApi(client);
-
-      final request = recaptcha.GoogleCloudRecaptchaenterpriseV1Assessment(
-        event: recaptcha.GoogleCloudRecaptchaenterpriseV1Event(
-          siteKey: siteKey,
-          expectedAction: 'checkout_callback',
-          transactionData: recaptcha.GoogleCloudRecaptchaenterpriseV1TransactionData(
-            transactionId: transactionId,
-            currencyCode: currencyCode,
-            cardBin: cardBin,
-            cardLastFour: cardLastFour,
-            paymentMethod: paymentMethod,
-            // Google's API-only Integration requires a billing address or the
-            // call 400s (see fraud.md); this app never collects one, so a
-            // fixed AU/2000 stands in until real billing data is captured.
-            billingAddress: recaptcha.GoogleCloudRecaptchaenterpriseV1TransactionDataAddress(
-              regionCode: 'AU',
-              postalCode: '2000',
-            ),
-            user: (email != null || phone != null || accountId != null)
-                ? recaptcha.GoogleCloudRecaptchaenterpriseV1TransactionDataUser(
-                    email: email,
-                    phoneNumber: phone,
-                    accountId: accountId,
-                  )
-                : null,
-            value: paymentAmount,
-          ),
-        ),
-      );
-
-      final response = await api.projects.assessments.create(request, 'projects/$projectNumber');
-
-      final botScore = response.riskAnalysis?.score ?? 0.0;
-      final isHuman = botScore >= 0.5;
-
-      final transactionRisk = response.fraudPreventionAssessment?.transactionRisk;
-      final isFraudulent = transactionRisk != null && transactionRisk >= 0.5;
-
-      return RecaptchaResult(valid: isHuman && !isFraudulent, assessmentName: response.name, transactionRisk: transactionRisk);
-    } on Object catch (e, st) {
-      _logger.severe('reCAPTCHA API-only assessment error', e, st);
-      return const RecaptchaResult(valid: false);
-    }
-  }
-
-  @override
-  Future<void> annotate({
-    required String projectNumber,
-    required String assessmentName,
-    required String transactionEvent,
-    String? reason,
-  }) async {
-    try {
-      final client = await _authClient();
-      final api = recaptcha.RecaptchaEnterpriseApi(client);
-
-      final request = recaptcha.GoogleCloudRecaptchaenterpriseV1AnnotateAssessmentRequest(
-        annotation: transactionEvent,
-        reasons: reason != null ? [reason] : null,
-      );
-
-      await api.projects.assessments.annotate(request, assessmentName);
-    } on Object {
-      // Annotations are best-effort fire-and-forget in this example.
     }
   }
 }

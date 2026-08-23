@@ -229,8 +229,6 @@ Future<shelf.Response> _handleCreateCheckoutToken(
   final rawBody = await _readJson(request);
   final body = _parsePrepareCheckoutBody(request, rawBody);
 
-  String? assessmentName;
-  String? usedSiteKey;
   if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
     final recaptchaToken = request.headers[_HeaderNames.xRecaptchaToken];
     if (recaptchaToken == null || recaptchaToken.isEmpty) {
@@ -246,7 +244,6 @@ Future<shelf.Response> _handleCreateCheckoutToken(
     if (!validSiteKeys.contains(siteKey)) {
       throw HttpError(401, 'RECAPTCHA_SITE_KEY_INVALID');
     }
-    usedSiteKey = siteKey;
 
     final recaptchaResult = await recaptchaVerifier.verify(
       recaptchaToken,
@@ -261,18 +258,10 @@ Future<shelf.Response> _handleCreateCheckoutToken(
     if (!recaptchaResult.valid) {
       throw HttpError(401, 'RECAPTCHA_INVALID');
     }
-    assessmentName = recaptchaResult.assessmentName;
   }
 
   final isReplay = store.getByIdempotencyKey(idempotencyKey) != null;
-  final checkoutToken = prepareCheckout(
-    body,
-    idempotencyKey,
-    config,
-    store,
-    recaptchaAssessmentName: assessmentName,
-    recaptchaSiteKey: usedSiteKey,
-  );
+  final checkoutToken = prepareCheckout(body, idempotencyKey, config, store);
 
   if (!isReplay) {
     _recordEvent(request, 'checkout.attempt_created', {'mode': body.mode ?? 0});
@@ -406,48 +395,6 @@ Future<shelf.Response> _handleCallback(
     if (fields.failureReason != null) 'failureReason': fields.failureReason,
   });
 
-  double? postHocRiskScore;
-  if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
-    final responsePayload = payload['response'] as Map<String, Object?>?;
-    if (responsePayload != null) {
-      final maskedCard = (responsePayload['accountOrCardNo'] as String?) ?? (responsePayload['cardNumber'] as String?);
-      if (maskedCard != null && maskedCard.contains('X')) {
-        final parts = maskedCard.split(RegExp('X+'));
-        if (parts.length == 2 && parts[0].length >= 6 && parts[1].length >= 4) {
-          final cardBin = parts[0];
-          final cardLastFour = parts[1];
-          final siteKey = attempt.recaptchaSiteKey ?? config.recaptchaSiteKeyWeb;
-          // `paymentAccount` only appears on payment/preauth callbacks (never
-          // tokenise) and reads 'Card' for a manually-entered card. Any other
-          // value (e.g. a wallet rail) maps to Google's `custom-{name}`
-          // pattern rather than a guessed/hardcoded list of known rails.
-          final paymentAccount = responsePayload['paymentAccount'] as String?;
-          final paymentMethod = (paymentAccount == null || paymentAccount == 'Card') ? 'credit-card' : 'custom-${paymentAccount.toLowerCase()}';
-
-          final apiOnlyResult = await recaptchaVerifier.createApiOnlyAssessment(
-            config.firebaseProjectNumber,
-            siteKey,
-            cardBin: cardBin,
-            cardLastFour: cardLastFour,
-            paymentMethod: paymentMethod,
-            email: attempt.customerEmail,
-            phone: attempt.contactNumber,
-            accountId: attempt.customerReference,
-            paymentAmount: attempt.amount?.toDouble(),
-            transactionId: fields.reference,
-            currencyCode: 'AUD',
-          );
-          postHocRiskScore = apiOnlyResult.transactionRisk;
-          _recordEvent(request, 'recaptcha.api_only_assessment', {
-            'cardBin': cardBin,
-            'cardLastFour': cardLastFour,
-            'transactionRisk': postHocRiskScore,
-          });
-        }
-      }
-    }
-  }
-
   if (attempt.verifiedCallbackReference != null &&
       (!constantTimeEqual(
             attempt.verifiedCallbackReference!,
@@ -469,7 +416,6 @@ Future<shelf.Response> _handleCallback(
       verifiedCallbackReference: fields.reference,
       verifiedCallbackStatusCode: fields.statusCode,
       verifiedCallbackPayload: fields.rawPayload,
-      postHocRiskScore: postHocRiskScore,
     ),
   );
 
@@ -484,28 +430,6 @@ Future<shelf.Response> _handleCallback(
       if (fields.failureCode != null) 'failureCode': fields.failureCode,
       if (fields.failureReason != null) 'failureReason': fields.failureReason,
     });
-  }
-
-  if (recaptchaVerifier != null && attempt.recaptchaAssessmentName != null) {
-    final transactionEvent = switch (mappedStatus) {
-      MerchantPaymentStatus.successful => switch (attempt.mode) {
-        3 => 'AUTHORIZATION',
-        _ => 'PAYMENT_CAPTURE',
-      },
-      MerchantPaymentStatus.cancelled => 'CANCEL',
-      MerchantPaymentStatus.error || MerchantPaymentStatus.failed => 'AUTHORIZATION_DECLINE',
-      _ => 'MANUAL_REVIEW',
-    };
-
-    // Non-blocking fire and forget
-    recaptchaVerifier
-        .annotate(
-          projectNumber: config.firebaseProjectNumber,
-          assessmentName: attempt.recaptchaAssessmentName!,
-          transactionEvent: transactionEvent,
-          reason: fields.failureReason ?? fields.failureCode,
-        )
-        .ignore();
   }
 
   return _json(200, {'ok': true});
@@ -685,7 +609,7 @@ shelf.Handler buildHandler(
           headers: {
             'access-control-allow-origin': config.allowedAppOrigin,
             'access-control-allow-methods': 'GET,POST,OPTIONS',
-            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization,X-Firebase-AppCheck,X-Client,X-Request-Id',
+            'access-control-allow-headers': 'Content-Type,Idempotency-Key,Authorization,X-Recaptcha-Token,X-Recaptcha-Site-Key,X-Client,X-Request-Id',
           },
         );
       } else {

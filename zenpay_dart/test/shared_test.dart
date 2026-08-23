@@ -161,6 +161,39 @@ void main() {
       }
     });
 
+    test('omits every unset optional field instead of sending it empty', () {
+      final result = createZpCheckoutUrl(baseOptions());
+      expect(result, isA<ZpUrlSuccess>());
+      if (result is ZpUrlSuccess) {
+        final params = Uri.parse(result.url).queryParameters;
+        for (final key in [
+          'callbackUrl',
+          'sendConfirmationEmailToMerchant',
+          'allowPayToOneOffPayment',
+          'allowGooglePayOneOffPayment',
+          'allowLatitudePayOneOffPayment',
+          'allowSlicePayOneOffPayment',
+          'allowWeChatPayOneOffPayment',
+          'allowSaveCardInformation',
+          'hideMerchantLogo',
+          'redirectOnError',
+          'customerNameLabel',
+          'customerReferenceLabel',
+          'paymentAmountLabel',
+          'token',
+          'AustralianBusinessNumber',
+          'sku1',
+          'sku2',
+          'additionalReference',
+          'contactNumber',
+          'departureDate',
+          'companyName',
+        ]) {
+          expect(params.containsKey(key), isFalse, reason: '$key should be omitted when unset, not sent as "$key="');
+        }
+      }
+    });
+
     test(
       'encodes delimiter-bearing free text instead of splitting the query',
       () {

@@ -2,8 +2,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:recaptcha_enterprise_flutter/recaptcha.dart';
 import 'package:zenpay_example_app/core/config/app_config.dart';
+import 'package:zenpay_example_app/core/recaptcha/app_recaptcha_client_factory.dart';
 import 'package:zenpay_example_app/core/theme/theme.dart';
 import 'package:zenpay_example_app/features/checkout/ui/checkout_page.dart';
 import 'package:zenpay_flutter/zenpay_checkout.dart';
@@ -24,7 +24,7 @@ Future<void> main() async {
   // Initialize reCAPTCHA Enterprise
   if (recaptchaSiteKey.isNotEmpty) {
     try {
-      recaptchaClient = await Recaptcha.fetchClient(recaptchaSiteKey);
+      recaptchaClient = await fetchAppRecaptchaClient(recaptchaSiteKey);
       debugPrint('reCAPTCHA Enterprise initialized successfully.');
     } on Object catch (e) {
       debugPrint('reCAPTCHA Enterprise initialization failed: $e');

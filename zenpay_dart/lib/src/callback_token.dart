@@ -63,6 +63,16 @@ Map<String, Object?>? _decodeBody(String body) {
 /// Sign with your own HMAC [secret] of at least 32 bytes, separate from the
 /// ZenPay password. Embed the result in the launch `callbackUrl` as
 /// `?t=<token>`.
+///
+/// Throws [ArgumentError] when [payload] is malformed (an invalid
+/// [ZpCallbackUrlTokenPayload.timestamp] or a non-`String`/non-`num`
+/// [ZpCallbackUrlTokenPayload.paymentAmount]) or when [secret] fails its
+/// shape/length requirements — matching TS's `createZpCallbackUrlToken`,
+/// which throws `TypeError`/`RangeError` for the identical cases
+/// (`callbackurl-token.ts`). This is deliberately unlike `verifyZpCallback`,
+/// which never throws and instead returns a Result type for every failure —
+/// a token payload here is caller-constructed data you control, not
+/// attacker-supplied wire input, so failing fast is appropriate.
 String createZpCallbackUrlToken(
   ZpCallbackUrlTokenPayload payload,
   Object secret, [
@@ -109,6 +119,15 @@ String createZpCallbackUrlToken(
 ///
 /// Checks the HMAC-SHA3-512 signature and expiration before returning the
 /// decoded payload. Use the same [secret] that was used to mint the token.
+///
+/// Throws [ArgumentError] when [secret] fails its shape/length requirements
+/// — matching TS's `verifyZpCallbackUrlToken`, which throws `RangeError` for
+/// the identical case (`callbackurl-token.ts`). A malformed or tampered
+/// [token] itself does not throw: it returns [ZpCallbackUrlTokenFailure].
+/// This split mirrors the create side — [secret] is caller-controlled
+/// configuration (fail fast), while [token] is attacker-reachable wire input
+/// (return a Result), the same distinction that makes `verifyZpCallback`
+/// never throw at all for its wire input.
 ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
   final key = _keyBytes(secret);
 

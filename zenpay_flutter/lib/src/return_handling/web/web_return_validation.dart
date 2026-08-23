@@ -8,6 +8,7 @@
 /// to be unit tested.
 library;
 
+import 'package:zenpay_flutter/src/return_handling/return_validator.dart' show matchesReturnUriAddress;
 import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
 
 /// Decides whether an incoming `message` event is a valid return handoff and
@@ -36,11 +37,7 @@ Uri? parseIncomingReturnMessage({
 /// Whether [current] is the popup's expected return address — used by
 /// `completeWebCheckoutReturnIfPopup` (`web_checkout_return_popup.dart`).
 ///
-/// Scheme and host compare case-insensitively, matching browser origin
-/// semantics; port and path compare exactly.
-bool matchesReturnAddress(Uri current, Uri expected) {
-  return current.scheme.toLowerCase() == expected.scheme.toLowerCase() &&
-      current.host.toLowerCase() == expected.host.toLowerCase() &&
-      current.port == expected.port &&
-      current.path == expected.path;
-}
+/// Delegates to [matchesReturnUriAddress] (`return_validator.dart`) — the
+/// same rules the app-level return validator applies — so a return URL that
+/// would be rejected there can't first pass a laxer web-side check.
+bool matchesReturnAddress(Uri current, Uri expected) => matchesReturnUriAddress(current, expected);

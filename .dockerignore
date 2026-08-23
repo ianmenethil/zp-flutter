@@ -2,11 +2,10 @@
 .github
 .idea
 .vscode
-.dart_tool
+**/.dart_tool
 .agent
 .agents
-build
-example/backend/.dart_tool
+**/build
 example/backend/.env
 .env
 *.log

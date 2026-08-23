@@ -68,6 +68,7 @@ String _usage() {
       'Run both via Compose (:7000/:8080) + tunnel if .env has a token.',
     ),
     row('--docker-rebuild', 'Stop, remove images, rebuild fresh, and run.'),
+    row('--cf-deploy', 'Deploy the Cloudflare Workers backend and Containers.'),
     row('--register-device', 'Register Firebase App Check debug token.'),
     row(
       '--release:dart:minor',
@@ -153,11 +154,6 @@ Future<void> main(List<String> arguments) async {
       help: 'Run an ephemeral *.trycloudflare.com tunnel.',
     )
     ..addFlag(
-      'register-device',
-      negatable: false,
-      help: 'Register Firebase App Check debug token.',
-    )
-    ..addFlag(
       'distribute',
       negatable: false,
       help: 'Build Android APK and upload to Firebase App Distribution.',
@@ -176,6 +172,11 @@ Future<void> main(List<String> arguments) async {
       'docker-rebuild',
       negatable: false,
       help: 'Delete existing image, build fresh, and run.',
+    )
+    ..addFlag(
+      'cf-deploy',
+      negatable: false,
+      help: 'Deploy the Cloudflare Workers backend and Containers.',
     )
     ..addFlag(
       'release:dart:minor',
@@ -250,7 +251,7 @@ Future<void> main(List<String> arguments) async {
     if (args['docker-build'] as bool) 'docker-build',
     if (args['docker-run'] as bool) 'docker-run',
     if (args['docker-rebuild'] as bool) 'docker-rebuild',
-    if (args['register-device'] as bool) 'register-device',
+    if (args['cf-deploy'] as bool) 'cf-deploy',
     if (args['release:dart:minor'] as bool) 'release:dart:minor',
     if (args['release:dart:major'] as bool) 'release:dart:major',
     if (args['release:flutter:minor'] as bool) 'release:flutter:minor',
@@ -261,7 +262,7 @@ Future<void> main(List<String> arguments) async {
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --android-webview '
                 '--ios --web --stream --tunnel --quick-tunnel --distribute --docker-build '
-                '--docker-run --docker-rebuild --register-device --release:dart:minor --release:dart:major '
+                '--docker-run --docker-rebuild --release:dart:minor --release:dart:major '
                 '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
@@ -310,8 +311,8 @@ Future<void> main(List<String> arguments) async {
     await _dockerRun(root);
   } else if (mode == 'docker-rebuild') {
     await _dockerRebuild(root);
-  } else if (mode == 'register-device') {
-    await _registerDevice(root, deviceId: args['device'] as String?);
+  } else if (mode == 'cf-deploy') {
+    await _cfDeploy(root);
   } else if (mode.startsWith('release:')) {
     // release:<dart|flutter>:<minor|major>
     final parts = mode.split(':');
@@ -399,6 +400,7 @@ Future<int> _runLive(
   List<String> args, {
   String? cwd,
   bool inheritStdio = true,
+  Map<String, String>? environment,
 }) async {
   StreamSubscription<ProcessSignal>? sigintSub;
   if (inheritStdio) {
@@ -414,6 +416,7 @@ Future<int> _runLive(
       args,
       workingDirectory: cwd,
       mode: ProcessStartMode.inheritStdio,
+      environment: environment,
     );
     final exitCode = await process.exitCode;
     await sigintSub?.cancel();
@@ -423,6 +426,7 @@ Future<int> _runLive(
       _resolveExecutable(executable),
       args,
       workingDirectory: cwd,
+      environment: environment,
     );
     process.stdout.listen(stdout.add);
     process.stderr.listen(stderr.add);
@@ -457,8 +461,9 @@ Future<Never> _execForeground(
   List<String> args, {
   String? cwd,
   bool inheritStdio = true,
+  Map<String, String>? environment,
 }) async {
-  exit(await _runLive(executable, args, cwd: cwd, inheritStdio: inheritStdio));
+  exit(await _runLive(executable, args, cwd: cwd, inheritStdio: inheritStdio, environment: environment));
 }
 
 /// First-run setup for a fresh clone: resolves the pub workspace and creates
@@ -623,7 +628,7 @@ Future<void> _android(String root, {String? deviceId, String? target}) async {
   final device = deviceId ?? _pickAdbDevice();
 
   _info('Using device: $device');
-  await _runChecked('adb', ['-s', device, 'reverse', 'tcp:7000', 'tcp:7000']);
+  await _runChecked(_findAdb(), ['-s', device, 'reverse', 'tcp:7000', 'tcp:7000']);
 
   await _execForeground('flutter', [
     'run',
@@ -637,8 +642,17 @@ Future<void> _android(String root, {String? deviceId, String? target}) async {
 /// Auto-picks a single connected `adb` device, or the plain USB serial when
 /// the same phone shows up twice (USB + wireless), or exits with the reason
 /// it couldn't.
+String _findAdb() {
+  final localAppData = Platform.environment['LOCALAPPDATA'];
+  if (localAppData != null) {
+    final sdkAdb = '$localAppData\\Android\\sdk\\platform-tools\\adb.exe';
+    if (File(sdkAdb).existsSync()) return sdkAdb;
+  }
+  return _resolveExecutable('adb');
+}
+
 String _pickAdbDevice() {
-  final result = Process.runSync(_resolveExecutable('adb'), ['devices']);
+  final result = Process.runSync(_findAdb(), ['devices']);
   final devices = const LineSplitter()
       .convert(result.stdout as String)
       .map((line) => RegExp(r'^(\S+)\s+device$').firstMatch(line)?.group(1))
@@ -764,8 +778,16 @@ Future<void> _stream({String? deviceId}) async {
     exit(1);
   }
 
+  // Use the Android SDK's adb if available, to prevent adb daemon version conflicts
+  // with scrcpy's bundled adb when using Flutter/Android Studio simultaneously.
+  final String sdkAdb = _findAdb();
+
   final device = deviceId ?? _pickAdbDevice();
-  await _execForeground('scrcpy', ['-s', device]);
+  await _execForeground(
+    'scrcpy', 
+    ['-s', device, '--no-clipboard-autosync', '--no-audio'],
+    environment: sdkAdb != 'adb' ? {'ADB': sdkAdb} : null,
+  );
 }
 
 const _cloudflaredInstallHint =
@@ -1170,138 +1192,16 @@ Future<void> _dockerRebuild(String root) async {
   await _dockerRun(root);
 }
 
-Future<void> _registerDevice(String root, {String? deviceId}) async {
-  _info('Registering Firebase App Check debug token...');
-
-  _info('Fetching gcloud access token...');
-  final gcloudResult = await Process.run('gcloud', [
-    'auth',
-    'print-access-token',
-  ]);
-  if (gcloudResult.exitCode != 0) {
-    _error('Failed to get gcloud token: ${gcloudResult.stderr}');
-    exit(1);
-  }
-  final accessToken = gcloudResult.stdout.toString().trim();
-
-  _info('Clearing app cache on device to force a new debug token...');
-  final adbArgs = [
-    'shell',
-    'pm',
-    'clear',
-    'au.com.zenithpayments.zenpay_example_app',
-  ];
-  if (deviceId != null) {
-    adbArgs
-      ..insert(0, deviceId)
-      ..insert(0, '-s');
-  }
-  final clearResult = await Process.run('adb', adbArgs);
-  if (clearResult.exitCode != 0) {
-    _error('Failed to clear app cache: ${clearResult.stderr}');
+Future<void> _cfDeploy(String root) async {
+  _info('Deploying Cloudflare Workers and Containers (via npm run cf:deploy)...');
+  
+  if (!File('$root/package.json').existsSync()) {
+    _error('package.json not found in the root directory.');
     exit(1);
   }
 
-  final clearLogcatArgs = ['logcat', '-c'];
-  if (deviceId != null) {
-    clearLogcatArgs
-      ..insert(0, deviceId)
-      ..insert(0, '-s');
-  }
-  await Process.run('adb', clearLogcatArgs);
-
-  _info('Launching app on device...');
-  final launchArgs = [
-    'shell',
-    'monkey',
-    '-p',
-    'au.com.zenithpayments.zenpay_example_app',
-    '-c',
-    'android.intent.category.LAUNCHER',
-    '1',
-  ];
-  if (deviceId != null) {
-    launchArgs
-      ..insert(0, deviceId)
-      ..insert(0, '-s');
-  }
-  await Process.run('adb', launchArgs);
-
-  _info('Waiting up to 15s for Firebase to generate a debug token...');
-  String? token;
-  for (var i = 0; i < 15; i++) {
-    await Future<void>.delayed(const Duration(seconds: 1));
-    final logcatArgs = ['logcat', '-d', '-s', 'DebugAppCheckProvider'];
-    if (deviceId != null) {
-      logcatArgs
-        ..insert(0, deviceId)
-        ..insert(0, '-s');
-    }
-    final logcatResult = await Process.run('adb', logcatArgs);
-    final logOutput = logcatResult.stdout.toString();
-    final match = RegExp(
-      r'Enter this debug secret \((.*?)\)',
-    ).firstMatch(logOutput);
-    if (match != null) {
-      token = match.group(1);
-      break;
-    }
-  }
-
-  if (token == null) {
-    _error(
-      'Failed to find debug token in logcat. Ensure the app is running and using AndroidDebugProvider.',
-    );
-    exit(1);
-  }
-
-  _success('Found token: $token');
-
-  final googleServicesFile = File('$root/example/app/android/app/google-services.json');
-  if (!googleServicesFile.existsSync()) {
-    _error('google-services.json not found.');
-    exit(1);
-  }
-  final Object? parsed = jsonDecode(googleServicesFile.readAsStringSync());
-  if (parsed is! Map<String, dynamic>) throw StateError('Invalid json');
-  final projectInfo = parsed['project_info'] as Map<String, dynamic>;
-  final projectNumber = projectInfo['project_number'] as String;
-  final projectId = projectInfo['project_id'] as String;
-  final clients = (parsed['client'] as List<dynamic>).cast<Map<String, dynamic>>();
-  final clientInfo = clients.first['client_info'] as Map<String, dynamic>;
-  final appId = clientInfo['mobilesdk_app_id'] as String;
-
-  _info('Registering token with Firebase ($projectId)...');
-
-  final client = HttpClient();
-  try {
-    final request = await client.postUrl(
-      Uri.parse(
-        'https://firebaseappcheck.googleapis.com/v1/projects/$projectNumber/apps/$appId/debugTokens',
-      ),
-    );
-    request.headers
-      ..add('Authorization', 'Bearer $accessToken')
-      ..add('x-goog-user-project', projectId)
-      ..contentType = ContentType.json;
-
-    final payload = jsonEncode({
-      'displayName': 'CLI Auto-Registered Device',
-      'token': token,
-    });
-    request.write(payload);
-
-    final response = await request.close();
-    final responseBody = await response.transform(utf8.decoder).join();
-
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      _success('Successfully registered device token with Firebase App Check!');
-    } else {
-      _error(
-        'Failed to register token (HTTP ${response.statusCode}):\n$responseBody',
-      );
-    }
-  } finally {
-    client.close();
-  }
+  // Windows needs npm.cmd instead of just npm
+  final npmCommand = Platform.isWindows ? 'npm.cmd' : 'npm';
+  
+  await _execForeground(npmCommand, ['run', 'cf:deploy'], cwd: root);
 }

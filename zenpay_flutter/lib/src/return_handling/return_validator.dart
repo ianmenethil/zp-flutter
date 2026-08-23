@@ -24,10 +24,12 @@ abstract final class _QueryParam {
 /// Whether [candidate]'s scheme, host, port, and path exactly match
 /// [expected], and it carries no embedded credentials or fragment.
 ///
-/// The one caller is [ZpReturnValidator.validate], checking the URI
-/// actually delivered by the OS/browser against the configured return
-/// address on every incoming return.
-bool _matchesReturnUriAddress(Uri candidate, Uri expected) {
+/// Shared by [ZpReturnValidator.validate] (checking the URI actually
+/// delivered by the OS/browser against the configured return address on
+/// every incoming return) and `matchesReturnAddress` in
+/// `web_return_validation.dart` (the web popup's own same-origin check) —
+/// kept as one predicate so the two can't drift apart.
+bool matchesReturnUriAddress(Uri candidate, Uri expected) {
   return candidate.scheme.toLowerCase() == expected.scheme.toLowerCase() &&
       candidate.host.toLowerCase() == expected.host.toLowerCase() &&
       candidate.port == expected.port &&
@@ -60,7 +62,7 @@ final class ZpReturnValidator {
     }
 
     final expected = configuration.expectedReturnUri;
-    if (!_matchesReturnUriAddress(candidate, expected)) {
+    if (!matchesReturnUriAddress(candidate, expected)) {
       onRejectionObserved?.call(ZpReturnRejectionReason.addressMismatch);
       return null;
     }

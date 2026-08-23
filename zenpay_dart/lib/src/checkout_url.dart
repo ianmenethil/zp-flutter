@@ -82,14 +82,6 @@ ZpUrlFailure? validateZpCheckoutUrlRequest(ZpCheckoutOptions request) {
     }
   }
 
-  if (request.mode.requiresPositiveAmount) {
-    final amount = num.tryParse(request.paymentAmount?.toString().trim() ?? '');
-
-    if (amount == null || amount <= 0) {
-      return const ZpUrlFailure(ZpErrors.amountRequired);
-    }
-  }
-
   if (request.allowSlicePayOneOffPayment == true && (request.departureDate?.isEmpty ?? true)) {
     return const ZpUrlFailure(ZpErrors.slicePayDateRequired);
   }
@@ -120,35 +112,38 @@ Map<String, String> _buildQueryParams(
   'allowUnionPayOneOffPayment': request.allowUnionPayOneOffPayment.toString(),
   'allowAliPayPlusOneOffPayment': request.allowAliPayPlusOneOffPayment.toString(),
   'isJsPlugin': request.isJsPlugin.toString(),
-  'callbackUrl': request.callbackUrl ?? '',
-  'redirectUrl': request.redirectUrl ?? '',
-  'sendConfirmationEmailToMerchant': request.sendConfirmationEmailToMerchant?.toString() ?? '',
-  'allowPayToOneOffPayment': request.allowPayToOneOffPayment?.toString() ?? '',
-  'allowGooglePayOneOffPayment': request.allowGooglePayOneOffPayment?.toString() ?? '',
-  'allowLatitudePayOneOffPayment': request.allowLatitudePayOneOffPayment?.toString() ?? '',
-  'allowSlicePayOneOffPayment': request.allowSlicePayOneOffPayment?.toString() ?? '',
-  'allowWeChatPayOneOffPayment': request.allowWeChatPayOneOffPayment?.toString() ?? '',
-  'allowSaveCardUserOption': request.allowSaveCardUserOption?.toString() ?? '',
-  'hideMerchantLogo': request.hideMerchantLogo?.toString() ?? '',
-  'redirectOnError': request.redirectOnError?.toString() ?? '',
-  'customerName': request.customerName ?? '',
-  'customerReference': request.customerReference ?? '',
-  // Omitted when null: an absent amount must not become `paymentAmount=`.
+  // Every field below is omitted entirely when unset, matching TypeScript's
+  // generateUrl(): it iterates Object.entries() on the resolved options
+  // object, so a key the caller never set was never a property at all and
+  // never reaches the query string — sending it as `key=` would not match.
+  if (request.callbackUrl != null) 'callbackUrl': request.callbackUrl!,
+  if (request.redirectUrl != null) 'redirectUrl': request.redirectUrl!,
+  if (request.sendConfirmationEmailToMerchant != null) 'sendConfirmationEmailToMerchant': request.sendConfirmationEmailToMerchant!.toString(),
+  if (request.allowPayToOneOffPayment != null) 'allowPayToOneOffPayment': request.allowPayToOneOffPayment!.toString(),
+  if (request.allowGooglePayOneOffPayment != null) 'allowGooglePayOneOffPayment': request.allowGooglePayOneOffPayment!.toString(),
+  if (request.allowLatitudePayOneOffPayment != null) 'allowLatitudePayOneOffPayment': request.allowLatitudePayOneOffPayment!.toString(),
+  if (request.allowSlicePayOneOffPayment != null) 'allowSlicePayOneOffPayment': request.allowSlicePayOneOffPayment!.toString(),
+  if (request.allowWeChatPayOneOffPayment != null) 'allowWeChatPayOneOffPayment': request.allowWeChatPayOneOffPayment!.toString(),
+  if (request.allowSaveCardInformation != null) 'allowSaveCardInformation': request.allowSaveCardInformation!.toString(),
+  if (request.hideMerchantLogo != null) 'hideMerchantLogo': request.hideMerchantLogo!.toString(),
+  if (request.redirectOnError != null) 'redirectOnError': request.redirectOnError!.toString(),
+  if (request.customerName != null) 'customerName': request.customerName!,
+  if (request.customerReference != null) 'customerReference': request.customerReference!,
   if (request.paymentAmount != null) 'paymentAmount': request.paymentAmount!.toString(),
-  'customerNameLabel': request.customerNameLabel ?? '',
-  'customerReferenceLabel': request.customerReferenceLabel ?? '',
-  'paymentAmountLabel': request.paymentAmountLabel ?? '',
+  if (request.customerNameLabel != null) 'customerNameLabel': request.customerNameLabel!,
+  if (request.customerReferenceLabel != null) 'customerReferenceLabel': request.customerReferenceLabel!,
+  if (request.paymentAmountLabel != null) 'paymentAmountLabel': request.paymentAmountLabel!,
   'title': (request.title != null && request.title!.isNotEmpty)
       ? request.title!
       : (request.mode == ZpPluginMode.tokenise ? ZpUiDefaults.titleFallbackTokenise : ZpUiDefaults.titleFallback),
-  'token': request.cardProxy ?? '',
-  'AustralianBusinessNumber': request.abn ?? '',
-  'sku1': request.sku1 ?? '',
-  'sku2': request.sku2 ?? '',
-  'additionalReference': request.additionalReference ?? '',
-  'contactNumber': request.contactNumber ?? '',
-  'departureDate': request.departureDate ?? '',
-  'companyName': request.companyName ?? '',
+  if (request.cardProxy != null) 'token': request.cardProxy!,
+  if (request.abn != null) 'AustralianBusinessNumber': request.abn!,
+  if (request.sku1 != null) 'sku1': request.sku1!,
+  if (request.sku2 != null) 'sku2': request.sku2!,
+  if (request.additionalReference != null) 'additionalReference': request.additionalReference!,
+  if (request.contactNumber != null) 'contactNumber': request.contactNumber!,
+  if (request.departureDate != null) 'departureDate': request.departureDate!,
+  if (request.companyName != null) 'companyName': request.companyName!,
 };
 
 /// Builds the hosted-checkout Authorise URL from [request].

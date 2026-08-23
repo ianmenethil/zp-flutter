@@ -95,9 +95,6 @@ abstract final class ZpErrors {
   /// Error: callback or redirect empty.
   static const callbackOrRedirectEmpty = 'at least one of callbackUrl or redirectUrl must be provided';
 
-  /// Error: amount required.
-  static const amountRequired = 'paymentAmount must be provided and greater than 0 for this mode';
-
   /// Error: departureDate required for SlicePay.
   static const slicePayDateRequired = 'departureDate must be provided when slicePay is allowed';
 
@@ -115,9 +112,6 @@ abstract final class ZpErrors {
   static const credentialLength =
       'apiKey, username, password, and merchantUniquePaymentId must be at '
       'least ${ZpCore.minCredentialLength} characters';
-
-  /// Error: body empty.
-  static const bodyEmpty = 'body must not be empty';
 
   /// Error: body malformed.
   static const malformedBody = 'body must contain a response object and a validationCode string';

@@ -2,7 +2,6 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:hashlib/hashlib.dart';
 import 'package:hashlib/random.dart';
@@ -22,8 +21,21 @@ extension type const ZpTimestamp(String value) {}
 /// Creates a SHA3-512 hash of [input] as 128-character lowercase hex.
 String createSha3_512(String input) => sha3_512.string(input).hex();
 
-/// Compares two SHA3-512 hexadecimal digests using [HashDigest.isEqual].
-bool constantTimeHexEqual(String a, String b) => HashDigest(Uint8List.fromList(utf8.encode(a))).isEqual(utf8.encode(b));
+/// Compares two SHA3-512 hexadecimal digests in constant time.
+///
+/// Ports TS's `timingSafeEqualHex` (`hash.ts:59-65`): seeds the accumulator
+/// with the XOR of both lengths, then XORs every char code of [a] against
+/// the char code of [b] at the same index (or `0` past the end of [b]),
+/// looping [a]'s length regardless of whether the lengths differ.
+bool constantTimeHexEqual(String a, String b) {
+  var mismatch = a.length ^ b.length;
+
+  for (var i = 0; i < a.length; i++) {
+    mismatch |= a.codeUnitAt(i) ^ (i < b.length ? b.codeUnitAt(i) : 0);
+  }
+
+  return mismatch == 0;
+}
 
 const _zeroCents = ZpCents('0');
 
@@ -73,6 +85,10 @@ enum ZpAmountFailureReason {
   ZpPluginMode mode,
   Object? amount,
 ) {
+  if (mode == ZpPluginMode.customPayment) {
+    return (resolveZpHashAmountField(mode, amount), null);
+  }
+
   final value = amount?.toString().trim() ?? '';
 
   if (mode == ZpPluginMode.tokenise && value.isEmpty) {

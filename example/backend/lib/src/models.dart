@@ -100,9 +100,6 @@ class CheckoutAttempt {
     this.verifiedCallbackReference,
     this.verifiedCallbackStatusCode,
     this.verifiedCallbackPayload,
-    this.recaptchaAssessmentName,
-    this.postHocRiskScore,
-    this.recaptchaSiteKey,
   });
 
   /// ZenPay's per-attempt idempotency key. This attempt's identity.
@@ -178,15 +175,6 @@ class CheckoutAttempt {
   /// `logEvent` doc comment).
   final Map<String, Object?>? verifiedCallbackPayload;
 
-  /// The reCAPTCHA assessment name for Transaction defense annotation.
-  final String? recaptchaAssessmentName;
-
-  /// The post-hoc Transaction Defense risk score obtained during the callback.
-  final double? postHocRiskScore;
-
-  /// The reCAPTCHA site key provided by the client that created this attempt.
-  final String? recaptchaSiteKey;
-
   /// Returns a copy with the given fields replaced; omitted fields keep
   /// their current value.
   CheckoutAttempt copyWith({
@@ -200,9 +188,6 @@ class CheckoutAttempt {
     String? verifiedCallbackReference,
     int? verifiedCallbackStatusCode,
     Map<String, Object?>? verifiedCallbackPayload,
-    String? recaptchaAssessmentName,
-    double? postHocRiskScore,
-    String? recaptchaSiteKey,
   }) => CheckoutAttempt(
     merchantUniquePaymentId: merchantUniquePaymentId,
     idempotencyKey: idempotencyKey,
@@ -225,9 +210,6 @@ class CheckoutAttempt {
     verifiedCallbackReference: verifiedCallbackReference ?? this.verifiedCallbackReference,
     verifiedCallbackStatusCode: verifiedCallbackStatusCode ?? this.verifiedCallbackStatusCode,
     verifiedCallbackPayload: verifiedCallbackPayload ?? this.verifiedCallbackPayload,
-    recaptchaAssessmentName: recaptchaAssessmentName ?? this.recaptchaAssessmentName,
-    postHocRiskScore: postHocRiskScore ?? this.postHocRiskScore,
-    recaptchaSiteKey: recaptchaSiteKey ?? this.recaptchaSiteKey,
   );
 }
 

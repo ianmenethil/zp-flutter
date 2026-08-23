@@ -5,7 +5,7 @@
 library;
 
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
-import 'package:recaptcha_enterprise_flutter/recaptcha_client.dart';
+import 'package:zenpay_example_app/core/recaptcha/app_recaptcha_client.dart';
 
 /// reCAPTCHA Enterprise site key for the current platform.
 final String recaptchaSiteKey = () {
@@ -15,10 +15,11 @@ final String recaptchaSiteKey = () {
   return '';
 }();
 
-/// The reCAPTCHA Enterprise client, set once `main()`'s `Recaptcha.fetchClient`
-/// call resolves. Null until then, and permanently null when
-/// [recaptchaSiteKey] is empty, since reCAPTCHA is never initialized at all.
-RecaptchaClient? recaptchaClient;
+/// The reCAPTCHA Enterprise client, set once `main()`'s
+/// `fetchAppRecaptchaClient` call resolves. Null until then, and permanently
+/// null when [recaptchaSiteKey] is empty, since reCAPTCHA is never
+/// initialized at all.
+AppRecaptchaClient? recaptchaClient;
 
 const _backendBaseUrlEnvKey = 'BACKEND_BASE_URL';
 const _defaultBackendBaseUrl = 'http://localhost:7000';

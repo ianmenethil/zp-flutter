@@ -26,8 +26,9 @@ class const ZpFingerprintInput({
 
   /// Payment amount in dollars — hash field 5.
   ///
-  /// Optional for tokenisation. Modes 0, 2 and 3 require a positive amount.
-  /// Mode 2 still hashes `"0"` regardless of the supplied amount.
+  /// Optional for tokenisation. Modes 0 and 3 require a positive amount.
+  /// Mode 2 accepts any value (including `0` or none) since it always
+  /// hashes `"0"` regardless of the supplied amount.
   final Object? paymentAmount,
 }) {}
 

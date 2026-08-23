@@ -183,7 +183,7 @@ void main() {
     },
   );
 
-  test('mode 2 (custom payment) — hash uses "0" but a positive context amount is still required', () {
+  test('mode 2 (custom payment) — hash uses "0" regardless of the context amount', () {
     final vector = callbacks['mode2CustomPayment']! as Map<String, Object?>;
     final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final body = {
@@ -199,10 +199,10 @@ void main() {
       verifyZpCallback(mode, body, contextFor(vector['paymentAmount']! as num)),
       isA<ZpCallbackVerified>(),
     );
-    // Preserves the installed zp-hcp@0.1.30 quirk: mode 2 always hashes
-    // amount "0", but a non-positive context amount is still rejected.
-    final rejected = verifyZpCallback(mode, body, contextFor(0));
-    expect(rejected, isA<ZpCallbackRejected>());
+    // The hash always uses "0" for mode 2, so the context amount is
+    // irrelevant to verification — a zero amount must still succeed.
+    final zeroAmount = verifyZpCallback(mode, body, contextFor(0));
+    expect(zeroAmount, isA<ZpCallbackVerified>());
   });
 
   test('mode 3 (preauthorization) — golden digest', () {

@@ -115,9 +115,11 @@ final class ZpCheckout {
   /// [ZpInvalidLaunchException] if [checkoutUrl] fails security checks.
   Future<ZpCheckoutOutcome> open({required Uri checkoutUrl}) async {
     if (_disposed) {
+      _presenter.releaseReservation();
       throw const ZpCheckoutDisposedException();
     }
     if (_active != null) {
+      _presenter.releaseReservation();
       throw const ZpCheckoutAlreadyActiveException();
     }
 
@@ -127,6 +129,7 @@ final class ZpCheckout {
         configuration: configuration,
       );
     } on ZpInvalidLaunchException catch (error) {
+      _presenter.releaseReservation();
       _emit(ZpLaunchRejectedEvent(reason: error.message));
       rethrow;
     }
@@ -134,6 +137,7 @@ final class ZpCheckout {
     final active = ActiveCheckout(
       onFinished: (outcome, duration, cause) {
         _active = null;
+        unawaited(_presenter.dismissCheckout().catchError((Object _) => false));
         _emit(
           ZpFinishedEvent(
             outcome: outcome.outcomeName,
@@ -222,8 +226,6 @@ final class ZpCheckout {
 
     _emit(const ZpReturnAcceptedEvent());
     active.finish(ZpReturnReceived(returnUri: normalized));
-
-    unawaited(_presenter.dismissCheckout().catchError((Object _) => false));
   }
 
   /// Disposes this controller, settling any in-flight checkout as dismissed.
@@ -232,6 +234,7 @@ final class ZpCheckout {
       return;
     }
     _disposed = true;
+    _presenter.releaseReservation();
     _active?.finish(const ZpPresentationDismissed());
   }
 

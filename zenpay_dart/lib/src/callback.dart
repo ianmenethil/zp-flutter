@@ -153,7 +153,7 @@ ZpCallbackResult verifyZpCallback(
   ZpVerifyCallbackContext context,
 ) {
   try {
-    final (:response, :reference, :validationCode) = _parseCallbackShape(
+    final (response: _, :reference, :validationCode) = _parseCallbackShape(
       mode,
       body,
     );

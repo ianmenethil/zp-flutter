@@ -42,27 +42,7 @@ final class _FakeRecaptchaVerifier implements RecaptchaVerifier {
     String? phone,
     String? accountId,
     double? paymentAmount,
-  }) async => RecaptchaResult(valid: shouldPass, assessmentName: 'projects/mock/assessments/123');
-
-  @override
-  Future<void> annotate({required String projectNumber, required String assessmentName, required String transactionEvent, String? reason}) async {}
-
-  @override
-  Future<RecaptchaResult> createApiOnlyAssessment(
-    String projectNumber,
-    String siteKey, {
-    required String cardBin,
-    required String cardLastFour,
-    required String paymentMethod,
-    String? email,
-    String? phone,
-    String? accountId,
-    double? paymentAmount,
-    String? transactionId,
-    String? currencyCode,
-  }) async {
-    return const RecaptchaResult(valid: true, assessmentName: 'api_only_test', transactionRisk: 0.9);
-  }
+  }) async => RecaptchaResult(valid: shouldPass);
 }
 
 /// Test [AppConfig] with fixed, known ZenPay credentials so callback

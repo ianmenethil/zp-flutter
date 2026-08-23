@@ -11,6 +11,15 @@ import 'package:zenpay_example_backend/src/attempt_store.dart';
 import 'package:zenpay_example_backend/src/config.dart';
 import 'package:zenpay_example_backend/src/server_app.dart';
 
+/// ANSI color code for a log [level] — red for errors, yellow for warnings,
+/// cyan for info, gray for anything finer.
+String _levelColor(Level level) => switch (level) {
+  Level.SEVERE || Level.SHOUT => '\x1B[31m',
+  Level.WARNING => '\x1B[33m',
+  Level.INFO => '\x1B[36m',
+  _ => '\x1B[90m',
+};
+
 Future<void> main() async {
   // Every request logs one merged record (see buildHandler): full headers
   // and body, plus any business annotations that fired along the way.
@@ -18,7 +27,17 @@ Future<void> main() async {
   // set Level.WARNING here to see only the latter.
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    (record.level >= Level.WARNING ? stderr : stdout).writeln(record.message);
+    final sink = record.level >= Level.WARNING ? stderr : stdout;
+    final time = record.time.toIso8601String().substring(11, 19);
+    final prefix = '[$time] ${record.level.name.padRight(7)} ${record.loggerName}:';
+    // Always colored, not gated on stdout.supportsAnsiEscapes: `dart run
+    // cli.dart --server` launches this process with piped (not inherited)
+    // stdio, so that check sees a pipe and reports false even though the
+    // real terminal on the other end of cli.dart's relay supports color
+    // fine. Running this file directly also renders correctly either way.
+    sink.writeln('${_levelColor(record.level)}$prefix\x1B[0m ${record.message}');
+    if (record.error != null) sink.writeln(record.error);
+    if (record.stackTrace != null) sink.writeln(record.stackTrace);
   });
 
   final config = loadConfig();

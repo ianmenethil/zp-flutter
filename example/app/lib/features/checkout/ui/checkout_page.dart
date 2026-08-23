@@ -15,7 +15,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:recaptcha_enterprise_flutter/recaptcha_action.dart';
 import 'package:zenpay_example_app/core/config/app_config.dart';
 import 'package:zenpay_example_app/features/checkout/models/checkout_modes.dart';
 import 'package:zenpay_example_app/features/checkout/models/mock_customer.dart';
@@ -159,7 +158,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       final client = recaptchaClient;
       if (client != null) {
         try {
-          recaptchaToken = await client.execute(RecaptchaAction.custom('checkout'));
+          recaptchaToken = await client.execute('checkout');
           if (recaptchaToken.isEmpty) recaptchaToken = null;
         } on Object catch (e, st) {
           debugPrint('reCAPTCHA failed to get token: $e\n$st');

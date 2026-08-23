@@ -97,16 +97,31 @@ void main() {
     );
   });
 
-  test('mode 2 (Custom Payment) requires a positive amount but hashes "0"', () {
+  test('mode 2 (Custom Payment) accepts any amount and always hashes "0"', () {
     final positive = createZpFingerprint(
       baseInput(mode: ZpPluginMode.customPayment, paymentAmount: '99.99'),
     );
-    expect(positive, isA<ZpFingerprintSuccess>());
-
     final zero = createZpFingerprint(
       baseInput(mode: ZpPluginMode.customPayment, paymentAmount: '0'),
     );
-    expect(zero, isA<ZpFingerprintFailure>());
+    final nonNumeric = createZpFingerprint(
+      baseInput(mode: ZpPluginMode.customPayment, paymentAmount: 'not-a-number'),
+    );
+
+    expect(positive, isA<ZpFingerprintSuccess>());
+    expect(zero, isA<ZpFingerprintSuccess>());
+    expect(nonNumeric, isA<ZpFingerprintSuccess>());
+
+    final fingerprints = [
+      positive,
+      zero,
+      nonNumeric,
+    ].cast<ZpFingerprintSuccess>().map((r) => r.fingerprint).toSet();
+    expect(
+      fingerprints,
+      hasLength(1),
+      reason: 'mode 2 must always hash "0" for the amount, regardless of the supplied value',
+    );
   });
 
   test('mode 1 (Tokenise) allows a zero amount', () {

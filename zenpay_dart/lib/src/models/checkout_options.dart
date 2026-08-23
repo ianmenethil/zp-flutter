@@ -104,7 +104,7 @@ class const ZpCheckoutOptions({
   final bool? allowWeChatPayOneOffPayment,
 
   /// Allow the customer to save their card.
-  final bool? allowSaveCardUserOption,
+  final bool? allowSaveCardInformation,
 
   /// Whether to hide the merchant logo.
   final bool? hideMerchantLogo,

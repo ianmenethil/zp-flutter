@@ -95,10 +95,8 @@ String prepareCheckout(
   PrepareCheckoutBody body,
   String idempotencyKey,
   AppConfig config,
-  AttemptStore store, {
-  String? recaptchaAssessmentName,
-  String? recaptchaSiteKey,
-}) {
+  AttemptStore store,
+) {
   final mode = body.mode ?? 0;
 
   final existing = store.getByIdempotencyKey(idempotencyKey);
@@ -122,8 +120,6 @@ String prepareCheckout(
     amount: amount,
     customerReference: body.customerReference,
     contactNumber: body.contactNumber,
-    recaptchaAssessmentName: recaptchaAssessmentName,
-    recaptchaSiteKey: recaptchaSiteKey,
   );
   store.create(attempt);
 
@@ -259,7 +255,7 @@ Uri _buildCheckoutUrl({
     allowApplePayOneOffPayment: isMakePayment,
     allowGooglePayOneOffPayment: isMakePayment ? true : null,
     sendConfirmationEmailToMerchant: false,
-    allowSaveCardUserOption: false,
+    allowSaveCardInformation: false,
   );
 
   final url = switch (createZpCheckoutUrl(authoriseRequest)) {
