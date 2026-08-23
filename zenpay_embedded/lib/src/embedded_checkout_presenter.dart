@@ -74,6 +74,8 @@ final class EmbeddedCheckoutPresenter extends CheckoutPresenter {
       showModalBottomSheet<void>(
         context: navigatorState.context,
         isScrollControlled: true,
+        useSafeArea: true,
+        showDragHandle: true,
         builder: (context) => SizedBox(
           height: MediaQuery.sizeOf(context).height * 0.85,
           child: ZenPayCheckoutWebView(state: _attachState, returnUriSource: returnUriSource, returnUriAddress: _returnUriAddress),

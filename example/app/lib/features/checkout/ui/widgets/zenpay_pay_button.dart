@@ -52,7 +52,27 @@ final class ZenPayPayButton extends StatelessWidget {
       child: ExcludeSemantics(
         child: FilledButton(
           onPressed: onPressed,
-          child: Text(isBusy ? busyLabel : label),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            child: isBusy
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    key: const ValueKey('busy'),
+                    children: <Widget>[
+                      const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(busyLabel),
+                    ],
+                  )
+                : Text(label, key: const ValueKey('idle')),
+          ),
         ),
       ),
     );
