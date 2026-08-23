@@ -11,16 +11,17 @@
 pre-commit:
   commands:
     format:
-      glob: '*.dart'
+      glob: "*.dart"
       run: dart format --output=none --set-exit-if-changed {staged_files}
     analyze:
       run: dart run melos exec -- "dart analyze --fatal-infos ."
     analyze-root:
-      glob: '*.dart'
+      glob: "*.dart"
       run: dart analyze --fatal-infos {staged_files}
     lint:
       run: dart run melos run lint
     test:
       run: dart run melos run test
     no-js-bridge:
-      run: '! grep -rnE "addJavaScriptChannel|setOnConsoleMessage" zenpay_embedded/lib'
+      # run: '! grep -rnE "addJavaScriptChannel|setOnConsoleMessage" zenpay_embedded/lib'
+      run: '! grep -rn -e "addJavaScriptChannel" -e "setOnConsoleMessage" zenpay_embedded/lib'
