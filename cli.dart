@@ -829,7 +829,7 @@ Future<void> _tunnel(String root) async {
   final current = tokenPattern.firstMatch(content)?.group(1)?.trim() ?? '';
 
   if (current.isNotEmpty) {
-    _info('Current CLOUDFLARE_TUNNEL_TOKEN: $current');
+    _info('Current CLOUDFLARE_TUNNEL_TOKEN: ${_maskSecret(current)}');
     stdout.write('Enter to keep, or paste a new token: ');
   } else {
     stdout.write(
@@ -856,8 +856,24 @@ Future<void> _tunnel(String root) async {
     _info('CLOUDFLARE_TUNNEL_TOKEN saved.');
   }
 
-  await _execForeground('cloudflared', ['tunnel', 'run', '--token', token]);
+  // cloudflared logs its own "Environmental variables" diagnostic line on
+  // startup, dumping any inherited *TUNNEL_* env var verbatim — it only
+  // masks the exact name it registers for --token (TUNNEL_TOKEN), not this
+  // machine's differently-named CF_TUNNEL_TOKEN user env var, so it would
+  // otherwise print the raw token. Blanking it for this child process only
+  // (not the persistent Windows variable) closes that without touching
+  // anything outside this one invocation — the token still reaches
+  // cloudflared correctly via the explicit --token argument above.
+  await _execForeground(
+    'cloudflared',
+    ['tunnel', 'run', '--token', token],
+    environment: {'CF_TUNNEL_TOKEN': ''},
+  );
 }
+
+/// Masks a secret the same partial way as `example/backend`'s
+/// `_maskSecret`: first/last 3 characters kept, rest replaced with `...`.
+String _maskSecret(String value) => value.length <= 6 ? '...' : '${value.substring(0, 3)}...${value.substring(value.length - 3)}';
 
 /// Runs an ephemeral quick tunnel — `cloudflared tunnel --url <url>` — that
 /// needs no Cloudflare account setup, prints a random
@@ -1157,12 +1173,19 @@ Future<void> _dockerRun(String root) async {
       exit(1);
     }
     _info('Starting cloudflared tunnel (CLOUDFLARE_TUNNEL_TOKEN from .env)...');
-    tunnelProcess = await Process.start('cloudflared', [
-      'tunnel',
-      'run',
-      '--token',
-      tunnelToken,
-    ]);
+    // See _tunnel's comment: blanks this machine's CF_TUNNEL_TOKEN user env
+    // var for this child only, so cloudflared's own unmasked env-var log
+    // line doesn't leak it (the --token argument above is unaffected).
+    tunnelProcess = await Process.start(
+      'cloudflared',
+      [
+        'tunnel',
+        'run',
+        '--token',
+        tunnelToken,
+      ],
+      environment: {'CF_TUNNEL_TOKEN': ''},
+    );
     tunnelProcess.stdout.listen(stdout.add);
     tunnelProcess.stderr.listen(stderr.add);
   } else {

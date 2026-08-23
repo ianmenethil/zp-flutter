@@ -1,15 +1,51 @@
-# zp-flutter-sdk
+# ZenPay Hosted Checkout SDK for Flutter
 
-Monorepo for the ZenPay Hosted Checkout Plugin (HCP) Dart/Flutter ecosystem: a
-pure-Dart backend SDK, a Flutter client SDK, and a runnable example that wires
-both together end to end.
+Monorepo for the ZenPay Hosted Checkout Plugin (HCP) Dart/Flutter ecosystem: a pure-Dart backend SDK, a Flutter client SDK, and a runnable example that wires both together end-to-end.
 
-Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) — start there before
-touching any package. `AGENTS.md` in this folder is a symlink to it.
+🌐 **Live Web Demo:** [flutter-demo.zenithpayments.support](https://flutter-demo.zenithpayments.support)
+
+Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) — start there before touching any package. `AGENTS.md` in this folder is a symlink to it.
 
 ---
 
-## Packages
+## 📱 Previews
+
+| Android Native Launch | Android In-App WebView |
+| :---: | :---: |
+| ![Android Demo](android.webp) | ![Android WebView Demo](android-webview.webp) |
+
+---
+
+## 🏗️ Architecture & Flow
+
+The repository is structured to mirror exactly how you will integrate ZenPay into your own production systems. The client app uses the Flutter SDK for presentation, while a backend server uses the pure-Dart SDK to handle cryptography and secure session creation.
+
+```mermaid
+graph TD
+    subgraph example ["Integration Example"]
+        APP[example/app<br/>(Flutter Mobile/Web)]
+        BACKEND[example/backend<br/>(Shelf Server)]
+    end
+    
+    subgraph sdks ["ZenPay SDKs"]
+        F_SDK[zenpay_flutter<br/>(Client SDK)]
+        D_SDK[zenpay_dart<br/>(Backend SDK)]
+    end
+    
+    APP -->|Uses| F_SDK
+    BACKEND -->|Uses| D_SDK
+    
+    APP -->|1. Request Checkout Token| BACKEND
+    BACKEND -->|2. Generate Hash & URL| D_SDK
+    BACKEND -.->|3. Return Token| APP
+    APP -->|4. Present Checkout| F_SDK
+    F_SDK -.->|5. Deep-link Return| APP
+    APP -->|6. Verify Status| BACKEND
+```
+
+---
+
+## 📦 Packages
 
 | Package                                     | Path               | What it is                                                                 |
 | :------------------------------------------- | :------------------ | :--------------------------------------------------------------------------- |
@@ -17,17 +53,13 @@ touching any package. `AGENTS.md` in this folder is a symlink to it.
 | [`zenpay_flutter`](zenpay_flutter/README.md) | `zenpay_flutter/`   | Flutter client SDK: presents ZenPay Hosted Checkout, handles the return, reports one typed outcome. |
 | [example](example/README.md)                 | `example/`          | Combined reference: a Shelf backend (`example/backend/`) and a Flutter app (`example/app/`) demonstrating the full flow. |
 
-Each package has its own `CLAUDE.md` (agent guidelines) and `README.md`
-(usage docs); every `CLAUDE.md` has an `AGENTS.md` symlink alongside it.
+Each package has its own `CLAUDE.md` (agent guidelines) and `README.md` (usage docs); every `CLAUDE.md` has an `AGENTS.md` symlink alongside it.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
-This is a [Dart pub workspace](https://dart.dev/tools/pub/workspaces) managed
-with [Melos](https://melos.invertase.dev). See root
-[`pubspec.yaml`](pubspec.yaml) for the workspace member list and Melos script
-definitions.
+This is a [Dart pub workspace](https://dart.dev/tools/pub/workspaces) managed with [Melos](https://melos.invertase.dev). See root [`pubspec.yaml`](pubspec.yaml) for the workspace member list and Melos script definitions.
 
 ```pwsh
 melos bs              # bootstrap — links local path: deps across all packages
@@ -37,11 +69,9 @@ melos run lint
 melos run test
 ```
 
-**Never** run `flutter pub get` or `dart pub get` manually in a subdirectory —
-always bootstrap from the root with `melos bs`.
+**Never** run `flutter pub get` or `dart pub get` manually in a subdirectory — always bootstrap from the root with `melos bs`.
 
-To actually run the example app and backend (not just verify the code), see
-[scripts/README.md](scripts/README.md):
+To actually run the example app and backend (not just verify the code), see [scripts/README.md](scripts/README.md):
 
 ```pwsh
 ./scripts/bootstrap.ps1       # once per machine — TLS cert for web checkout
