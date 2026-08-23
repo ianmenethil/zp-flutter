@@ -473,25 +473,33 @@ class _CheckoutPageState extends State<CheckoutPage> {
         children: <Widget>[
           ZenPayEnvironmentBanner(allowedCheckoutHosts: allowedCheckoutHosts),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: <Widget>[
-                ..._buildTransactionModeSection(context),
-                if (_mode.usesAmount) ...<Widget>[
-                  const SizedBox(height: 16),
-                  ZenPayAmountField(
-                    controller: _amount,
-                    hintText: _placeholderAmount.toStringAsFixed(2),
-                    presets: _mode.amountPresets,
-                  ),
-                ],
-                const SizedBox(height: 16),
-                ..._buildCustomerFields(),
-                const SizedBox(height: 20),
-                ZenPayPayButton(onPressed: _busy ? null : _pay, isBusy: _busy),
-                const SizedBox(height: 20),
-                _buildResults(context),
-              ],
+            child: Center(
+              child: ConstrainedBox(
+                // Keeps this mobile-first layout mobile-sized on web/desktop
+                // instead of stretching every field/card to the window width;
+                // clamps down on narrower screens instead of overflowing.
+                constraints: const BoxConstraints(minWidth: 400, maxWidth: 600),
+                child: ListView(
+                  padding: const EdgeInsets.all(24),
+                  children: <Widget>[
+                    ..._buildTransactionModeSection(context),
+                    if (_mode.usesAmount) ...<Widget>[
+                      const SizedBox(height: 16),
+                      ZenPayAmountField(
+                        controller: _amount,
+                        hintText: _placeholderAmount.toStringAsFixed(2),
+                        presets: _mode.amountPresets,
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    ..._buildCustomerFields(),
+                    const SizedBox(height: 20),
+                    ZenPayPayButton(onPressed: _busy ? null : _pay, isBusy: _busy),
+                    const SizedBox(height: 20),
+                    _buildResults(context),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

@@ -14,6 +14,18 @@
   "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
+  // Served only on the custom domain below. Without workers_dev: false here,
+  // `wrangler deploy` silently re-enables the *.workers.dev route on every
+  // deploy even after disabling it in the dashboard (Cloudflare's own
+  // documented behavior) — this is what was overriding the domain switch.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "flutter-demo.zenithpayments.support",
+      "custom_domain": true,
+    },
+  ],
   // Required to see the container's OWN stdout/stderr (not just the Worker's)
   // in the dashboard/tail — see https://developers.cloudflare.com/containers/faq/.
   "observability": {
