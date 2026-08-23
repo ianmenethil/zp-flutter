@@ -1,0 +1,5 @@
+# Internal agent-guideline docs — not part of the published API surface.
+CLAUDE.md
+AGENTS.md
+lib/CLAUDE.md
+lib/AGENTS.md
