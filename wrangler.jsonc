@@ -25,9 +25,9 @@
   // FIREBASE_SERVICE_ACCOUNT_JSON) stay out of this file, via
   // `wrangler secret put <NAME>`.
   "vars": {
-    "PUBLIC_BASE_URL": "https://flutter-demo.ianmenethil.workers.dev",
-    "ALLOWED_APP_ORIGIN": "https://flutter-demo.ianmenethil.workers.dev",
-    "APP_RETURN_URI_WEB": "https://flutter-demo.ianmenethil.workers.dev/return",
+    "PUBLIC_BASE_URL": "https://flutter-demo.zenithpayments.support",
+    "ALLOWED_APP_ORIGIN": "https://flutter-demo.zenithpayments.support",
+    "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/return",
     "FIREBASE_PROJECT_NUMBER": "356498821161",
   },
   "containers": [
@@ -50,8 +50,8 @@
       // then uses AS-IS instead of falling back to its own default, so it
       // must be set explicitly to this Worker's real URL.
       "image_vars": {
-        "APP_RETURN_URI_WEB": "https://flutter-demo.ianmenethil.workers.dev/return",
-        "BACKEND_BASE_URL": "https://flutter-demo.ianmenethil.workers.dev",
+        "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/return",
+        "BACKEND_BASE_URL": "https://flutter-demo.zenithpayments.support",
       },
     },
   ],

@@ -400,6 +400,7 @@ Future<int> _runLive(
   List<String> args, {
   String? cwd,
   bool inheritStdio = true,
+  bool runInShell = false,
   Map<String, String>? environment,
 }) async {
   StreamSubscription<ProcessSignal>? sigintSub;
@@ -411,11 +412,18 @@ Future<int> _runLive(
       sigintSub = ProcessSignal.sigint.watch().listen((_) {});
     } on Object catch (_) {} // ProcessSignal.sigint might not be supported on all platforms, though it is on Windows.
 
+    // runInShell is opt-in (see _cfDeploy): for a one-shot, non-interactive
+    // command it makes this spawn identically to typing it at a shell
+    // prompt. It's not the default because cmd.exe's own Ctrl+C handling is
+    // what corrupts the terminal for long-lived interactive processes (see
+    // _resolveExecutable's doc comment) — a risk that doesn't apply to a
+    // command that just runs to completion on its own.
     final process = await Process.start(
-      _resolveExecutable(executable),
+      runInShell ? executable : _resolveExecutable(executable),
       args,
       workingDirectory: cwd,
       mode: ProcessStartMode.inheritStdio,
+      runInShell: runInShell,
       environment: environment,
     );
     final exitCode = await process.exitCode;
@@ -461,9 +469,10 @@ Future<Never> _execForeground(
   List<String> args, {
   String? cwd,
   bool inheritStdio = true,
+  bool runInShell = false,
   Map<String, String>? environment,
 }) async {
-  exit(await _runLive(executable, args, cwd: cwd, inheritStdio: inheritStdio, environment: environment));
+  exit(await _runLive(executable, args, cwd: cwd, inheritStdio: inheritStdio, runInShell: runInShell, environment: environment));
 }
 
 /// First-run setup for a fresh clone: resolves the pub workspace and creates
@@ -780,11 +789,11 @@ Future<void> _stream({String? deviceId}) async {
 
   // Use the Android SDK's adb if available, to prevent adb daemon version conflicts
   // with scrcpy's bundled adb when using Flutter/Android Studio simultaneously.
-  final String sdkAdb = _findAdb();
+  final sdkAdb = _findAdb();
 
   final device = deviceId ?? _pickAdbDevice();
   await _execForeground(
-    'scrcpy', 
+    'scrcpy',
     ['-s', device, '--no-clipboard-autosync', '--no-audio'],
     environment: sdkAdb != 'adb' ? {'ADB': sdkAdb} : null,
   );
@@ -1194,7 +1203,7 @@ Future<void> _dockerRebuild(String root) async {
 
 Future<void> _cfDeploy(String root) async {
   _info('Deploying Cloudflare Workers and Containers (via npm run cf:deploy)...');
-  
+
   if (!File('$root/package.json').existsSync()) {
     _error('package.json not found in the root directory.');
     exit(1);
@@ -1202,6 +1211,11 @@ Future<void> _cfDeploy(String root) async {
 
   // Windows needs npm.cmd instead of just npm
   final npmCommand = Platform.isWindows ? 'npm.cmd' : 'npm';
-  
-  await _execForeground(npmCommand, ['run', 'cf:deploy'], cwd: root);
+
+  // runInShell so this spawns exactly as if you'd typed `npm run cf:deploy`
+  // yourself — wrangler deploy is a one-shot command that runs to
+  // completion on its own, not a long-lived process a user interrupts with
+  // Ctrl+C, so runInShell's terminal-corruption risk (see _runLive) doesn't
+  // apply here.
+  await _execForeground(npmCommand, ['run', 'cf:deploy'], cwd: root, runInShell: true);
 }

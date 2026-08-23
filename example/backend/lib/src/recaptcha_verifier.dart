@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:googleapis/recaptchaenterprise/v1.dart' as recaptcha;
 import 'package:googleapis_auth/auth_io.dart' as auth;
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 
 final _logger = Logger('recaptcha_verifier');
 
@@ -54,9 +55,15 @@ abstract interface class RecaptchaVerifier {
 final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
   /// Creates a [GoogleCloudRecaptchaVerifier] from a service account JSON
   /// string or a path to one.
-  GoogleCloudRecaptchaVerifier(String serviceAccountJsonOrPath) : _credentials = _parseCredentials(serviceAccountJsonOrPath);
+  GoogleCloudRecaptchaVerifier(String serviceAccountJsonOrPath) : _credentials = _parseCredentials(serviceAccountJsonOrPath), _injectedApi = null;
 
-  final auth.ServiceAccountCredentials _credentials;
+  /// Bypasses service-account credential loading entirely, using [api]
+  /// directly — for tests that back it with a fake `http.Client`.
+  @visibleForTesting
+  GoogleCloudRecaptchaVerifier.withApi(recaptcha.RecaptchaEnterpriseApi api) : _credentials = null, _injectedApi = api;
+
+  final auth.ServiceAccountCredentials? _credentials;
+  final recaptcha.RecaptchaEnterpriseApi? _injectedApi;
   auth.AuthClient? _client;
 
   static const _scopes = ['https://www.googleapis.com/auth/cloud-platform'];
@@ -69,7 +76,12 @@ final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
     );
   }
 
-  Future<auth.AuthClient> _authClient() async => _client ??= await auth.clientViaServiceAccount(_credentials, _scopes);
+  Future<recaptcha.RecaptchaEnterpriseApi> _api() async {
+    final injectedApi = _injectedApi;
+    if (injectedApi != null) return injectedApi;
+    final client = _client ??= await auth.clientViaServiceAccount(_credentials!, _scopes);
+    return recaptcha.RecaptchaEnterpriseApi(client);
+  }
 
   @override
   Future<RecaptchaResult> verify(
@@ -83,8 +95,7 @@ final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
     double? paymentAmount,
   }) async {
     try {
-      final client = await _authClient();
-      final api = recaptcha.RecaptchaEnterpriseApi(client);
+      final api = await _api();
 
       final request = recaptcha.GoogleCloudRecaptchaenterpriseV1Assessment(
         event: recaptcha.GoogleCloudRecaptchaenterpriseV1Event(
