@@ -24,5 +24,12 @@ the internet at install time, so `localhost` can never verify. Use a tunnel
 (`cloudflared tunnel --url http://localhost:7000`) and set `PUBLIC_BASE_URL` to
 the HTTPS URL it prints.
 
+`AndroidManifest.xml` and `Runner.entitlements` are never hand-edited —
+[`scripts/apply_platform_config.dart`](../../../scripts/apply_platform_config.dart)
+writes both from one `--host` value, and `dart run cli.dart --server` calls it
+automatically whenever `PUBLIC_BASE_URL` changes. To point them at the
+production host in `wrangler.jsonc` instead, run
+`dart run scripts/apply_platform_config.dart --from-wrangler`.
+
 Note: `apple-app-site-association` has no `.json` extension by design, and must
 be served as `application/json` — both are what Apple's fetcher expects.

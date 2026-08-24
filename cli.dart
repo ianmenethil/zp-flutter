@@ -571,10 +571,9 @@ Future<void> _server(
       newUrl = stdin.readLineSync()?.trim() ?? '';
     }
 
-    // Three other places derive from this host. Leaving any of them stale
-    // fails silently — the SDK compares the return URI exactly, and App Link
-    // verification compares the host — so update them here rather than
-    // printing instructions and hoping.
+    // Two other places derive from this host. Leaving either stale fails
+    // silently — the SDK compares the return URI exactly — so update them
+    // here rather than printing instructions and hoping.
     if (newUrl.isNotEmpty) {
       content = content.replaceFirst(
         RegExp(r'^PUBLIC_BASE_URL\s*=.*$', multiLine: true),
@@ -596,17 +595,16 @@ Future<void> _server(
       } else {
         _warn('No example/app/.env — copy .env.example, then re-run.');
       }
-
-      if (Directory('$root/example/app/android').existsSync()) {
-        await _runChecked('dart', [
-          'run',
-          'scripts/apply_platform_config.dart',
-          '--host',
-          Uri.parse(newUrl).host,
-        ], cwd: root);
-      }
     }
   }
+
+  // Always sync native App Link config to whatever PUBLIC_BASE_URL ends up
+  // being — including when it was just kept as-is (Enter, or --keep-url) —
+  // not only on an explicit change. Native config can drift for reasons this
+  // function never sees (e.g. someone ran apply_platform_config.dart
+  // directly, or --from-wrangler), and "kept the same value" must still mean
+  // "in sync with it", not "whatever it happened to already say".
+  await _syncNativeAppLinkConfig(root);
 
   await _execForeground(
     'dart',
@@ -614,6 +612,32 @@ Future<void> _server(
     cwd: backendDir,
     inheritStdio: false,
   );
+}
+
+/// Points `AndroidManifest.xml`/`Runner.entitlements` at whatever host
+/// `example/backend/.env`'s `PUBLIC_BASE_URL` currently names, via
+/// `scripts/apply_platform_config.dart`. Never hardcodes a host — every
+/// clone of this repo has its own tunnel/production value in its own
+/// `.env`, and this only ever reads that. No-op if `.env` or the Android
+/// project don't exist yet (fresh clone, `--ios`-only workflow, etc.).
+Future<void> _syncNativeAppLinkConfig(String root) async {
+  final envFile = File('$root/example/backend/.env');
+  if (!envFile.existsSync() || !Directory('$root/example/app/android').existsSync()) {
+    return;
+  }
+
+  final host = RegExp(
+    r'^PUBLIC_BASE_URL\s*=\s*https?://([^/\s]+)',
+    multiLine: true,
+  ).firstMatch(envFile.readAsStringSync())?.group(1);
+  if (host == null || host.isEmpty) return;
+
+  await _runChecked('dart', [
+    'run',
+    'scripts/apply_platform_config.dart',
+    '--host',
+    host,
+  ], cwd: root);
 }
 
 /// Assumes the backend is already running.
@@ -624,6 +648,8 @@ Future<void> _server(
 /// connected by USB and wirelessly at once, which adb reports as two
 /// targets for the same device.
 Future<void> _android(String root, {String? deviceId, String? target}) async {
+  await _syncNativeAppLinkConfig(root);
+
   final device = deviceId ?? _pickAdbDevice();
 
   _info('Using device: $device');
@@ -698,6 +724,8 @@ Future<void> _ios(String root, {String? deviceId}) async {
     );
     exit(1);
   }
+
+  await _syncNativeAppLinkConfig(root);
 
   await _execForeground('flutter', [
     'run',

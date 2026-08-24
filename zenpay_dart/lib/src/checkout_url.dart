@@ -66,6 +66,19 @@ ZpUrlFailure? validateZpCheckoutUrlRequest(ZpCheckoutOptions request) {
     return const ZpUrlFailure(ZpErrors.merchantCodeEmpty);
   }
 
+  // merchantCode is spliced directly into the URL path as one segment
+  // (`$basePath/$merchantCode/Authorise`), unencoded — matching the
+  // TypeScript SDK's generateUrl(), which does the same raw concatenation
+  // with no path-segment validation of its own. A `/` would silently split
+  // it into extra segments; a bare "." or ".." would be consumed by RFC 3986
+  // dot-segment normalization instead of surviving as a literal value. Both
+  // build successfully but land on a different path than intended, so this
+  // package rejects them explicitly — a Dart-only addition beyond what TS
+  // validates, since TS has no equivalent check.
+  if (request.merchantCode.contains('/') || request.merchantCode == '.' || request.merchantCode == '..') {
+    return const ZpUrlFailure(ZpErrors.merchantCodeInvalidPathSegment);
+  }
+
   if ((request.callbackUrl?.isEmpty ?? true) && (request.redirectUrl?.isEmpty ?? true)) {
     return const ZpUrlFailure(ZpErrors.callbackOrRedirectEmpty);
   }

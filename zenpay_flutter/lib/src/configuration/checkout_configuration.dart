@@ -4,6 +4,7 @@
 /// session timeouts, UI options, and telemetry observers for [ZpCheckout].
 library;
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:zenpay_flutter/src/checkout/checkout_controller.dart' show ZpCheckout;
 import 'package:zenpay_flutter/src/observability/checkout_event.dart';
@@ -103,4 +104,34 @@ final class ZpCheckoutConfiguration({
   final Set<String> allowedCheckoutHosts = Set<String>.unmodifiable(
     allowedCheckoutHosts.map((host) => host.trim().toLowerCase()),
   );
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ZpCheckoutConfiguration &&
+          _setEquality.equals(other.allowedCheckoutHosts, allowedCheckoutHosts) &&
+          other.expectedReturnUri == expectedReturnUri &&
+          other.timeout == timeout &&
+          other.showBrowserTitle == showBrowserTitle &&
+          other.allowExternalBrowserFallback == allowExternalBrowserFallback &&
+          other.maxReturnUriLength == maxReturnUriLength &&
+          other.maxReturnValueLength == maxReturnValueLength &&
+          other.observer == observer);
+
+  @override
+  int get hashCode => Object.hash(
+    ZpCheckoutConfiguration,
+    _setEquality.hash(allowedCheckoutHosts),
+    expectedReturnUri,
+    timeout,
+    showBrowserTitle,
+    allowExternalBrowserFallback,
+    maxReturnUriLength,
+    maxReturnValueLength,
+    observer,
+  );
 }
+
+/// Dart's default `Set` equality is identity, not element-wise — this is what
+/// makes `allowedCheckoutHosts` comparable by value in `==`/`hashCode` above.
+const _setEquality = SetEquality<String>();

@@ -13,13 +13,13 @@ symlink to it). Combined example overview: [../README.md](../README.md).
 
 ## Quick Start
 
-`example/backend` must already be running. From the **repository root** (see
-[scripts/README.md](../../scripts/README.md) for TLS setup on web):
+`example/backend` must already be running (`dart run cli.dart --server`).
+From the **repository root**:
 
 ```pwsh
-./scripts/run-android.ps1     # picks the adb device, sets up adb reverse
-./scripts/run-ios.ps1         # macOS + Xcode only
-./scripts/run-web.ps1         # Chrome at https://localhost:3000, needs a local TLS cert
+dart run cli.dart --android     # picks the adb device, sets up adb reverse
+dart run cli.dart --ios         # macOS + Xcode only
+dart run cli.dart --web         # Chrome at https://localhost:3000, needs a local TLS cert (--bootstrap)
 ```
 
 Configuration is `.env` (copy from `.env.example`) — must agree with
@@ -28,7 +28,7 @@ host, port, path) and rejects a mismatch rather than ignoring it.
 
 | Variable                 | Used on       | Description                                                                          |
 | :------------------------ | :------------- | :-------------------------------------------------------------------------------------- |
-| `BACKEND_BASE_URL`        | all            | Where `example/backend` listens. Android reaches it via `adb reverse` (handled by `run-android.ps1`). |
+| `BACKEND_BASE_URL`        | all            | Where `example/backend` listens. Android reaches it via `adb reverse` (handled by `cli.dart --android`). |
 | `ALLOWED_CHECKOUT_HOSTS`  | all            | Hosts a checkout URL may point at — must match backend's `ZENPAY_ALLOWED_CHECKOUT_HOSTS`. |
 | `APP_RETURN_URI_WEB`      | web            | HTTPS return URI for web checkouts (default `https://localhost:3000/`).             |
 | `APP_RETURN_URI_MOBILE`   | Android, iOS   | Public HTTPS host serving `/.well-known/` — never `localhost`; the OS fetches those files from the internet. |

@@ -1,5 +1,15 @@
 ## 0.1.0
 
+- Fixed `AppLinksReturnUriSource` and `FakeReturnUriSource` (in `lib/testing.dart`)
+  replaying stale initial deep links on every subscription to the return URI stream.
+  The native App Links implementation caches the cold-start link once for the process
+  lifetime, but `createDefaultReturnUriSource()` constructs a fresh source per
+  `ZpCheckout`, and `ZpCheckout.open()` subscribes anew on each call, allowing old
+  completed links to be silently replayed into unrelated later checkout attempts.
+  Both sources now guard the initial link to yield it at most once: `AppLinksReturnUriSource`
+  uses a process-wide guard, `FakeReturnUriSource` uses per-instance guarding for
+  accurate test isolation. Added `@visibleForTesting` `resetInitialLinkConsumedForTesting()`
+  for test reset.
 - Public `CheckoutPresenter` interface for custom presentation surfaces:
   enables external packages to implement custom browser presentations (e.g.
   embedded WebView) and provide them via the optional `presenter` constructor
@@ -40,3 +50,17 @@
   return URI matching as public `matchesReturnUriAddress` for shared use across
   mobile and web return validation; web popup return validation now delegates to
   this shared predicate to eliminate a duplicated same-origin check.
+- Fixed race condition where `ZpCheckout.dispose()` called during a pending
+  `openCheckout()` would settle the checkout immediately as dismissed and cancel
+  return-uri subscriptions before a genuine return could be received — silencing
+  true outcomes and calling dismiss against unopened browsers. `dispose()` now
+  defers settling the checkout until the pending `openCheckout()` completes,
+  ensuring returns arriving in that window are still honored and dismissals occur
+  correctly.
+- Added `==` and `hashCode` overrides to public immutable model types
+  (`ZpReturnReceived`, `ZpPresentationDismissed`, `ZpTimedOut`, `ZpLaunchFailed`,
+  `ZpLaunchRejectedEvent`, `ZpPresentedEvent`, `ZpReturnRejectedEvent`,
+  `ZpReturnAcceptedEvent`, `ZpFinishedEvent`, `ZpCheckoutConfiguration`,
+  `PresentationLaunchResult`). `ZpCheckoutConfiguration` has a `Set<String>` field
+  requiring element-wise equality, so added `package:collection` as a new
+  dependency.

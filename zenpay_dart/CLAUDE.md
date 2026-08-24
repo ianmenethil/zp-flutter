@@ -125,9 +125,23 @@ Overview of all source files in `lib/`, detailing each file's purpose along with
 1. **Timing-Safe Equality**:
    - All cryptographic hash (SHA3-512 `ValidationCode`), HMAC-SHA3-512 callback tokens, and bearer token comparisons **must** use timing-safe comparison methods (`constantTimeHexEqual`, `constantTimeEqual`, or constant-time digest comparison) to prevent timing attacks.
 2. **Credential & Secret Protection**:
-   - Never hardcode ZenPay API keys, merchant passwords, shared secrets, or live credentials.
+   - Never hardcode ZenPay API keys, merchant passwords, shared secrets, or live credentials. Read them from the environment or a secret store — see [example/main.dart](example/main.dart).
    - Do not log sensitive fields (passwords, cardholder numbers, CVV, authentication secrets).
-   - Safe to log for debugging: `merchantUniquePaymentId`, merchant codes, checkout launch URLs (without raw secrets), customer reference IDs, and callback event types.
+   - Safe to log for debugging: `merchantUniquePaymentId`, merchant codes, checkout launch URLs, customer reference IDs, and callback event types.
+
+   **Public vs secret — do not mask the public values.** These are **public and safe to log in full**, including inside a complete launch URL:
+
+   | Value | Why it is public |
+   |---|---|
+   | `__ApiKey` | travels in the Authorise URL the customer's own browser loads |
+   | `__Fingerprint` | a per-transaction SHA3-512 digest, also in that URL; useless without the password that produced it |
+   | `merchantCode` | a merchant identifier in the URL path |
+   | `merchantUniquePaymentId` | an ordinary opaque per-payment reference |
+   | `timestamp`, `customerReference`, `paymentAmount` | ordinary request fields in the URL |
+
+   So **log the launch URL in full** — do not mask, redact, or partially obscure any of its query values. Masking them adds no security (the browser receives the same URL) and makes logs harder to correlate.
+
+   The genuine secrets, which must never be logged, embedded in a URL, or committed: the **merchant password**, the **HMAC secret** passed to `createZpCallbackUrlToken`, and any **cardholder data** (PAN, CVV, expiry). The merchant password and HMAC secret are hash *inputs* only — they never appear in any URL this package builds. Note the distinct convention in `example/backend`, which masks `authorization` / `x-recaptcha-token` header values: those carry bearer secrets, which is a different class of value from the launch-URL parameters above.
 3. **Launch URL Generation**:
    - Launch URLs must be constructed locally using query parameter serialization without making outbound network requests at launch time.
 4. **Callback & State Verification**:

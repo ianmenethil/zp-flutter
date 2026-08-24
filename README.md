@@ -57,12 +57,44 @@ Each package has its own `CLAUDE.md` (agent guidelines) and `README.md` (usage d
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-This is a [Dart pub workspace](https://dart.dev/tools/pub/workspaces) managed with [Melos](https://melos.invertase.dev). See root [`pubspec.yaml`](pubspec.yaml) for the workspace member list and Melos script definitions.
+Requires the Flutter SDK and Dart SDK on `PATH` (`mkcert` too, if you want the
+local TLS cert for web checkout). Run these **in order**:
+
+1. Clone this repo.
+2. ```pwsh
+   dart run cli.dart --bootstrap
+   ```
+   Resolves the pub workspace, creates `example/backend/.env` and
+   `example/app/.env` from their templates, and sets up the local TLS cert
+   for web checkout.
+3. Fill in your `ZENPAY_*` credentials in `example/backend/.env` — the
+   server will not start without them.
+4. ```pwsh
+   dart run cli.dart --server
+   ```
+   Starts `example/backend` on `:7000`. Prompts for `PUBLIC_BASE_URL` and
+   propagates it to `example/app/.env` and the native Android/iOS App Link
+   config.
+5. ```pwsh
+   dart run cli.dart --android   # or --ios / --web
+   ```
+   Starts `example/app`, talking to the backend from step 4.
+
+`dart run cli.dart --help` lists every other mode (named/quick tunnels,
+Docker, Cloudflare deploy, release bumps). See
+[example/README.md](example/README.md) for local dev vs. production hosts.
+
+### Verifying changes
+
+This is a [Dart pub workspace](https://dart.dev/tools/pub/workspaces)
+managed with [Melos](https://melos.invertase.dev) — see root
+[`pubspec.yaml`](pubspec.yaml) for the workspace member list and Melos
+script definitions. Run from the repo root, independent of the steps above:
 
 ```pwsh
-melos bs              # bootstrap — links local path: deps across all packages
+melos bs              # links local path: deps across all packages
 melos run format
 melos run analyze
 melos run lint
@@ -70,14 +102,6 @@ melos run test
 ```
 
 **Never** run `flutter pub get` or `dart pub get` manually in a subdirectory — always bootstrap from the root with `melos bs`.
-
-To actually run the example app and backend (not just verify the code), see [scripts/README.md](scripts/README.md):
-
-```pwsh
-./scripts/bootstrap.ps1       # once per machine — TLS cert for web checkout
-./scripts/run-backend.ps1     # example/backend on :7000
-./scripts/run-android.ps1     # or run-ios.ps1 / run-web.ps1
-```
 
 ---
 

@@ -91,10 +91,10 @@ Edit `../example/backend/.env` with your merchant credentials:
 
 ### 3. Run the Server
 
-**From the repo root** (recommended — see [scripts/README.md](../scripts/README.md)):
+**From the repo root** (recommended):
 
 ```pwsh
-./scripts/run-backend.ps1
+dart run cli.dart --server
 ```
 
 **Or directly with Dart:**

@@ -25,15 +25,15 @@ cp .env.example .env
 
 Edit `.env` with your merchant credentials — see the table below.
 
-Run it from the **repository root** (recommended, handles nothing special
-here but keeps every script's working directory consistent — see
-[scripts/README.md](../../scripts/README.md)):
+Run it from the **repository root** (recommended — prompts for/updates
+`PUBLIC_BASE_URL` and propagates it to `example/app`'s `.env` and the native
+Android/iOS App Link config):
 
 ```pwsh
-./scripts/run-backend.ps1
+dart run cli.dart --server
 ```
 
-Or directly:
+Or directly, skipping that prompt/propagation:
 
 ```bash
 dart run bin/server.dart

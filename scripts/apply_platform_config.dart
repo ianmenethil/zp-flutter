@@ -5,23 +5,36 @@
 // the return host changes:
 //
 //   dart run scripts/apply_platform_config.dart --host payments.yourmerchant.com
+//   dart run scripts/apply_platform_config.dart --from-wrangler
 //
 // It exists so the host is never hardcoded in a committed manifest, and so the
 // config survives platform folders being regenerated. Idempotent: re-running
 // against the same host changes nothing.
+//
+// AndroidManifest.xml/Runner.entitlements hold exactly one host at a time —
+// local tunnel or production, never both. `cli.dart`'s `_server()` calls this
+// script with the tunnel's host automatically whenever PUBLIC_BASE_URL
+// changes, so running `--server` without `--keep-url` silently switches native
+// config back to the tunnel. Use `--from-wrangler` to point it at production
+// again afterward.
 import 'dart:io';
 
 import 'package:args/args.dart';
 
 const _defaultPath = '/zenpay/app-return';
 
-/// Builds the `--host`/`--root`/`--path` parser. A top-level function so
-/// tests can exercise parsing without invoking [main] (which calls [exit]).
+/// Builds the `--host`/`--from-wrangler`/`--root`/`--path` parser. A
+/// top-level function so tests can exercise parsing without invoking [main]
+/// (which calls [exit]).
 ArgParser buildParser() => ArgParser()
   ..addOption(
     'host',
     help: 'The App Link / Universal Link host, e.g. payments.example.com.',
-    mandatory: true,
+  )
+  ..addFlag(
+    'from-wrangler',
+    negatable: false,
+    help: "Read the host from wrangler.jsonc's vars.PUBLIC_BASE_URL instead of --host.",
   )
   ..addOption(
     'root',
@@ -47,18 +60,16 @@ void main(List<String> arguments) {
     return;
   }
 
-  // `mandatory: true` only auto-throws during parse() if the option also has
-  // a callback; without one it silently defers to a later ArgumentError. So
-  // this is checked explicitly rather than relied on.
-  if (!results.wasParsed('host')) {
+  final fromWrangler = results['from-wrangler'] as bool;
+  if (results.wasParsed('host') == fromWrangler) {
     stderr
-      ..writeln('Missing required option: --host')
+      ..writeln('Pass exactly one of --host or --from-wrangler.')
       ..writeln(parser.usage);
     exit(64);
   }
 
   final root = results['root'] as String? ?? Directory.current.path;
-  final host = results['host'] as String;
+  final host = fromWrangler ? hostFromWrangler(root) : results['host'] as String;
   final path = results['path'] as String;
   if (!path.startsWith('/')) {
     stderr.writeln("--path must begin with '/'.");
@@ -67,6 +78,25 @@ void main(List<String> arguments) {
   patchAndroid(root, host, path);
   patchIos(root, host);
   stdout.writeln('Applied App Link config for $host$path.');
+}
+
+/// Reads the production host out of `wrangler.jsonc`'s `vars.PUBLIC_BASE_URL`.
+/// Public so tests can call it directly against a temp directory.
+String hostFromWrangler(String root) {
+  final wrangler = File('$root/wrangler.jsonc');
+  if (!wrangler.existsSync()) {
+    stderr.writeln('wrangler.jsonc not found: ${wrangler.path}');
+    exit(1);
+  }
+
+  final match = RegExp(
+    r'"PUBLIC_BASE_URL"\s*:\s*"https?://([^/"]+)',
+  ).firstMatch(wrangler.readAsStringSync());
+  if (match == null) {
+    stderr.writeln('Could not find vars.PUBLIC_BASE_URL in ${wrangler.path}.');
+    exit(1);
+  }
+  return match.group(1)!;
 }
 
 /// Patches `AndroidManifest.xml` with the App Link intent filter. Public so

@@ -44,11 +44,12 @@ const _projectPbxproj = '''
 void main() {
   group('buildParser', () {
     test('does not mark --host parsed when omitted', () {
-      // package:args only auto-throws a mandatory option's absence during
-      // parse() if the option also has a callback; main() checks
-      // wasParsed('host') explicitly instead, so that is what this protects.
+      // main() requires exactly one of --host/--from-wrangler via
+      // wasParsed('host') vs. the from-wrangler flag, so that is what this
+      // protects.
       final results = buildParser().parse([]);
       expect(results.wasParsed('host'), isFalse);
+      expect(results['from-wrangler'], isFalse);
     });
 
     test('accepts --host and defaults --path', () {
@@ -57,6 +58,38 @@ void main() {
       expect(results['host'], 'payments.example.com');
       expect(results['path'], '/zenpay/app-return');
       expect(results['root'], isNull);
+    });
+
+    test('accepts --from-wrangler', () {
+      final results = buildParser().parse(['--from-wrangler']);
+      expect(results['from-wrangler'], isTrue);
+      expect(results.wasParsed('host'), isFalse);
+    });
+  });
+
+  group('hostFromWrangler', () {
+    late Directory root;
+
+    setUp(() {
+      root = Directory.systemTemp.createTempSync('apply_platform_config_');
+    });
+
+    tearDown(() => root.deleteSync(recursive: true));
+
+    test('extracts the host from vars.PUBLIC_BASE_URL', () {
+      File('${root.path}/wrangler.jsonc').writeAsStringSync('''
+{
+  // comment
+  "vars": {
+    "PUBLIC_BASE_URL": "https://flutter-demo.zenithpayments.support",
+  },
+}
+''');
+
+      expect(
+        hostFromWrangler(root.path),
+        'flutter-demo.zenithpayments.support',
+      );
     });
   });
 

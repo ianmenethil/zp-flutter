@@ -5,6 +5,7 @@
 library;
 
 import 'package:app_links/app_links.dart';
+import 'package:meta/meta.dart';
 
 import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
 
@@ -50,15 +51,38 @@ final class AppLinksReturnUriSource implements ZpReturnUriSource {
 
   final AppLinksPlatformAdapter _adapter;
 
+  /// Whether some [AppLinksReturnUriSource] instance in this process has
+  /// already consumed the cold-start initial link.
+  ///
+  /// `getInitialLink()` returns the same cached value on every call for the
+  /// life of the process — the native side sets it once and never clears
+  /// it — so this has to be a process-wide guard, not an instance field: a
+  /// brand-new [AppLinksReturnUriSource] (as `createDefaultReturnUriSource()`
+  /// builds per `ZpCheckout`) would otherwise still read and re-yield the
+  /// same stale link a second, unrelated checkout attempt never actually
+  /// received.
+  static bool _initialLinkConsumed = false;
+
+  /// Resets the one-shot guard above. Test-only — production code has no
+  /// legitimate reason to re-consume a cold-start link already read once in
+  /// this process.
+  @visibleForTesting
+  static void resetInitialLinkConsumedForTesting() {
+    _initialLinkConsumed = false;
+  }
+
   @override
   Stream<Uri> get uris async* {
-    try {
-      final initialUri = await _adapter.getInitialLink();
-      if (initialUri != null) {
-        yield initialUri;
+    if (!_initialLinkConsumed) {
+      _initialLinkConsumed = true;
+      try {
+        final initialUri = await _adapter.getInitialLink();
+        if (initialUri != null) {
+          yield initialUri;
+        }
+      } on Object {
+        // Ignore initial link retrieval failures
       }
-    } on Object {
-      // Ignore initial link retrieval failures
     }
     yield* _adapter.uriLinkStream;
   }

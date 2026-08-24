@@ -20,6 +20,14 @@ final class PresentationLaunchResult {
 
   /// Whether launch fell back to an external system browser.
   final bool usedExternalBrowserFallback;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PresentationLaunchResult && other.launched == launched && other.usedExternalBrowserFallback == usedExternalBrowserFallback);
+
+  @override
+  int get hashCode => Object.hash(PresentationLaunchResult, launched, usedExternalBrowserFallback);
 }
 
 /// Presents the ZenPay hosted checkout page and reports its lifecycle.

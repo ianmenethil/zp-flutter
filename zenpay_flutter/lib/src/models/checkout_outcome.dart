@@ -38,6 +38,12 @@ final class ZpReturnReceived extends ZpCheckoutOutcome {
   /// Read whatever the merchant backend put there. The SDK does not interpret
   /// it and holds no opinion about which checkout it belongs to.
   final Uri returnUri;
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || (other is ZpReturnReceived && other.returnUri == returnUri);
+
+  @override
+  int get hashCode => Object.hash(ZpReturnReceived, returnUri);
 }
 
 /// The customer closed the browser surface before any return arrived.
@@ -47,6 +53,12 @@ final class ZpReturnReceived extends ZpCheckoutOutcome {
 final class ZpPresentationDismissed extends ZpCheckoutOutcome {
   /// Creates a [ZpPresentationDismissed] outcome.
   const ZpPresentationDismissed();
+
+  @override
+  bool operator ==(Object other) => other is ZpPresentationDismissed;
+
+  @override
+  int get hashCode => (ZpPresentationDismissed).hashCode;
 }
 
 /// Nothing settled the checkout before `ZpCheckoutConfiguration.timeout`.
@@ -55,6 +67,12 @@ final class ZpPresentationDismissed extends ZpCheckoutOutcome {
 final class ZpTimedOut extends ZpCheckoutOutcome {
   /// Creates a [ZpTimedOut] outcome.
   const ZpTimedOut();
+
+  @override
+  bool operator ==(Object other) => other is ZpTimedOut;
+
+  @override
+  int get hashCode => (ZpTimedOut).hashCode;
 }
 
 /// The browser surface could not be opened, so checkout never started.
@@ -64,6 +82,12 @@ final class ZpLaunchFailed extends ZpCheckoutOutcome {
 
   /// Which failure the platform reported.
   final ZpLaunchFailureCode code;
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || (other is ZpLaunchFailed && other.code == code);
+
+  @override
+  int get hashCode => Object.hash(ZpLaunchFailed, code);
 }
 
 /// Why a browser launch failed.

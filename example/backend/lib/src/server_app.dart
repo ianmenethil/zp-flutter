@@ -29,7 +29,8 @@ import 'package:zenpay_example_backend/src/models.dart';
 import 'package:zenpay_example_backend/src/rate_limiter.dart' show FixedWindowRateLimiter;
 import 'package:zenpay_example_backend/src/recaptcha_verifier.dart';
 import 'package:zenpay_example_backend/src/security.dart' show constantTimeEqual, verifyCallback;
-import 'package:zenpay_example_backend/src/session_service.dart' show appReturnUriFor, callbacksPath, exchangeCheckout, prepareCheckout, returnPath;
+import 'package:zenpay_example_backend/src/session_service.dart'
+    show appReturnPath, appReturnUriFor, callbacksPath, exchangeCheckout, prepareCheckout, returnPath;
 import 'package:zenpay_example_backend/src/token_keys.dart' show callbackTokenKey;
 
 /// HTTP header name constants used across request parsing and logging.
@@ -633,10 +634,18 @@ shelf.Handler buildHandler(
       final responseBody = await response.read().expand((c) => c).toList();
       response = response.change(body: responseBody);
 
-      // Only the API surface is traced — the Flutter Web static mount
-      // (`/`, `/assets/...`, etc.) would otherwise flood this log with every
-      // asset request on page load.
-      if (request.requestedUri.path.startsWith('/api/v1/')) {
+      // The API surface plus /return and appReturnPath are traced — the
+      // Flutter Web static mount (`/`, `/assets/...`, etc.) would otherwise
+      // flood this log with every asset request on page load. /return is
+      // included despite not being under /api/v1/ because it's the one
+      // request that shows whether a real deep-link return actually reached
+      // this backend, versus the client falling back to its own
+      // resume-detection heuristic. appReturnPath has no route handler and
+      // always 404s — the OS is supposed to intercept it before it ever
+      // becomes an HTTP request, so a logged hit here is definitive proof
+      // App Link/Universal Link interception failed, not a guess from
+      // silence.
+      if (request.requestedUri.path.startsWith('/api/v1/') || request.requestedUri.path == '/return' || request.requestedUri.path == appReturnPath) {
         // One record per request — everything about it in one place, instead
         // of a full raw trace and a separate curated summary that made it easy
         // to mistake one for the other. `events` carries whatever business
@@ -692,7 +701,7 @@ void _recordEvent(
 }
 
 final _logger = Logger('zenpay_example_backend');
-const _encoder = JsonEncoder.withIndent('  ');
+const _encoder = JsonEncoder();
 
 /// Partial-masks a sensitive header value: first and last 3 characters kept,
 /// everything between replaced with `...` (e.g. `eyJ...w7E`). Values too

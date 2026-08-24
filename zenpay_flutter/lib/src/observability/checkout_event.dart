@@ -73,6 +73,12 @@ final class ZpLaunchRejectedEvent extends ZpCheckoutEvent {
 
   /// A short, non-sensitive description of the failed precondition.
   final String reason;
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || (other is ZpLaunchRejectedEvent && other.reason == reason);
+
+  @override
+  int get hashCode => Object.hash(ZpLaunchRejectedEvent, reason);
 }
 
 /// The browser presentation was requested for a validated launch.
@@ -89,6 +95,12 @@ final class ZpPresentedEvent extends ZpCheckoutEvent {
 
   /// Whether the platform reported a successful launch.
   final bool launched;
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || (other is ZpPresentedEvent && other.checkoutHost == checkoutHost && other.launched == launched);
+
+  @override
+  int get hashCode => Object.hash(ZpPresentedEvent, checkoutHost, launched);
 }
 
 /// A candidate return URI was refused. The checkout remains active.
@@ -100,12 +112,24 @@ final class ZpReturnRejectedEvent extends ZpCheckoutEvent {
 
   /// Why the URI was refused. The URI itself is never included.
   final ZpReturnRejectionReason reason;
+
+  @override
+  bool operator ==(Object other) => identical(this, other) || (other is ZpReturnRejectedEvent && other.reason == reason);
+
+  @override
+  int get hashCode => Object.hash(ZpReturnRejectedEvent, reason);
 }
 
 /// A valid return URI was accepted and the checkout is completing.
 final class ZpReturnAcceptedEvent extends ZpCheckoutEvent {
   /// Creates a [ZpReturnAcceptedEvent].
   const ZpReturnAcceptedEvent();
+
+  @override
+  bool operator ==(Object other) => other is ZpReturnAcceptedEvent;
+
+  @override
+  int get hashCode => (ZpReturnAcceptedEvent).hashCode;
 }
 
 /// The checkout finished, for any reason.
@@ -130,4 +154,11 @@ final class ZpFinishedEvent extends ZpCheckoutEvent {
   /// Diagnostic only. This is an arbitrary platform-thrown [Object], so inspect
   /// it before forwarding it anywhere.
   final Object? cause;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (other is ZpFinishedEvent && other.outcome == outcome && other.duration == duration && other.cause == cause);
+
+  @override
+  int get hashCode => Object.hash(ZpFinishedEvent, outcome, duration, cause);
 }

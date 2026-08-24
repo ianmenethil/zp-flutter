@@ -46,7 +46,11 @@ Uint8List _sign(String body, Uint8List key) {
   return Uint8List.fromList(mac.bytes.sublist(0, ZpCore.signatureBytes));
 }
 
-bool _isAmountShaped(Object? value) => value == null || value is String || value is num;
+// `is num` alone is not equivalent to TS's `z.number()`: NaN and Infinity are
+// both `num` in Dart but are rejected by Zod, and they cannot be JSON-encoded,
+// so without the finiteness check they slip past this guard and surface as an
+// undocumented `JsonUnsupportedObjectError` from `jsonEncode` below.
+bool _isAmountShaped(Object? value) => value == null || value is String || (value is num && value.isFinite);
 
 Map<String, Object?>? _decodeBody(String body) {
   try {
@@ -65,8 +69,11 @@ Map<String, Object?>? _decodeBody(String body) {
 /// `?t=<token>`.
 ///
 /// Throws [ArgumentError] when [payload] is malformed (an invalid
-/// [ZpCallbackUrlTokenPayload.timestamp] or a non-`String`/non-`num`
-/// [ZpCallbackUrlTokenPayload.paymentAmount]) or when [secret] fails its
+/// [ZpCallbackUrlTokenPayload.timestamp], or a
+/// [ZpCallbackUrlTokenPayload.paymentAmount] that is neither a `String` nor a
+/// **finite** `num` — `NaN` and `Infinity` are rejected here, matching TS's
+/// `z.number()`, rather than failing later during JSON encoding) or when
+/// [secret] fails its
 /// shape/length requirements — matching TS's `createZpCallbackUrlToken`,
 /// which throws `TypeError`/`RangeError` for the identical cases
 /// (`callbackurl-token.ts`). This is deliberately unlike `verifyZpCallback`,
@@ -90,7 +97,7 @@ String createZpCallbackUrlToken(
     throw ArgumentError.value(
       payload.paymentAmount,
       'paymentAmount',
-      'must be a String or a num',
+      'must be a String or a finite num',
     );
   }
 

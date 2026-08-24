@@ -23,6 +23,12 @@ const returnPath = '/return';
 /// Path ZenPay POSTs the server-to-server callback to.
 const callbacksPath = '/api/v1/callbacks';
 
+/// Path the mobile app's App Link / Universal Link config points at. Meant to
+/// be intercepted by the OS before it ever becomes a real HTTP request — see
+/// `server_app.dart`'s trace logging on this path for how a real hit (App
+/// Link interception failed) is surfaced.
+const appReturnPath = '/zenpay/app-return';
+
 /// The return URI for [attempt]'s client kind.
 ///
 /// Mobile resolves to a path on this backend's own public base URL, intended
@@ -30,7 +36,7 @@ const callbacksPath = '/api/v1/callbacks';
 /// app ships one — that domain verification (`assetlinks.json`) isn't part
 /// of this minimal backend yet.
 Uri appReturnUriFor(CheckoutAttempt attempt, AppConfig config) =>
-    attempt.client == CheckoutClient.mobile ? config.publicBaseUrl.resolve('/zenpay/app-return') : config.appReturnUriWeb;
+    attempt.client == CheckoutClient.mobile ? config.publicBaseUrl.resolve(appReturnPath) : config.appReturnUriWeb;
 
 /// Whether [mode] charges the customer (Make Payment, Custom Payment,
 /// Pre-Auth) — gates `customerName`/`customerReference`, not [amount].

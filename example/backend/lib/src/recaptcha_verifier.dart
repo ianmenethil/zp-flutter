@@ -12,18 +12,25 @@ final _logger = Logger('recaptcha_verifier');
 /// redacts headers: first/last 3 characters kept, rest replaced with `...`.
 String _maskSecret(String value) => value.length <= 6 ? '...' : '${value.substring(0, 3)}...${value.substring(value.length - 3)}';
 
-/// Redacts the client token inside a logged assessment request's `event`.
-/// Everything else (email, phone, amount) is logged in the clear, matching
-/// this demo backend's existing body-logging convention (see
-/// server_app.dart's http_trace).
-Map<String, Object?> _redactRequestJson(Map<String, Object?> json) {
-  final event = json['event'];
-  if (event is! Map<String, Object?>) return json;
-  final token = event['token'];
-  if (token is! String || token.isEmpty) return json;
+/// Redacts the client token inside a logged assessment's `event`. Everything
+/// else (email, phone, amount) is logged in the clear, matching this demo
+/// backend's existing body-logging convention (see server_app.dart's
+/// http_trace).
+///
+/// Takes the typed [assessment] rather than its `toJson()` output: that
+/// output's `event` entry is still the nested `Event` object, not a decoded
+/// Map — `Assessment.toJson()` doesn't recursively convert it, relying on
+/// `jsonEncode`'s own `toJson()` recursion at serialize time — so masking
+/// has to go through `assessment.event.token` directly.
+Map<String, Object?> _redactAssessmentJson(
+  recaptcha.GoogleCloudRecaptchaenterpriseV1Assessment assessment,
+) {
+  final json = assessment.toJson();
+  final token = assessment.event?.token;
+  if (token == null || token.isEmpty) return json;
   return {
     ...json,
-    'event': {...event, 'token': _maskSecret(token)},
+    'event': {...assessment.event!.toJson(), 'token': _maskSecret(token)},
   };
 }
 
@@ -115,9 +122,9 @@ final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
         ),
       );
 
-      _logger.fine('reCAPTCHA assessment request: ${jsonEncode(_redactRequestJson(request.toJson()))}');
+      _logger.fine('reCAPTCHA assessment request: ${jsonEncode(_redactAssessmentJson(request))}');
       final response = await api.projects.assessments.create(request, 'projects/$projectNumber');
-      _logger.fine('reCAPTCHA assessment response: ${jsonEncode(response.toJson())}');
+      _logger.fine('reCAPTCHA assessment response: ${jsonEncode(_redactAssessmentJson(response))}');
 
       final valid = response.tokenProperties?.valid ?? false;
       if (!valid) {

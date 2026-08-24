@@ -92,6 +92,9 @@ abstract final class ZpErrors {
   /// Error: merchantCode empty.
   static const merchantCodeEmpty = 'merchantCode must not be empty';
 
+  /// Error: merchantCode would not occupy exactly one URL path segment.
+  static const merchantCodeInvalidPathSegment = 'merchantCode must not contain "/" and must not be "." or ".."';
+
   /// Error: callback or redirect empty.
   static const callbackOrRedirectEmpty = 'at least one of callbackUrl or redirectUrl must be provided';
 

@@ -54,15 +54,20 @@ final class FakeReturnUriSource implements ZpReturnUriSource {
   /// Creates a [FakeReturnUriSource] with an optional [initialUri].
   FakeReturnUriSource({this.initialUri});
 
-  /// Replayed first to every subscriber, mimicking `getInitialLink`.
+  /// Replayed once, to the first subscriber only, mimicking
+  /// `AppLinksReturnUriSource`'s one-shot cold-start-link behavior — a
+  /// second, unrelated attempt against this same fake must not inherit it.
   final Uri? initialUri;
 
   /// The controller behind [uris]. Prefer [emit].
   final StreamController<Uri> controller = StreamController<Uri>.broadcast();
 
+  bool _initialUriConsumed = false;
+
   @override
   Stream<Uri> get uris {
-    if (initialUri != null) {
+    if (initialUri != null && !_initialUriConsumed) {
+      _initialUriConsumed = true;
       final replayed = StreamController<Uri>()..add(initialUri!);
       unawaited(
         replayed.addStream(controller.stream).whenComplete(replayed.close),

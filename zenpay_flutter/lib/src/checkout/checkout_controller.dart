@@ -78,6 +78,13 @@ final class ZpCheckout {
   ActiveCheckout? _active;
   bool _disposed = false;
 
+  /// Whether `_presenter.openCheckout(...)` is currently awaited for
+  /// [_active]. See [dispose]'s use of this — a browser that hasn't finished
+  /// opening yet can't be dismissed, and finishing early would cancel the
+  /// return-uri subscription before a return that's already in flight can
+  /// land.
+  bool _presentationInFlight = false;
+
   /// Reserves a presentation surface synchronously before any `await`.
   ///
   /// On Web, browsers require `window.open` to execute synchronously within an
@@ -176,12 +183,14 @@ final class ZpCheckout {
 
     active.expireAfter(configuration.timeout, const ZpTimedOut());
 
+    _presentationInFlight = true;
     try {
       final launch = await _presenter.openCheckout(
         checkoutUrl,
         showTitle: configuration.showBrowserTitle,
         allowExternalBrowserFallback: configuration.allowExternalBrowserFallback,
       );
+      _presentationInFlight = false;
 
       _emit(
         ZpPresentedEvent(
@@ -190,12 +199,19 @@ final class ZpCheckout {
         ),
       );
 
-      if (!launch.launched) {
+      if (_disposed) {
+        // dispose() deferred settling this checkout to here rather than
+        // finishing it (and cancelling its return-uri subscription) while
+        // this was still pending — finish() is a no-op if a genuine return
+        // already won the race in the meantime.
+        active.finish(const ZpPresentationDismissed());
+      } else if (!launch.launched) {
         active.finish(
           const ZpLaunchFailed(code: ZpLaunchFailureCode.rejectedByPlatform),
         );
       }
     } on Object catch (error) {
+      _presentationInFlight = false;
       active.finish(
         ZpLaunchFailed(code: mapLaunchFailureCode(error)),
         cause: error,
@@ -235,6 +251,15 @@ final class ZpCheckout {
     }
     _disposed = true;
     _presenter.releaseReservation();
+    if (_presentationInFlight) {
+      // openCheckout() hasn't resolved yet for the active checkout —
+      // finishing now would cancel its return-uri subscription mid-flight
+      // (dropping a return that might still land) and call
+      // dismissCheckout() against a browser that isn't open yet. open()'s
+      // own post-await code settles this correctly once openCheckout()
+      // resolves.
+      return;
+    }
     _active?.finish(const ZpPresentationDismissed());
   }
 
