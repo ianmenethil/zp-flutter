@@ -64,8 +64,8 @@ class AppConfig {
     required this.tokenSecret,
     required this.checkoutTokenTtlSeconds,
     required this.checkoutRateLimitPerMinute,
-    required this.firebaseProjectNumber,
-    required this.firebaseServiceAccountJson,
+    required this.recaptchaProjectNumber,
+    required this.recaptchaServiceAccountJson,
     required this.recaptchaSiteKeyWeb,
     required this.zenPay,
   });
@@ -107,12 +107,13 @@ class AppConfig {
   /// (`/checkout/token`, `/checkout/exchange`).
   final int checkoutRateLimitPerMinute;
 
-  /// Firebase project number for App Check token verification.
-  /// Empty string disables enforcement (local dev without Firebase).
-  final String firebaseProjectNumber;
+  /// GCP project number reCAPTCHA Enterprise assessments are created under.
+  /// Empty string disables reCAPTCHA enforcement (local dev without it).
+  final String recaptchaProjectNumber;
 
-  /// Raw JSON string or file path to GCP Service Account credentials.
-  final String firebaseServiceAccountJson;
+  /// Raw JSON string or file path to the GCP Service Account credentials
+  /// used to call the reCAPTCHA Enterprise API.
+  final String recaptchaServiceAccountJson;
 
   /// reCAPTCHA Enterprise site key for the web client — reCAPTCHA is
   /// web-only; mobile checkout requests skip this check entirely.
@@ -164,8 +165,8 @@ AppConfig loadConfig() {
       _read(file, 'CHECKOUT_RATE_LIMIT_PER_MINUTE'),
       20,
     ),
-    firebaseProjectNumber: value('FIREBASE_PROJECT_NUMBER', ''),
-    firebaseServiceAccountJson: value('FIREBASE_SERVICE_ACCOUNT_JSON', ''),
+    recaptchaProjectNumber: value('RECAPTCHA_PROJECT_NUMBER', ''),
+    recaptchaServiceAccountJson: value('RECAPTCHA_SERVICE_ACCOUNT_JSON', ''),
     recaptchaSiteKeyWeb: value('RECAPTCHA_SITE_KEY_WEB', 'YOUR_SITE_KEY_WEB'),
     zenPay: ZenPayConfig(
       hppEndpointUrl: Uri.parse(

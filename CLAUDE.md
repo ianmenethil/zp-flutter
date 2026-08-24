@@ -4,14 +4,6 @@ This repository is a unified **Melos Monorepo** containing the complete ZenPay D
 
 See [README.md](README.md) for the repo overview and quick start. `AGENTS.md` in this folder is a symlink to this file — edit `CLAUDE.md`, not `AGENTS.md`.
 
----
-
-## 📐 Relationship to the TypeScript SDK
-
-This monorepo is a Dart/Flutter port of an internal TypeScript ZenPay HCP SDK. Where this repo's behavior for an edge case looks unusual or underspecified, it's very likely intentionally matching that reference implementation rather than an oversight — check the relevant package's `CLAUDE.md` for any noted intentional divergence before assuming it's a bug.
-
----
-
 ## Related Guides
 
 Each package has its own `CLAUDE.md` (also readable as `AGENTS.md`, a symlink to the same file) with package-specific detail:

@@ -6,7 +6,11 @@ WORKDIR /app
 COPY zenpay_dart/ ./zenpay_dart/
 COPY example/backend/ ./example/backend/
 
-RUN printf "name: backend_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\nworkspace:\n  - zenpay_dart\n  - example/backend\n" > pubspec.yaml
+# Read the sdk constraint from zenpay_dart's own (already-copied) pubspec.yaml
+# instead of hardcoding it here, so this throwaway workspace pubspec can never
+# drift from the real one the way it did before.
+RUN SDK_CONSTRAINT="$(sed -n 's/^[[:space:]]*sdk:[[:space:]]*//p' zenpay_dart/pubspec.yaml | head -n1)" && \
+    printf "name: backend_workspace\npublish_to: none\nenvironment:\n  sdk: %s\nworkspace:\n  - zenpay_dart\n  - example/backend\n" "$SDK_CONSTRAINT" > pubspec.yaml
 
 RUN dart pub get
 RUN dart compile exe example/backend/bin/server.dart -o /app/server

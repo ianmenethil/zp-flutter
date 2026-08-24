@@ -19,7 +19,12 @@ COPY zenpay_flutter/ ./zenpay_flutter/
 COPY zenpay_embedded/ ./zenpay_embedded/
 COPY example/app/ ./example/app/
 
-RUN printf "name: flutter_workspace\npublish_to: none\nenvironment:\n  sdk: '>=3.12.0 <4.0.0'\n  flutter: '>=3.44.0'\nworkspace:\n  - zenpay_flutter\n  - zenpay_embedded\n  - example/app\n" > pubspec.yaml
+# Read the sdk/flutter constraints from zenpay_flutter's own (already-copied)
+# pubspec.yaml instead of hardcoding them here, so this throwaway workspace
+# pubspec can never drift from the real one the way it did before.
+RUN SDK_CONSTRAINT="$(sed -n 's/^[[:space:]]*sdk:[[:space:]]*//p' zenpay_flutter/pubspec.yaml | head -n1)" && \
+    FLUTTER_CONSTRAINT="$(sed -n 's/^[[:space:]]*flutter:[[:space:]]*//p' zenpay_flutter/pubspec.yaml | head -n1)" && \
+    printf "name: flutter_workspace\npublish_to: none\nenvironment:\n  sdk: %s\n  flutter: %s\nworkspace:\n  - zenpay_flutter\n  - zenpay_embedded\n  - example/app\n" "$SDK_CONSTRAINT" "$FLUTTER_CONSTRAINT" > pubspec.yaml
 
 ARG APP_RETURN_URI_WEB
 RUN cd example/app && flutter pub get && flutter build web --release --dart-define=APP_RETURN_URI_WEB=${APP_RETURN_URI_WEB}

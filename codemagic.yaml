@@ -8,8 +8,6 @@ workflows:
       xcode: latest
       cocoapods: default
       java: 17
-      groups:
-        - firebase_android
     cache:
       cache_paths:
         - ~/.pub-cache
@@ -35,13 +33,6 @@ workflows:
         script: melos run analyze
       - name: Test (all packages)
         script: melos run test
-      - name: Provision google-services.json
-        script: |
-          if [ -z "$GOOGLE_SERVICES_JSON_BASE64" ]; then
-            echo "GOOGLE_SERVICES_JSON_BASE64 is not set (expected in the firebase_android group) — Android build needs it." >&2
-            exit 1
-          fi
-          echo "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > example/app/android/app/google-services.json
       - name: Build Android (debug)
         script: |
           cd example/app

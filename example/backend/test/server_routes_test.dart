@@ -27,7 +27,7 @@ const _username = 'test-username';
 const _password = 'test-password';
 const _tokenSecret = 'test-token-secret-1234567890-abcdef';
 
-/// Always-pass / configurable App Check verifier for tests.
+/// Always-pass / configurable reCAPTCHA verifier for tests.
 final class _FakeRecaptchaVerifier implements RecaptchaVerifier {
   _FakeRecaptchaVerifier({this.shouldPass = true});
   bool shouldPass;
@@ -49,8 +49,8 @@ final class _FakeRecaptchaVerifier implements RecaptchaVerifier {
 /// signatures can be recomputed with [_sign].
 AppConfig _config({
   int checkoutRateLimitPerMinute = 1000,
-  String firebaseProjectNumber = '',
-  String firebaseServiceAccountJson = '',
+  String recaptchaProjectNumber = '',
+  String recaptchaServiceAccountJson = '',
 }) => AppConfig(
   port: 0,
   publicBaseUrl: Uri.parse('http://127.0.0.1:7099'),
@@ -60,8 +60,8 @@ AppConfig _config({
   tokenSecret: _tokenSecret,
   checkoutTokenTtlSeconds: 300,
   checkoutRateLimitPerMinute: checkoutRateLimitPerMinute,
-  firebaseProjectNumber: firebaseProjectNumber,
-  firebaseServiceAccountJson: firebaseServiceAccountJson,
+  recaptchaProjectNumber: recaptchaProjectNumber,
+  recaptchaServiceAccountJson: recaptchaServiceAccountJson,
   recaptchaSiteKeyWeb: 'web_key',
   zenPay: ZenPayConfig(
     hppEndpointUrl: Uri.parse('https://pay.sandbox.travelpay.com.au/Online/v5'),
@@ -595,7 +595,7 @@ void main() {
         await server.close(force: true);
         final verifier = _FakeRecaptchaVerifier();
         await startServer(
-          _config(firebaseProjectNumber: '123456789'),
+          _config(recaptchaProjectNumber: '123456789'),
           recaptchaVerifier: verifier,
         );
 
@@ -614,7 +614,7 @@ void main() {
         await server.close(force: true);
         final verifier = _FakeRecaptchaVerifier(shouldPass: false);
         await startServer(
-          _config(firebaseProjectNumber: '123456789'),
+          _config(recaptchaProjectNumber: '123456789'),
           recaptchaVerifier: verifier,
         );
 
@@ -642,7 +642,7 @@ void main() {
         await server.close(force: true);
         final verifier = _FakeRecaptchaVerifier();
         await startServer(
-          _config(firebaseProjectNumber: '123456789'),
+          _config(recaptchaProjectNumber: '123456789'),
           recaptchaVerifier: verifier,
         );
 
@@ -671,7 +671,7 @@ void main() {
         await server.close(force: true);
         final verifier = _FakeRecaptchaVerifier(shouldPass: false);
         await startServer(
-          _config(firebaseProjectNumber: '123456789'),
+          _config(recaptchaProjectNumber: '123456789'),
           recaptchaVerifier: verifier,
         );
 
@@ -685,7 +685,7 @@ void main() {
     );
 
     test(
-      'bypasses App Check when firebaseProjectNumber is unconfigured',
+      'skips reCAPTCHA verification when recaptchaProjectNumber is unconfigured',
       () async {
         await server.close(force: true);
         final verifier = _FakeRecaptchaVerifier(shouldPass: false);

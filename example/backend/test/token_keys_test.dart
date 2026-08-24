@@ -19,8 +19,8 @@ AppConfig _config() => AppConfig(
   tokenSecret: 'test-token-keys-root-secret-1234567890',
   checkoutTokenTtlSeconds: 300,
   checkoutRateLimitPerMinute: 1000,
-  firebaseProjectNumber: '',
-  firebaseServiceAccountJson: '',
+  recaptchaProjectNumber: '',
+  recaptchaServiceAccountJson: '',
   recaptchaSiteKeyWeb: 'web_key',
   zenPay: ZenPayConfig(
     hppEndpointUrl: Uri.parse('https://pay.sandbox.travelpay.com.au/Online/v5'),

@@ -57,6 +57,8 @@ graph TD
 
 Each package has its own `CLAUDE.md` (agent guidelines) and `README.md` (usage docs); every `CLAUDE.md` has an `AGENTS.md` symlink alongside it.
 
+📦 **Third-party dependencies:** See [PACKAGES.md](PACKAGES.md) for every external package this repo uses — version, maintainer, and why.
+
 For setup steps, running the stack, and verifying changes, see [GETTING_STARTED.md](GETTING_STARTED.md).
 
 ---

@@ -112,7 +112,7 @@ The server listens on `0.0.0.0:<PORT>` and shuts down cleanly on `Ctrl+C`.
 This is a **minimal demo backend** (see the doc comment atop `server_app.dart`)
 — no merchant login, no static Bearer token, no session or retry concept.
 Checkout creation is a two-step token/exchange model, bounded by per-IP rate
-limiting and optional Firebase App Check instead of authentication; status
+limiting and optional reCAPTCHA Enterprise verification instead of authentication; status
 lookup and the return are gated on a signed `?t=` callback URL token. Full
 detail, including the identity model and security posture:
 [example/backend/README.md](../example/backend/README.md).

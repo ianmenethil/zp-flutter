@@ -44,7 +44,6 @@ void main() {
         );
         expect(captured.headers['x-client'], 'mobile');
         expect(captured.headers['x-request-id'], isNotEmpty);
-        expect(captured.headers['x-firebase-appcheck'], isNull);
         expect(checkoutToken, 'checkout-token-1');
       },
     );
@@ -92,7 +91,6 @@ void main() {
         expect(captured.method, 'POST');
         expect(captured.url.path, '/api/v1/checkout/exchange');
         expect(captured.headers['authorization'], 'Bearer checkout-token-1');
-        expect(captured.headers['x-firebase-appcheck'], isNull);
         expect(
           exchanged.checkoutUrl,
           'https://pay.sandbox.travelpay.com.au/launch',

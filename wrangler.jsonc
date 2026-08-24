@@ -1,10 +1,8 @@
 {
-  // Worker fronts two Containers, routed by path in src/index.ts. Secrets
-  // (ZENPAY_*, TOKEN_SECRET, etc.) are set via `wrangler secret put`, never here.
+  // Worker fronts two Containers, routed by path in src/index.ts. Secrets (ZENPAY_*, TOKEN_SECRET, etc.) are set via `wrangler secret put`.
   "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
-  // Custom domain only — must stay false or wrangler re-enables *.workers.dev on deploy.
   "workers_dev": false,
   "preview_urls": false,
   "routes": [
@@ -13,16 +11,14 @@
       "custom_domain": true,
     },
   ],
-  // Shows container stdout/stderr (not just the Worker's) in the dashboard/tail.
   "observability": {
     "enabled": true,
   },
-  // Non-secret config forwarded to the container via envVars (src/index.ts).
   "vars": {
     "PUBLIC_BASE_URL": "https://flutter-demo.zenithpayments.support",
     "ALLOWED_APP_ORIGIN": "https://flutter-demo.zenithpayments.support",
     "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/",
-    "FIREBASE_PROJECT_NUMBER": "356498821161",
+    "RECAPTCHA_PROJECT_NUMBER": "356498821161",
   },
   "containers": [
     {

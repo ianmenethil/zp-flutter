@@ -78,7 +78,6 @@ conversation.md
 # Generated coverage output
 **/coverage/
 
-# Firebase / GCP credentials & platform configs
 google-services.json
 GoogleService-Info.plist
 *service-account*.json

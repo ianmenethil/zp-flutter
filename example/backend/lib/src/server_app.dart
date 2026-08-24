@@ -10,7 +10,7 @@
 /// reCAPTCHA Enterprise admission check, web only: verifies a token from
 /// `POST /api/v1/checkout/token` before any checkout token is minted. Mobile
 /// checkout requests (`X-Client: mobile`) skip this check entirely — there is
-/// no reCAPTCHA client on Android/iOS. Enabled when `FIREBASE_PROJECT_NUMBER`
+/// no reCAPTCHA client on Android/iOS. Enabled when `RECAPTCHA_PROJECT_NUMBER`
 /// is configured.
 library;
 
@@ -231,7 +231,7 @@ Future<shelf.Response> _handleCreateCheckoutToken(
   final rawBody = await _readJson(request);
   final body = _parsePrepareCheckoutBody(request, rawBody);
 
-  if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty && body.client == CheckoutClient.web) {
+  if (recaptchaVerifier != null && config.recaptchaProjectNumber.isNotEmpty && body.client == CheckoutClient.web) {
     final recaptchaToken = request.headers[_HeaderNames.xRecaptchaToken];
     if (recaptchaToken == null || recaptchaToken.isEmpty) {
       throw HttpError(401, 'RECAPTCHA_TOKEN_MISSING');
@@ -244,7 +244,7 @@ Future<shelf.Response> _handleCreateCheckoutToken(
 
     final recaptchaResult = await recaptchaVerifier.verify(
       recaptchaToken,
-      config.firebaseProjectNumber,
+      config.recaptchaProjectNumber,
       'checkout',
       siteKey,
       email: body.customerEmail,
@@ -586,7 +586,8 @@ shelf.Handler buildHandler(
   AttemptStore store, {
   RecaptchaVerifier? recaptchaVerifier,
 }) {
-  final verifier = recaptchaVerifier ?? (config.firebaseServiceAccountJson.isNotEmpty ? GoogleCloudRecaptchaVerifier(config.firebaseServiceAccountJson) : null);
+  final verifier =
+      recaptchaVerifier ?? (config.recaptchaServiceAccountJson.isNotEmpty ? GoogleCloudRecaptchaVerifier(config.recaptchaServiceAccountJson) : null);
   final router = _buildRouter(config, store, verifier);
 
   return (shelf.Request request) async {
@@ -722,7 +723,7 @@ String _redactTokenCookie(String cookieHeader) => cookieHeader
     })
     .join('; ');
 
-/// Redacts `authorization`, `x-firebase-appcheck`, and the sensitive cookies
+/// Redacts `authorization`, `x-recaptcha-token`, and the sensitive cookies
 /// in [_sensitiveCookieNames] — the values that carry bearer secrets — in
 /// logged header maps. Everything else (including `x-request-id` and other
 /// cookies) is logged as-is for correlation.

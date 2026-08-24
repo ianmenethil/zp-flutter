@@ -1,8 +1,5 @@
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -15,11 +12,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    buildFeatures {
-        // AGP 8+ generates BuildConfig only when opted in — needed for the BuildConfig.DEBUG check gating Firebase App Distribution below.
-        buildConfig = true
     }
 
     defaultConfig {
@@ -44,11 +36,6 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
-}
-
-dependencies {
-    implementation("com.google.firebase:firebase-appdistribution-api:16.0.0-beta20")
-    releaseImplementation("com.google.firebase:firebase-appdistribution:16.0.0-beta20")
 }
 
 flutter {

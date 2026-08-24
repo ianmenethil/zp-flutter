@@ -2,7 +2,7 @@ name: zp_flutter_sdk
 publish_to: none
 
 environment:
-  sdk: ^3.12.0
+  sdk: ^3.13.0
 
 # Required by melos 7+, which delegates package linking to Dart pub workspaces
 # rather than doing it itself. Every entry must also declare

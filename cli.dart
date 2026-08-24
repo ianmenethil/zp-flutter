@@ -1068,7 +1068,7 @@ Future<void> _requireDockerCompose() async {
 /// Backend container needs `example/backend/service-account.json` to exist
 /// unconditionally — `docker/local/docker-compose.yml` bind-mounts it by a fixed
 /// path, so a missing file fails the whole `docker compose up`, not just
-/// App Check enforcement (unlike the old single-image flow, which only
+/// reCAPTCHA enforcement (unlike the old single-image flow, which only
 /// mounted it when `.env` pointed at one).
 void _requireServiceAccountFile(String root) {
   final envFile = File('$root/example/backend/.env');
@@ -1084,9 +1084,10 @@ void _requireServiceAccountFile(String root) {
     _error(
       'docker/local/docker-compose.yml bind-mounts example/backend/service-account.json '
       'into the backend container — that file does not exist, so `docker compose up` '
-      'will fail. Place your Firebase service account key there, or remove the '
-      '`volumes:` line for the backend service in docker/local/docker-compose.yml if you '
-      "don't need App Check enforcement.",
+      'will fail. Place your GCP service account key there (used for reCAPTCHA '
+      'Enterprise verification), or remove the `volumes:` line for the backend '
+      "service in docker/local/docker-compose.yml if you don't need reCAPTCHA "
+      'enforcement.',
     );
     exit(1);
   }
