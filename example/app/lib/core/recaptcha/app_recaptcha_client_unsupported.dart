@@ -1,10 +1,10 @@
-/// Non-web [AppRecaptchaClient] resolution target.
+/// Non-web [AppRecaptchaClient] resolution target — unreachable at runtime.
 ///
-/// reCAPTCHA is web-only in this demo — `app_config.dart`'s `recaptchaSiteKey`
-/// is empty outside `kIsWeb`, so `main.dart` never actually calls
-/// [fetchAppRecaptchaClient] here. This file exists only because Dart's
-/// conditional import (`app_recaptcha_client_factory.dart`) needs a
-/// compilable target for every platform; this one is unreachable at runtime.
+/// `app_config.dart`'s `recaptchaSiteKey` is empty outside `kIsWeb`, so
+/// `main.dart` never actually calls [fetchAppRecaptchaClient] here. This file
+/// exists only because Dart's conditional import
+/// (`app_recaptcha_client_factory.dart`) needs a compilable target for every
+/// platform.
 library;
 
 import 'package:zenpay_example_app/core/recaptcha/app_recaptcha_client.dart';

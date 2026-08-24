@@ -10,7 +10,7 @@
 /// reCAPTCHA Enterprise admission check, web only: verifies a token from
 /// `POST /api/v1/checkout/token` before any checkout token is minted. Mobile
 /// checkout requests (`X-Client: mobile`) skip this check entirely — there is
-/// no reCAPTCHA client on Android/iOS. Enabled when `RECAPTCHA_PROJECT_NUMBER`
+/// no reCAPTCHA client on Android/iOS. Enabled when `RECAPTCHA_SERVICE_ACCOUNT_JSON`
 /// is configured.
 library;
 

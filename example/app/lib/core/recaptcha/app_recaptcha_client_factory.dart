@@ -2,8 +2,7 @@
 ///
 /// Conditionally imports the platform-appropriate implementation: Web (via
 /// `dart.library.js_interop`) or the unreachable stub
-/// (`app_recaptcha_client_unsupported.dart`) everywhere else — reCAPTCHA is
-/// web-only in this demo.
+/// (`app_recaptcha_client_unsupported.dart`) everywhere else.
 library;
 
 import 'package:zenpay_example_app/core/recaptcha/app_recaptcha_client.dart';
