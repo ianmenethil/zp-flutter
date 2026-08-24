@@ -131,6 +131,7 @@ void syncExample(
 
   _stripWorkspaceResolution(destPath);
   _writeDependencyOverrides(destPath, localOverrides);
+  _fixAnalysisOptionsInclude(destPath);
 }
 
 /// Removes the copied `pubspec.yaml`'s `resolution: workspace` declaration.
@@ -181,4 +182,27 @@ void _writeDependencyOverrides(String destPath, Map<String, String> localOverrid
     buffer.write('  ${entry.key}:\n    path: ${entry.value}\n');
   }
   File('$destPath/pubspec_overrides.yaml').writeAsStringSync(buffer.toString());
+}
+
+/// Repoints the copied `analysis_options.yaml`'s `include:` away from
+/// `../../analysis_options.yaml` (the monorepo root's file, only reachable
+/// because `example/backend`/`example/app` share the workspace's single
+/// resolved package graph — see [_stripWorkspaceResolution]). Once copied
+/// out as a standalone package, that include can't resolve
+/// `package:very_good_analysis/...` at all: the standalone copy was never
+/// given that dependency. Repoints it at `package:lints/recommended.yaml`
+/// instead, which every copied package's own `pubspec.yaml` genuinely
+/// depends on (`lints: ^6.1.0`), so it resolves standalone. The
+/// `analyzer: exclude:` block above it is untouched.
+void _fixAnalysisOptionsInclude(String destPath) {
+  final file = File('$destPath/analysis_options.yaml');
+  if (!file.existsSync()) return;
+  final content = file.readAsStringSync();
+  final patched = content.replaceFirst(
+    RegExp(r'^include:\s*\.\./\.\./analysis_options\.yaml\s*$', multiLine: true),
+    'include: package:lints/recommended.yaml',
+  );
+  if (patched != content) {
+    file.writeAsStringSync(patched);
+  }
 }

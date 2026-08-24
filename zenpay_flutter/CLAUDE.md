@@ -1,94 +1,101 @@
-# ZenPay Flutter SDK Agent Guidelines
+# zenpay_flutter
 
-Guidelines and standards for working within `zenpay_flutter` (the Flutter client SDK). This package is responsible for presenting the ZenPay Hosted Checkout UI and handling deep-link returns.
+Client-side Flutter SDK for orchestrating ZenPay Hosted Checkout sessions across Android, iOS, and Web.
 
----
-
-# ZenPay Flutter SDK — Library Architecture
-
-Overview of all files and folders in `lib/`, explaining their specific purpose and contents:
-
-- **[lib](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib)**: Root library directory containing public barrel exports and internal implementation modules.
-- **[lib\src](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src)**: Private implementation root isolating internal logic, platform adapters, and validators.
-- **[lib\src\checkout](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/checkout)**: Orchestration layer coordinating checkout session execution, browser presentation, and lifecycle state.
-- **[lib\src\checkout\active_checkout.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/checkout/active_checkout.dart)**: Internal `ActiveCheckout` tracking one in-flight checkout launch — the pending outcome, elapsed time, timeout timer, and watched subscriptions — and settling it exactly once.
-- **[lib\src\checkout\checkout_controller.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/checkout/checkout_controller.dart)**: Implements `ZpCheckout`, the primary controller managing launch flows, race timeouts, return interception, and disposal.
-- **[lib\src\checkout\launch_validator.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/checkout/launch_validator.dart)**: Validates target checkout URLs against allowed hosts before launch. Must not add `merchantUniquePaymentId`-specific rules.
-- **[lib\src\configuration](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/configuration)**: Configuration definitions and policy enforcement.
-- **[lib\src\configuration\checkout_configuration.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/configuration/checkout_configuration.dart)**: Defines immutable `ZpCheckoutConfiguration` holding host allowlists, expected return URIs, timeouts, and telemetry sinks.
-- **[lib\src\exceptions](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/exceptions)**: Strongly-typed exception definitions for error handling.
-- **[lib\src\exceptions\checkout_event.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/exceptions/checkout_event.dart)**: Contains `ZpCheckoutException` types for concurrent session collisions, disposal violations, and invalid launch inputs.
-- **[lib\src\models](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/models)**: Data models and result types produced during checkout execution.
-- **[lib\src\models\checkout_outcome.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/models/checkout_outcome.dart)**: Defines the sealed `ZpCheckoutOutcome` hierarchy (`returnReceived`, `presentationDismissed`, `timedOut`, `launchFailed`).
-- **[lib\src\observability](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/observability)**: Structured telemetry and audit event definitions.
-- **[lib\src\observability\checkout_event.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/observability/checkout_event.dart)**: Defines sealed `ZpCheckoutEvent` types and `ZpCheckoutObserver` for structured telemetry.
-- **[lib\src\presentation](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/presentation)**: Platform-specific browser presentation surfaces and abstractions.
-- **[lib\src\presentation\checkout_presenter_mobile.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/presentation/checkout_presenter_mobile.dart)**: Mobile presenter opening Android Custom Tabs and iOS `SFSafariViewController` via `url_launcher`.
-- **[lib\src\presentation\checkout_presenter_web.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/presentation/checkout_presenter_web.dart)**: Web presenter implementing synchronous window reservation and new tab navigation via JS interop.
-- **[lib\src\presentation\presenter_factory.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/presentation/presenter_factory.dart)**: Conditional-import factory resolving the appropriate `CheckoutPresenter` implementation for Web or Mobile.
-- **[lib\src\presentation\presenter.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/presentation/presenter.dart)**: Abstract `CheckoutPresenter` contract defining methods to open, reserve, and dismiss browser surfaces.
-- **[lib\src\return_handling](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling)**: Deep link ingestion and return sanitization logic.
-- **[lib\src\return_handling\return_uri_source.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/return_uri_source.dart)**: Abstract `ZpReturnUriSource` interface delivering a stream of incoming application deep links.
-- **[lib\src\return_handling\return_uri_source_factory.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/return_uri_source_factory.dart)**: Conditional-import resolver picking `AppLinksReturnUriSource` (Mobile) or `WebPopupReturnUriSource` (Web) for `createDefaultReturnUriSource()`, mirroring `presenter_factory.dart`.
-- **[lib\src\return_handling\return_validator.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/return_validator.dart)**: Sanitizes and verifies candidate return URIs against host matching and the configured return address. Must not match or reject on `merchantUniquePaymentId`.
-- **[lib\src\return_handling\mobile\app_links_return_uri_source.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/mobile/app_links_return_uri_source.dart)**: Ingests App Links and Universal Links on mobile devices using `package:app_links`; also the Mobile branch of `createDefaultReturnUriSource()`.
-- **[lib\src\return_handling\web\web_return_message.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/web/web_return_message.dart)**: Pure-Dart `postMessage` string protocol (encode/decode) shared by the Web popup sender and receiver below.
-- **[lib\src\return_handling\web\web_return_validation.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/web/web_return_validation.dart)**: Pure validation logic for the Web return-popup handoff protocol, kept free of `dart:js_interop` so it can be unit tested.
-- **[lib\src\return_handling\web\web_popup_return_uri_source.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/web/web_popup_return_uri_source.dart)**: Web `ZpReturnUriSource` — listens for the `postMessage` handoff from a same-origin checkout return popup, since `package:app_links` cannot observe navigation in the separate tab `checkout_presenter_web.dart` opens.
-- **[lib\src\return_handling\web\web_checkout_return_popup.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/web/web_checkout_return_popup.dart)**: Web sender half of the popup handoff — `completeWebCheckoutReturnIfPopup`, called from `main()`, relays the return to `window.opener` via `postMessage` and closes the popup.
-- **[lib\src\return_handling\web\web_checkout_return_popup_mobile.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/web/web_checkout_return_popup_mobile.dart)**: Mobile no-op stand-in for the popup handoff — the concept doesn't apply off Web.
-- **[lib\src\return_handling\web\web_checkout_return_popup_factory.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/src/return_handling/web/web_checkout_return_popup_factory.dart)**: Conditional-import resolver exposing `completeWebCheckoutReturnIfPopup()`, mirroring `presenter_factory.dart`.
-- **[lib\testing.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/testing.dart)**: Test utilities barrel exporting `FakeReturnUriSource` for deterministic automated testing.
-- **[lib\zenpay_checkout.dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/lib/zenpay_checkout.dart)**: Main public barrel export exposing controllers, configurations, outcomes, events, and validation helpers.
-
-## 🔗 Related Guides
-
-- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines.
-- **[Pure Dart SDK](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_dart/CLAUDE.md)** — Server-side cryptography, models, and token validation.
-- **[Integration Examples](file:///G:/_zp-repos/zp-flutter-sdk/example/CLAUDE.md)** — Reference merchant backend and app that consume this package.
-- **[README.md](README.md)** — Package overview, usage, and API.
-
-`AGENTS.md` in this folder is a symlink to this file — edit `CLAUDE.md`, not `AGENTS.md`.
+Presents the checkout URL generated by a merchant backend in a platform-native browser surface (Android Custom Tabs, iOS `SFSafariViewController`, or a new browser tab on Web), monitors the session lifecycle, intercepts deep-link returns, and settles with a strongly-typed outcome.
 
 ---
 
-## 1. Scope & Security Responsibilities
+## Cross-Package Architecture
 
-1. **No Cryptography or Secrets**:
-   - This package handles ONLY the client-side Flutter code.
-   - **Do not put any cryptographic generation, hashing, or server-side logic in this package.** All of that belongs in `zenpay_dart` (which runs on the merchant's secure backend).
-   - Never accept secret API keys in the Flutter widgets.
-2. **Launch & Return Lifecycle**:
-   - The primary responsibility of this package is safely opening the ZenPay Hosted Checkout URL (which was generated by the backend) via `url_launcher`.
-   - It must listen for the return and parse the resulting status, passing it back to the developer — via `app_links` on Mobile (App Links / Universal Links), or via a `postMessage` handoff from a same-origin popup on Web, since `app_links` cannot observe navigation in the separate tab Web presents checkout in. See the `return_handling/` entries above.
-3. **Provisional Status**:
-   - The Flutter package only provides a _provisional_ payment status based on the user's return URL. Remind developers in docs that final confirmation must happen via backend webhooks (`zenpay_dart`).
-4. **No Special-Casing `merchantUniquePaymentId`**:
-   - It is an ordinary opaque field, not a correlation key. Do not add a required field for it on any public sealed hierarchy, a dedicated validator, or return-matching/rejection logic.
+- **[Monorepo Root](../CLAUDE.md)** — Workspace overview, Melos scripts, and repository layout.
+- **[zenpay_dart](../zenpay_dart/CLAUDE.md)** — Pure-Dart backend SDK handling server-side token generation, SHA3-512 signing, and webhook validation.
+- **[zenpay_embedded](../zenpay_embedded/CLAUDE.md)** — Optional in-app WebView presenter implementing `CheckoutPresenter`.
+- **[example](../example/CLAUDE.md)** — Reference integration featuring a Shelf backend and a Flutter client app.
+- **[README.md](README.md)** — Package overview, installation, and public API usage guide.
 
 ---
 
-## 2. Flutter Strictness & Code Quality
+## Library Architecture & File Map
 
-Adhere strictly to [analysis_options.yaml](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/analysis_options.yaml):
+### Public Entrypoints
 
-1. **Strict Type Safety**:
-   - `strict-casts: true`, `strict-inference: true`, `strict-raw-types: true`.
-2. **Public API Documentation**:
-   - Every exported class, widget, method, and enum in `lib/` must have a comprehensive doc comment explaining its usage. UI components must describe their visual behavior and platform-specific constraints.
-3. **Immutability**:
-   - Flutter widgets should be `const` wherever possible to optimize the render tree.
-   - Models should be immutable, overriding `==` and `hashCode`.
+- **[lib/zenpay_checkout.dart](lib/zenpay_checkout.dart)**: Primary library barrel export. Exposes `ZpCheckout`, `ZpCheckoutConfiguration`, `ZpCheckoutOutcome`, `ZpCheckoutException`, `ZpCheckoutEvent`, `ZpCheckoutObserver`, `isAllowedCheckoutUrl`, `CheckoutPresenter`, `ZpReturnUriSource`, and Web return helpers.
+- **[lib/testing.dart](lib/testing.dart)**: Isolated test doubles entrypoint exporting `FakeReturnUriSource` for deterministic testing without OS platform channels.
+
+### Internal Modules (`lib/src/`)
+
+- **[lib/src/checkout/](lib/src/checkout/)**: Orchestration layer coordinating checkout session execution, browser presentation, and lifecycle state.
+  - **[checkout_controller.dart](lib/src/checkout/checkout_controller.dart)**: Implements `ZpCheckout`, the main controller managing single-session concurrency, launch validation, presenter invocation, race timeouts, return interception, and observer telemetry.
+  - **[active_checkout.dart](lib/src/checkout/active_checkout.dart)**: Internal `ActiveCheckout` tracking an in-flight launch, its timeout timer, and stream subscriptions to ensure one-shot outcome settlement.
+  - **[launch_validator.dart](lib/src/checkout/launch_validator.dart)**: Validates target checkout URLs against HTTPS scheme, default port 443, max length (4096 chars), absence of user credentials/fragments, and `allowedCheckoutHosts`. Exports `isAllowedCheckoutUrl`.
+- **[lib/src/configuration/](lib/src/configuration/)**: Configuration definitions and validation.
+  - **[checkout_configuration.dart](lib/src/configuration/checkout_configuration.dart)**: Immutable `ZpCheckoutConfiguration` holding allowlisted hosts, expected return URIs, timeouts (default 20 min), browser UI settings, return URI length bounds, and optional event observers.
+- **[lib/src/exceptions/](lib/src/exceptions/)**: Strongly-typed exception definitions.
+  - **[checkout_event.dart](lib/src/exceptions/checkout_event.dart)**: Sealed `ZpCheckoutException` hierarchy (`ZpCheckoutAlreadyActiveException`, `ZpCheckoutDisposedException`, `ZpInvalidLaunchException`).
+- **[lib/src/models/](lib/src/models/)**: Result models and outcome types.
+  - **[checkout_outcome.dart](lib/src/models/checkout_outcome.dart)**: Sealed `ZpCheckoutOutcome` hierarchy (`ZpReturnReceived`, `ZpPresentationDismissed`, `ZpTimedOut`, `ZpLaunchFailed`) and `ZpLaunchFailureCode`.
+- **[lib/src/observability/](lib/src/observability/)**: Structured telemetry and audit events.
+  - **[checkout_event.dart](lib/src/observability/checkout_event.dart)**: Sealed `ZpCheckoutEvent` hierarchy (`ZpLaunchRejectedEvent`, `ZpPresentedEvent`, `ZpReturnRejectedEvent`, `ZpReturnAcceptedEvent`, `ZpFinishedEvent`) and `ZpCheckoutObserver` interface.
+- **[lib/src/presentation/](lib/src/presentation/)**: Platform-specific browser presentation surfaces.
+  - **[presenter.dart](lib/src/presentation/presenter.dart)**: Abstract `CheckoutPresenter` contract and `PresentationLaunchResult` model.
+  - **[presenter_factory.dart](lib/src/presentation/presenter_factory.dart)**: Conditional-import factory selecting the platform-appropriate `CheckoutPresenter`.
+  - **[checkout_presenter_mobile.dart](lib/src/presentation/checkout_presenter_mobile.dart)**: Mobile presenter opening Android Custom Tabs and iOS `SFSafariViewController` via `url_launcher`. Emits dismissal via `WidgetsBindingObserver` resume events + 500ms grace period; supports programmatic dismissal on iOS.
+  - **[checkout_presenter_web.dart](lib/src/presentation/checkout_presenter_web.dart)**: Web presenter using `dart:js_interop` to open/navigate a new tab (`window.open`). Implements `reserveLaunch()` to preserve user gesture window across async gaps.
+- **[lib/src/return_handling/](lib/src/return_handling/)**: Deep-link ingestion and return sanitization — really only 2 problems split across platform files, not 10 independent things. (1) Mobile and Web need different mechanisms to detect a return happened: a shared `ZpReturnUriSource` contract + factory, a mobile implementation (`app_links`), a web implementation (popup listener), and a shared validator. (2) Web-only: checkout opens in a *second browser tab*, so that tab has to relay the return back to the tab that opened it — that's the `web_checkout_return_popup*` + `web_return_message.dart` + `web_return_validation.dart` files below.
+  - **[return_uri_source.dart](lib/src/return_handling/return_uri_source.dart)**: Abstract `ZpReturnUriSource` interface delivering a stream of incoming deep links.
+  - **[return_uri_source_factory.dart](lib/src/return_handling/return_uri_source_factory.dart)**: Conditional-import resolver selecting the default platform `ZpReturnUriSource`.
+  - **[return_validator.dart](lib/src/return_handling/return_validator.dart)**: Sanitizes and validates candidate return URIs against `expectedReturnUri` scheme, host, port, path, length limits, and non-empty query params. Exports `matchesReturnUriAddress`.
+  - **[mobile/app_links_return_uri_source.dart](lib/src/return_handling/mobile/app_links_return_uri_source.dart)**: Ingests App Links and Universal Links on mobile using `package:app_links`, combining cold-start initial link with runtime stream under a process-wide one-shot guard.
+  - **[web/web_popup_return_uri_source.dart](lib/src/return_handling/web/web_popup_return_uri_source.dart)**: Web return URI source listening for same-origin `postMessage` handoffs from the checkout popup tab.
+  - **[web/web_checkout_return_popup.dart](lib/src/return_handling/web/web_checkout_return_popup.dart)**: Web sender function `completeWebCheckoutReturnIfPopup()` invoked in `main()` to relay return data to `window.opener` and close the popup.
+  - **[web/web_checkout_return_popup_mobile.dart](lib/src/return_handling/web/web_checkout_return_popup_mobile.dart)**: Mobile no-op stub for `completeWebCheckoutReturnIfPopup()`.
+  - **[web/web_checkout_return_popup_factory.dart](lib/src/return_handling/web/web_checkout_return_popup_factory.dart)**: Conditional-import resolver exposing `completeWebCheckoutReturnIfPopup()`.
+  - **[web/web_return_message.dart](lib/src/return_handling/web/web_return_message.dart)**: Pure-Dart string protocol for encoding/decoding `postMessage` return payloads.
+  - **[web/web_return_validation.dart](lib/src/return_handling/web/web_return_validation.dart)**: Pure validation logic for incoming web `postMessage` events and same-origin verification.
 
 ---
 
-## 3. Verification Commands
+## Core System Invariants & Rules
 
-This package is part of a Melos monorepo. Before completing any change, ensure all checks pass by running the following from the **repository root**:
+1. **Security & Scope Boundaries**:
+   - Client code performs **no cryptography, hashing, or secret storage**. Checkout URL creation and signature generation belong exclusively on the merchant backend (`zenpay_dart`).
+   - `ZpReturnReceived` represents a **provisional status** confirming device-side navigation back to the app return URI. Final payment status must always be verified via backend webhooks or server-to-server reconciliation.
+   - `merchantUniquePaymentId` is treated as an opaque query parameter. The SDK does not enforce special validation, dedicated model fields, or custom matching rules for it.
 
-```pwsh
+2. **Web User Gesture & Popup Reservation**:
+   - Web browsers block popup/tab creation unless initiated synchronously in an unbroken user gesture.
+   - Applications on Web must call `checkout.reserveLaunch()` synchronously at the very start of the checkout button click handler before any `await` (e.g. before requesting the checkout URL from the backend).
+   - If the backend request fails, the application must call `checkout.releaseLaunchReservation()` to close the reserved blank tab.
+
+3. **Web Return Popup Routing**:
+   - Flutter web applications must invoke `completeWebCheckoutReturnIfPopup(expectedReturnUri: ...)` as the first line of `main()`.
+   - If the current window is a return popup, the helper relays the return URL to `window.opener` via `postMessage`, closes the window, and returns `true`, allowing `main()` to exit immediately without initializing the full widget tree.
+
+4. **Mobile Dismissal Lifecycle**:
+   - Android Custom Tabs and `url_launcher` do not provide a native dismissal callback.
+   - Mobile dismissal is detected indirectly using `WidgetsBindingObserver` app resume events with a 500ms grace period to permit incoming deep links to resolve first.
+   - Programmatic dismissal via `closeInAppWebView()` is supported on iOS (`SFSafariViewController`) and is a no-op on Android.
+
+5. **Telemetry & Observer Isolation**:
+   - The SDK produces no console logs or analytics by default.
+   - Telemetry is delivered via `ZpCheckoutObserver`. Exceptions thrown by observers are caught and discarded to guarantee observability errors never alter checkout execution.
+   - Emitted events omit sensitive tokens, raw query parameters, and full checkout URLs.
+
+6. **Strict Dart/Flutter Standards**:
+   - Configured via [analysis_options.yaml](analysis_options.yaml) with `strict-casts`, `strict-inference`, and `strict-raw-types`.
+   - All exported public APIs require doc comments.
+   - Data models and configuration classes must be immutable with value equality (`==` and `hashCode`).
+
+---
+
+## Verification Commands
+
+Run from the monorepo root:
+
+```bash
 melos run format
 melos run analyze
 melos run lint
-melos run test
+melos run test --scope=zenpay_flutter
 ```

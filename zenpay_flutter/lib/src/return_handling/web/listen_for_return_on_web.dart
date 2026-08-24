@@ -12,10 +12,10 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:zenpay_flutter/src/presentation/presenter.dart' show CheckoutPresenter;
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart' show CheckoutPresenter;
 
-import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
-import 'package:zenpay_flutter/src/return_handling/web/web_return_validation.dart';
+import 'package:zenpay_flutter/src/return_handling/listen_for_return_contract.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_origin_check.dart';
 
 @JS('addEventListener')
 external void _addWindowMessageListener(String type, JSFunction listener);

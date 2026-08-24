@@ -4,8 +4,8 @@
 /// state, and lifecycle errors encountered by the SDK.
 library;
 
-import 'package:zenpay_flutter/src/checkout/checkout_controller.dart';
-import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart' show ZpCheckoutConfiguration;
+import 'package:zenpay_flutter/src/checkout/run_checkout_flow.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_settings.dart' show ZpCheckoutConfiguration;
 import 'package:zenpay_flutter/zenpay_checkout.dart' show ZpCheckoutConfiguration;
 
 /// Base sealed class for exceptions thrown by the ZenPay Checkout SDK.

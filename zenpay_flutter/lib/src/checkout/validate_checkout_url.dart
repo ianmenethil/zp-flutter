@@ -4,8 +4,8 @@
 /// browser presentation.
 library;
 
-import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart';
-import 'package:zenpay_flutter/src/exceptions/checkout_event.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_settings.dart';
+import 'package:zenpay_flutter/src/exceptions/checkout_errors.dart';
 
 /// Predefined error messages for launch validation failures.
 abstract final class _ValidationMessage {

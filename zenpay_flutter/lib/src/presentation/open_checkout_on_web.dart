@@ -9,7 +9,7 @@ library;
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:zenpay_flutter/src/presentation/presenter.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart';
 
 /// Creates the [CheckoutPresenter] for the web platform.
 CheckoutPresenter createCheckoutPresenter() => _CheckoutPresenterWeb();

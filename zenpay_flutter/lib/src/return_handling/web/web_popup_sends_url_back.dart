@@ -5,10 +5,10 @@ library;
 
 import 'dart:js_interop';
 
-import 'package:zenpay_flutter/src/presentation/presenter.dart' show CheckoutPresenter;
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart' show CheckoutPresenter;
 
-import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
-import 'package:zenpay_flutter/src/return_handling/web/web_return_validation.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_message_format.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_origin_check.dart';
 
 @JS('opener')
 external JSObject? get _opener;

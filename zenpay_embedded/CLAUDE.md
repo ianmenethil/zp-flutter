@@ -1,16 +1,14 @@
-# zenpay_embedded — Agent Guidelines
+# zenpay_embedded — Optional In-App WebView Presenter
 
 Optional in-app WebView presentation for ZenPay Hosted Checkout, via `webview_flutter`. Not
 a default presentation — `zenpay_flutter`'s Android Custom Tabs / iOS
 `SFSafariViewController` presenter is the default and the recommended choice; this package
 exists for merchants who explicitly need inline/modal checkout instead.
 
-`AGENTS.md` in this folder is a symlink to this file — edit `CLAUDE.md`, not `AGENTS.md`.
+## Related Guides
 
-## 🔗 Related Guides
-
-- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines.
-- **[zenpay_flutter](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/CLAUDE.md)** — The SDK this package depends on: `CheckoutPresenter` (the contract implemented here) and `ZpReturnUriSource`.
+- **[Monorepo Root](../CLAUDE.md)** — Melos workspace overview.
+- **[zenpay_flutter](../zenpay_flutter/CLAUDE.md)** — The SDK this package depends on: `CheckoutPresenter` (the contract implemented here) and `ZpReturnUriSource`.
 - **[README.md](README.md)** — Usage and the WebView/PCI policy this package enforces.
 
 ## Non-negotiable rules

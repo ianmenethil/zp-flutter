@@ -1,1 +1,1 @@
-G:/_zp-repos/zp-flutter-sdk/example/app/CLAUDE.md
+CLAUDE.md

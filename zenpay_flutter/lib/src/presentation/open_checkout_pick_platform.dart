@@ -4,8 +4,8 @@
 /// implementation: Web (via `dart.library.js_interop`) or Mobile (`checkout_presenter_mobile.dart`).
 library;
 
-import 'package:zenpay_flutter/src/presentation/checkout_presenter_mobile.dart' if (dart.library.js_interop) 'checkout_presenter_web.dart' as impl;
-import 'package:zenpay_flutter/src/presentation/presenter.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_on_mobile.dart' if (dart.library.js_interop) 'open_checkout_on_web.dart' as impl;
 
 /// Creates a platform-specific [CheckoutPresenter] instance.
 ///

@@ -6,7 +6,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenpay_flutter/src/return_handling/mobile/app_links_return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/mobile/listen_for_return_on_mobile.dart';
 
 /// Fake [AppLinksPlatformAdapter] whose initial-link result and runtime
 /// stream are both controlled by the test.

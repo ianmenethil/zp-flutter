@@ -1,19 +1,17 @@
-# ZenPay Combined Example — Agent Guidelines
+# example — Combined Reference Integration
 
 Single example demonstrating the full ZenPay Hosted Checkout flow using both published SDKs together: a backend session/callback service and the Flutter client that presents checkout.
 
 ---
 
-## 🔗 Related Guides
+## Related Guides
 
-- **[Monorepo Root](file:///G:/_zp-repos/zp-flutter-sdk/CLAUDE.md)** — General Melos and workspace guidelines.
-- **[Pure Dart SDK](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_dart/CLAUDE.md)** — Server-side cryptography, models, and token validation.
-- **[Flutter Client SDK](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_flutter/CLAUDE.md)** — UI and client-side orchestration.
-- **[example/backend/CLAUDE.md](file:///G:/_zp-repos/zp-flutter-sdk/example/backend/CLAUDE.md)** — This example's Shelf backend, in detail.
-- **[example/app/CLAUDE.md](file:///G:/_zp-repos/zp-flutter-sdk/example/app/CLAUDE.md)** — This example's Flutter app, in detail.
+- **[Monorepo Root](../CLAUDE.md)** — Melos workspace overview.
+- **[Pure Dart SDK](../zenpay_dart/CLAUDE.md)** — Server-side cryptography, models, and token validation.
+- **[Flutter Client SDK](../zenpay_flutter/CLAUDE.md)** — UI and client-side orchestration.
+- **[example/backend/CLAUDE.md](backend/CLAUDE.md)** — This example's Shelf backend, in detail.
+- **[example/app/CLAUDE.md](app/CLAUDE.md)** — This example's Flutter app, in detail.
 - **[README.md](README.md)** — How to run both halves together.
-
-`AGENTS.md` in this folder is a symlink to this file — edit `CLAUDE.md`, not `AGENTS.md`.
 
 ---
 

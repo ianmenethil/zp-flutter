@@ -7,7 +7,7 @@ library;
 import 'package:app_links/app_links.dart';
 import 'package:meta/meta.dart';
 
-import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/listen_for_return_contract.dart';
 
 /// Adapter interface wrapping the [AppLinks] plugin for testability and isolation.
 abstract interface class AppLinksPlatformAdapter {

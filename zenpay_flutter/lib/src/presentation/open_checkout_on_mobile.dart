@@ -41,7 +41,7 @@ import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatf
 import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 import 'package:url_launcher/url_launcher.dart';
 
-import 'package:zenpay_flutter/src/presentation/presenter.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart';
 
 /// Creates the [CheckoutPresenter] for Android and iOS mobile platforms.
 CheckoutPresenter createCheckoutPresenter() => _CheckoutPresenterMobile();

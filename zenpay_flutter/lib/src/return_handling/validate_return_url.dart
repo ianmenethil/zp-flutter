@@ -9,8 +9,8 @@
 /// happened. Establishing that is the merchant backend's job.
 library;
 
-import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart';
-import 'package:zenpay_flutter/src/observability/checkout_event.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_settings.dart';
+import 'package:zenpay_flutter/src/observability/checkout_telemetry.dart';
 
 /// Delimiters used when parsing return URI queries.
 abstract final class _QueryParam {

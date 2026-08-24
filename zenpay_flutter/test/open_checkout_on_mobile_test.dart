@@ -9,8 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:url_launcher_platform_interface/link.dart' show LinkDelegate;
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
-import 'package:zenpay_flutter/src/presentation/checkout_presenter_mobile.dart';
-import 'package:zenpay_flutter/src/presentation/presenter.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_on_mobile.dart';
 
 /// Records every launch mode requested and answers each with a queued result.
 final class _FakeUrlLauncher extends UrlLauncherPlatform with MockPlatformInterfaceMixin {

@@ -44,7 +44,7 @@ library;
 
 import 'dart:async';
 
-import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
+import 'package:zenpay_flutter/src/return_handling/listen_for_return_contract.dart';
 
 /// A [ZpReturnUriSource] driven by the test rather than by App Links.
 ///

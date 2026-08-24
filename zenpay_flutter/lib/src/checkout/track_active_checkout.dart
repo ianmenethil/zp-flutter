@@ -4,7 +4,7 @@ library;
 
 import 'dart:async';
 
-import 'package:zenpay_flutter/src/models/checkout_outcome.dart';
+import 'package:zenpay_flutter/src/models/checkout_results.dart';
 
 /// Tracks one checkout launch. Used internally by `ZpCheckout`.
 final class ActiveCheckout {

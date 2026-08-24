@@ -8,8 +8,8 @@
 /// to be unit tested.
 library;
 
-import 'package:zenpay_flutter/src/return_handling/return_validator.dart' show matchesReturnUriAddress;
-import 'package:zenpay_flutter/src/return_handling/web/web_return_message.dart';
+import 'package:zenpay_flutter/src/return_handling/validate_return_url.dart' show matchesReturnUriAddress;
+import 'package:zenpay_flutter/src/return_handling/web/web_message_format.dart';
 
 /// Decides whether an incoming `message` event is a valid return handoff and
 /// decodes it — used by `WebPopupReturnUriSource`

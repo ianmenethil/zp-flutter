@@ -20,16 +20,16 @@ library;
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:zenpay_flutter/src/checkout/active_checkout.dart';
-import 'package:zenpay_flutter/src/checkout/launch_validator.dart';
-import 'package:zenpay_flutter/src/configuration/checkout_configuration.dart';
-import 'package:zenpay_flutter/src/exceptions/checkout_event.dart';
-import 'package:zenpay_flutter/src/models/checkout_outcome.dart';
-import 'package:zenpay_flutter/src/observability/checkout_event.dart';
-import 'package:zenpay_flutter/src/presentation/presenter.dart';
-import 'package:zenpay_flutter/src/presentation/presenter_factory.dart';
-import 'package:zenpay_flutter/src/return_handling/return_uri_source.dart';
-import 'package:zenpay_flutter/src/return_handling/return_validator.dart';
+import 'package:zenpay_flutter/src/checkout/track_active_checkout.dart';
+import 'package:zenpay_flutter/src/checkout/validate_checkout_url.dart';
+import 'package:zenpay_flutter/src/configuration/checkout_settings.dart';
+import 'package:zenpay_flutter/src/exceptions/checkout_errors.dart';
+import 'package:zenpay_flutter/src/models/checkout_results.dart';
+import 'package:zenpay_flutter/src/observability/checkout_telemetry.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart';
+import 'package:zenpay_flutter/src/presentation/open_checkout_pick_platform.dart';
+import 'package:zenpay_flutter/src/return_handling/listen_for_return_contract.dart';
+import 'package:zenpay_flutter/src/return_handling/validate_return_url.dart';
 
 /// Maps a launch failure thrown by `url_launcher` onto a [ZpLaunchFailureCode].
 ///

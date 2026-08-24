@@ -1,4 +1,4 @@
-# ZenPay Example Backend — Agent Guidelines
+# example/backend — Reference Merchant Backend
 
 Reference merchant backend for the combined ZenPay example: a Shelf HTTP server that creates checkout sessions, verifies ZenPay webhooks, and brokers the browser return. It is a _reference implementation_, not a library — merchants copy the pattern, not the package.
 
@@ -6,26 +6,22 @@ Reference merchant backend for the combined ZenPay example: a Shelf HTTP server 
 
 ## File list and purpose
 
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\app_check.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\attempt_store.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\checkout_token.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\config.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\models.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\rate_limiter.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\security.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\server_app.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\session_service.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\signed_token.dart
-G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\token_keys.dart
+- **[lib/src/attempt_store.dart](lib/src/attempt_store.dart)** — in-memory checkout-attempt store with a TTL purge.
+- **[lib/src/checkout_token.dart](lib/src/checkout_token.dart)** — mints/verifies the signed `checkoutToken` capability used by the two-step checkout flow.
+- **[lib/src/config.dart](lib/src/config.dart)** — loads `AppConfig` from environment/`.env`.
+- **[lib/src/models.dart](lib/src/models.dart)** — checkout domain models and ZenPay status mapping.
+- **[lib/src/rate_limiter.dart](lib/src/rate_limiter.dart)** — per-IP fixed-window rate limiter for the anonymous checkout-creation boundary.
+- **[lib/src/recaptcha_verifier.dart](lib/src/recaptcha_verifier.dart)** — Google Cloud reCAPTCHA Enterprise assessment check; see Security below.
+- **[lib/src/security.dart](lib/src/security.dart)** — constant-time comparison and ZenPay callback verification helpers.
+- **[lib/src/server_app.dart](lib/src/server_app.dart)** — the HTTP surface: routes, request parsing, response building.
+- **[lib/src/session_service.dart](lib/src/session_service.dart)** — the two-step checkout token/exchange flow.
+- **[lib/src/signed_token.dart](lib/src/signed_token.dart)** / **[lib/src/token_keys.dart](lib/src/token_keys.dart)** — per-purpose HMAC-SHA3-512 key derivation shared by `checkoutToken` and the SDK's `t` token.
 
-## 🔗 Related Guides
+## Related Guides
 
-- **[Combined Example](file:///G:/_zp-repos/zp-flutter-sdk/example/CLAUDE.md)** — Two-app architecture, how this backend and `example/app` fit together.
-- **[zenpay_dart](file:///G:/_zp-repos/zp-flutter-sdk/zenpay_dart/CLAUDE.md)** — The SDK this backend depends on (`../../zenpay_dart` via Melos `path:`) for fingerprinting, callback verification, and callback tokens.
-- **[example/app](file:///G:/_zp-repos/zp-flutter-sdk/example/app/CLAUDE.md)** — The Flutter client this backend serves sessions to.
-- **[scripts/README.md](file:///G:/_zp-repos/zp-flutter-sdk/scripts/README.md)** — `run-backend.ps1`, TLS setup, `.env` layout.
-
-`AGENTS.md` in this folder is a symlink to this file — edit `CLAUDE.md`, not `AGENTS.md`.
+- **[Combined Example](../CLAUDE.md)** — Two-app architecture, how this backend and `example/app` fit together.
+- **[zenpay_dart](../../zenpay_dart/CLAUDE.md)** — The SDK this backend depends on (`../../zenpay_dart` via Melos `path:`) for fingerprinting, callback verification, and callback tokens.
+- **[example/app](../app/CLAUDE.md)** — The Flutter client this backend serves sessions to.
 
 ---
 
@@ -39,12 +35,12 @@ G:\_zp-repos\zp-flutter-sdk\example\backend\lib\src\token_keys.dart
 - Idempotency on `POST /api/v1/checkout/token` is required (`Idempotency-Key` header, 16–128 chars) — do not remove or make optional. This is HTTP-level duplicate-request protection, a distinct concern from MUPID (ZenPay's own attempt-uniqueness id) — do not merge them.
 - **No `merchantUniquePaymentId` special-casing.** It is an opaque field passed through to `zenpay_dart` and stored as a lookup key in `AttemptStore`, same as any other backend would key its own storage. Do not add validation, matching, or rejection logic specific to it. There is no separate `attemptId` — a `CheckoutAttempt`'s identity is its MUPID.
 - **There is no `sessionId`, `sessionToken`, or retry concept anywhere in this backend** — removed deliberately (see git history if you need the old design). A failed/dismissed/timed-out checkout followed by another Pay tap is just a new, unrelated `POST /api/v1/checkout/token` call with a fresh MUPID; do not reintroduce grouping, retry policy, or a session-scoped token to correlate attempts. If a merchant genuinely needs cross-attempt correlation, that is the integrator's own storage layer, not this SDK/backend's job.
-- `lib/src/app_check.dart` gates both checkout-creation endpoints (`/checkout/token`, `/checkout/exchange`) with Firebase App Check (wrapping Apple App Attest / Android Play Integrity / Web reCAPTCHA), verified via Google's official `googleapis_auth`/`googleapis_beta` REST client — no third-party JWT library. Optional: enforced only when `FIREBASE_PROJECT_NUMBER` is configured; empty disables it for local dev. Tests inject a fake `AppCheckVerifier` rather than hitting Google's real endpoint.
+- `lib/src/recaptcha_verifier.dart` gates `POST /checkout/token` with a Google Cloud reCAPTCHA Enterprise assessment, verified via the official `googleapis` REST client — no third-party JWT library. Web checkout requests only: mobile requests (`X-Client: mobile`) skip this check entirely, since there's no reCAPTCHA client on Android/iOS. Optional: enforced only when `FIREBASE_PROJECT_NUMBER` and `RECAPTCHA_SITE_KEY_WEB` are configured; empty disables it for local dev. Tests inject a fake `RecaptchaVerifier` rather than hitting Google's real endpoint.
 - `checkoutToken` and the SDK's `t` token are two deliberately separate token types, both signed from one configured root secret (`TOKEN_SECRET`) but each with its own HMAC-SHA3-512 _derived_ signing key (`lib/src/token_keys.dart`, via `deriveTokenKey` in `lib/src/signed_token.dart`) — one purpose's token fails signature verification under another purpose's key, before any claim is even decoded. `checkoutToken` also carries an explicit `scope` claim checked on verify, as defense in depth on top of key separation, not instead of it — see `lib/src/checkout_token.dart`. Do not widen it to authorize what the `t` token is scoped to, and never mint or verify either token with the raw root secret directly — always go through `token_keys.dart`. Rotating `TOKEN_SECRET`, or changing a purpose label in `token_keys.dart`, invalidates every outstanding token of both types immediately — by design, since both are short-lived and nothing else depends on them surviving that.
 
 ## 2. Dart Strictness & Code Quality
 
-Same rules as `zenpay_dart` — see [analysis_options.yaml](file:///G:/_zp-repos/zp-flutter-sdk/example/backend/analysis_options.yaml): strict casts/inference/raw-types, no `dynamic`, comprehensive doc comments on exported members, `final` locals, standard `dart format`.
+Same rules as `zenpay_dart` — see [analysis_options.yaml](analysis_options.yaml): strict casts/inference/raw-types, no `dynamic`, comprehensive doc comments on exported members, `final` locals, standard `dart format`.
 
 ## 3. Verification Commands
 
@@ -65,4 +61,4 @@ dart test
 Pop-Location
 ```
 
-To run the server itself, use `scripts/run-backend.ps1` from the repo root (see [scripts/README.md](file:///G:/_zp-repos/zp-flutter-sdk/scripts/README.md)) rather than `dart run bin/server.dart` directly — the script handles `.env` prompting and health polling.
+To run the server itself, use `dart run cli.dart --server` from the repo root rather than `dart run bin/server.dart` directly — it handles `.env` prompting, health polling, and propagates `PUBLIC_BASE_URL` to `example/app` and the native Android/iOS App Link config.
