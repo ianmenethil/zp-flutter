@@ -11,6 +11,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:args/args.dart';
 
@@ -484,6 +485,187 @@ Future<Never> _execForeground(
 /// Does NOT regenerate example/app/android or ios — those are committed and
 /// hold hand-edited config (intent-filter, entitlements, signing, bundle ids)
 /// regenerating would destroy. Use apply_platform_config.dart for that.
+/// [content] with `KEY=value` set for [key] — replacing the existing line, or
+/// appending one when the template never carried the key.
+///
+/// Public, like `scripts/apply_platform_config.dart`'s helpers, so tests can
+/// exercise the replace-vs-append branch without driving a stdin prompt.
+String upsertEnvValue(String content, String key, String value) {
+  final pattern = envValuePattern(key);
+  return pattern.hasMatch(content) ? content.replaceFirst(pattern, '$key=$value') : '${content.trimRight()}\n$key=$value\n';
+}
+
+/// Matches one `KEY=value` line, capturing the value.
+RegExp envValuePattern(String key) => RegExp('^$key\\s*=(.*)\$', multiLine: true);
+
+/// One `KEY=value` line in [envFile], prompted for interactively; returns the
+/// value in force afterwards.
+///
+/// Shows whatever is already set (masked when [secret]) and treats Enter as
+/// "keep". When the value is currently blank and [generateWhenBlank] is
+/// supplied, Enter means "generate one for me" instead — the caller says so
+/// in the prompt, so it never happens as a surprise.
+String _promptEnvValue(
+  File envFile,
+  String key, {
+  required String label,
+  bool secret = false,
+  bool announceGenerated = true,
+  String? blankWarning,
+  String Function()? generateWhenBlank,
+}) {
+  final content = envFile.readAsStringSync();
+  final current = envValuePattern(key).firstMatch(content)?.group(1)?.trim() ?? '';
+
+  stdout.write('  $label ');
+  if (current.isNotEmpty) {
+    stdout.write(_dim('[${secret ? _maskSecret(current) : current}] (Enter to keep): '));
+  } else if (generateWhenBlank != null) {
+    stdout.write(_dim('(Enter to auto-generate): '));
+  } else {
+    stdout.write(_dim('(blank for now): '));
+  }
+
+  final entered = stdin.readLineSync()?.trim() ?? '';
+  if (entered.isEmpty && current.isNotEmpty) return current;
+
+  final value = entered.isNotEmpty ? entered : (generateWhenBlank?.call() ?? '');
+  if (value.isEmpty) {
+    // Callers say what a blank means in their own context — the default is
+    // bootstrap's, and would be nonsense for a caller with no server.
+    _warn(blankWarning ?? '    $key left blank — the server will refuse to start until it is set.');
+    return '';
+  }
+
+  envFile.writeAsStringSync(upsertEnvValue(content, key, value));
+  if (entered.isEmpty && announceGenerated) {
+    _success('    Generated $key (${value.length} hex chars).');
+  }
+  return value;
+}
+
+/// A fresh `TOKEN_SECRET`: 32 cryptographically secure bytes as hex, matching
+/// the `openssl rand -hex 32` the `.env.example` template documents.
+///
+/// Public so a test can assert its shape without reaching into a prompt.
+String generateTokenSecret() {
+  final random = Random.secure();
+  return List<int>.generate(32, (_) => random.nextInt(256)).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
+
+/// The ordered locations a JDK `keytool` is looked for on this platform.
+///
+/// Separated from [resolveKeytool] so a test can assert the *order* without
+/// depending on what happens to be installed on the machine running it.
+List<String> keytoolCandidates() {
+  final exe = Platform.isWindows ? 'keytool.exe' : 'keytool';
+  return <String>[
+    if (Platform.environment['JAVA_HOME'] case final home?) '$home${Platform.pathSeparator}bin${Platform.pathSeparator}$exe',
+    if (Platform.isWindows) r'C:\Program Files\Android\Android Studio\jbr\bin\keytool.exe',
+    if (Platform.isMacOS) '/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin/keytool',
+    // Linux has no single canonical Android Studio path, so it relies on
+    // JAVA_HOME above or the PATH fallback in resolveKeytool.
+  ];
+}
+
+/// Path to a usable `keytool`, or null when none can be found.
+///
+/// Not usually on `PATH`, but every Android toolchain ships a JDK — check
+/// `JAVA_HOME` first, then Android Studio's bundled runtime, then `PATH`.
+/// [candidates] is injectable purely so a test can drive the not-found branch
+/// on a machine that does have a JDK installed.
+String? resolveKeytool({List<String>? candidates}) {
+  for (final candidate in candidates ?? keytoolCandidates()) {
+    if (File(candidate).existsSync()) return candidate;
+  }
+  final exe = Platform.isWindows ? 'keytool.exe' : 'keytool';
+  return _hasCommand('keytool') ? exe : null;
+}
+
+/// The SHA-256 fingerprint of this machine's Android debug signing cert.
+///
+/// Android verifies an App Link against the cert that signed the *installed*
+/// APK, and the debug keystore is generated per machine — which is exactly
+/// why the resulting `assetlinks.json` cannot be committed.
+String? _debugKeystoreSha256() {
+  final keytool = resolveKeytool();
+  final home = Platform.environment['USERPROFILE'] ?? Platform.environment['HOME'];
+  if (keytool == null || home == null) return null;
+
+  final keystore = File('$home${Platform.pathSeparator}.android${Platform.pathSeparator}debug.keystore');
+  if (!keystore.existsSync()) return null;
+
+  final result = Process.runSync(keytool, [
+    '-list',
+    '-v',
+    '-keystore',
+    keystore.path,
+    '-alias',
+    'androiddebugkey',
+    '-storepass',
+    'android',
+    '-keypass',
+    'android',
+  ]);
+  if (result.exitCode != 0) return null;
+
+  return RegExp(r'SHA256:\s*([A-F0-9:]{95})').firstMatch(result.stdout.toString())?.group(1);
+}
+
+/// The example app's Android `applicationId`, read from its Gradle config.
+///
+/// Public so a test can drive it against a temp-directory fixture.
+String? androidApplicationId(String root) {
+  for (final name in ['build.gradle.kts', 'build.gradle']) {
+    final gradle = File('$root/example/app/android/app/$name');
+    if (!gradle.existsSync()) continue;
+    final match = RegExp(r'''applicationId\s*=?\s*["']([^"']+)["']''').firstMatch(gradle.readAsStringSync());
+    if (match != null) return match.group(1);
+  }
+  return null;
+}
+
+/// Writes `example/backend/well_known/assetlinks.json` for this machine.
+///
+/// Same class of artifact as the mkcert TLS cert: derived from local state,
+/// different on every machine, gitignored rather than committed. Without it
+/// `autoVerify` fails and Android opens a browser instead of the app, so the
+/// mobile checkout return never arrives.
+void _ensureAppLinks(String root) {
+  final applicationId = androidApplicationId(root);
+  if (applicationId == null) {
+    _warn('Could not read applicationId from example/app/android — skipping assetlinks.json.');
+    return;
+  }
+
+  final fingerprint = _debugKeystoreSha256();
+  if (fingerprint == null) {
+    _warn(
+      'keytool or ~/.android/debug.keystore not found — skipping assetlinks.json. '
+      'Mobile checkout returns will open a browser instead of the app until you re-run this.',
+    );
+    return;
+  }
+
+  final target = File('$root/example/backend/well_known/assetlinks.json');
+  target.parent.createSync(recursive: true);
+  target.writeAsStringSync(
+    '${const JsonEncoder.withIndent('  ').convert([
+      {
+        'relation': ['delegate_permission/common.handle_all_urls'],
+        'target': {
+          'namespace': 'android_app',
+          'package_name': applicationId,
+          // An array so a release cert can be appended without replacing
+          // the debug one — both are valid for the same app.
+          'sha256_cert_fingerprints': [fingerprint],
+        },
+      },
+    ])}\n',
+  );
+  _info('assetlinks.json written for $applicationId (${fingerprint.substring(0, 17)}...).');
+}
+
 Future<void> _bootstrap(String root, {required bool skipCerts}) async {
   for (final cmd in ['flutter', 'dart']) {
     if (!_hasCommand(cmd)) {
@@ -502,6 +684,31 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
       template.copySync(envFile.path);
       _info('Created $pkg/.env from template');
     }
+  }
+
+  // The values the backend refuses to start without (see
+  // `sessionConfigurationErrors` in example/backend/lib/src/config.dart).
+  // Asked for here so a fresh clone never has to hand-edit a .env — the one
+  // step that used to be printed as an instruction and skipped.
+  //
+  // PUBLIC_BASE_URL deliberately isn't here: --server already prompts for it
+  // and propagates the derived mobile return URI and native App Link config,
+  // and it changes every time a tunnel restarts.
+  final backendEnv = File('$root/example/backend/.env');
+  if (backendEnv.existsSync()) {
+    stdout.writeln();
+    _info('ZenPay credentials (Enter to keep what is already there):');
+    _promptEnvValue(backendEnv, 'ZENPAY_MERCHANT_CODE', label: 'Merchant code  ');
+    _promptEnvValue(backendEnv, 'ZENPAY_API_KEY', label: 'API key        ');
+    _promptEnvValue(backendEnv, 'ZENPAY_USERNAME', label: 'Username       ');
+    _promptEnvValue(backendEnv, 'ZENPAY_PASSWORD', label: 'Password       ', secret: true);
+    _promptEnvValue(
+      backendEnv,
+      'TOKEN_SECRET',
+      label: 'Token secret   ',
+      secret: true,
+      generateWhenBlank: generateTokenSecret,
+    );
   }
 
   // The SDK rejects any non-https return URI, so the web flow needs TLS even
@@ -526,18 +733,19 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
     }
   }
 
+  // Mobile needs no TLS cert — its return is an App Link on the public host —
+  // but it does need an assetlinks.json naming this machine's debug signing
+  // cert, or Android refuses to hand the return URL to the app.
+  _ensureAppLinks(root);
+
   stdout.writeln();
   _success('Bootstrap complete. Next:');
   stdout
     ..writeln(
-      '  1. Fill in ZENPAY_* credentials in example/backend/.env — the '
-      'server will not start without them.',
-    )
-    ..writeln(
-      '  2. dart run $_scriptName --server   '
+      '  1. dart run $_scriptName --server   '
       '(prompts for PUBLIC_BASE_URL and propagates it)',
     )
-    ..writeln('  3. dart run $_scriptName --android | --ios | --web');
+    ..writeln('  2. dart run $_scriptName --android | --ios | --web');
 }
 
 /// Starts the example backend. Every other mode assumes this is already
@@ -852,39 +1060,19 @@ Future<void> _tunnel(String root) async {
     exit(1);
   }
 
-  var content = envFile.readAsStringSync();
-  final tokenPattern = RegExp(
-    r'^CLOUDFLARE_TUNNEL_TOKEN\s*=\s*(.*)$',
-    multiLine: true,
+  _info('cloudflared tunnel token (Cloudflare Zero Trust > Networks > Tunnels):');
+  final token = _promptEnvValue(
+    envFile,
+    'CLOUDFLARE_TUNNEL_TOKEN',
+    label: 'Token',
+    secret: true,
+    announceGenerated: false,
+    blankWarning: '    No token given. --quick-tunnel needs no account or token at all, if you just want a public URL.',
   );
-  final current = tokenPattern.firstMatch(content)?.group(1)?.trim() ?? '';
-
-  if (current.isNotEmpty) {
-    _info('Current CLOUDFLARE_TUNNEL_TOKEN: ${_maskSecret(current)}');
-    stdout.write('Enter to keep, or paste a new token: ');
-  } else {
-    stdout.write(
-      'No CLOUDFLARE_TUNNEL_TOKEN set — paste your cloudflared tunnel '
-      'token (Cloudflare Zero Trust > Networks > Tunnels): ',
-    );
-  }
-  final newToken = stdin.readLineSync()?.trim() ?? '';
-  final token = newToken.isEmpty ? current : newToken;
 
   if (token.isEmpty) {
     _error('A token is required for --tunnel.');
     exit(1);
-  }
-
-  if (newToken.isNotEmpty && newToken != current) {
-    content = tokenPattern.hasMatch(content)
-        ? content.replaceFirst(
-            tokenPattern,
-            'CLOUDFLARE_TUNNEL_TOKEN=$newToken',
-          )
-        : '${content.trimRight()}\nCLOUDFLARE_TUNNEL_TOKEN=$newToken\n';
-    envFile.writeAsStringSync(content);
-    _info('CLOUDFLARE_TUNNEL_TOKEN saved.');
   }
 
   // cloudflared logs its own "Environmental variables" diagnostic line on

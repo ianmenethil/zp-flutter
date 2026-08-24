@@ -8,7 +8,10 @@
 .buildlog/
 .history
 .svn/
-.claude/
+# Local Claude Code state stays private — EXCEPT .claude/skills/, which ships
+# with the repo so a fresh clone gets the ZenPay demo-app builder skill.
+.claude/*
+!.claude/skills/
 .story/
 .agents/
 zenpay_typescript/
@@ -19,6 +22,12 @@ zenpay_typescript/
 # Local TLS certs (mkcert) — generated per machine by scripts/bootstrap.ps1.
 # localhost+2-key.pem is a private key and must never be committed.
 *.pem
+
+# Android App Link verification file — generated per machine by
+# `dart run cli.dart --bootstrap` from the local debug keystore's SHA-256,
+# which differs on every machine. Committing one machine's fingerprint makes
+# the mobile checkout return fail silently for everyone else who clones.
+example/backend/well_known/assetlinks.json
 
 # Custom User Folders to ignore
 .examples/
@@ -98,3 +107,10 @@ schema.md
 android-webview.mp4
 android.mp4
 docs/
+docker/local/.claude/.git-clean-warned
+example/app/.claude/.git-clean-warned
+example/app/lib/.claude/.git-clean-warned
+example/backend/.claude/.git-clean-warned
+zenpay_embedded/.claude/.git-clean-warned
+zenpay_embedded/test/.claude/.git-clean-warned
+zenpay_flutter/.claude/.git-clean-warned
