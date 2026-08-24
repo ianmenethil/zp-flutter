@@ -83,7 +83,7 @@ Edit `../example/backend/.env` with your merchant credentials:
 | `ZENPAY_API_KEY`                |    ✓     | API key for the ZenPay merchant account.                                                                                                                                       |
 | `ZENPAY_USERNAME`               |    ✓     | Hashed into the SHA3-512 fingerprint; never leaves this backend.                                                                                                               |
 | `ZENPAY_PASSWORD`               |    ✓     | Hashed into the SHA3-512 fingerprint; never leaves this backend.                                                                                                               |
-| `TOKEN_SECRET`                  |    ✓     | Root secret every token type (`checkoutToken`, `sessionToken`, the `?t=` return/status token) derives its own signing key from. Must be ≥32 bytes or session creation fails. Generate with `openssl rand -hex 32`. Rotating it invalidates every outstanding token. |
+| `TOKEN_SECRET`                  |    ✓     | Root secret every token type (`checkoutToken`, the `?t=` return/status token) derives its own signing key from. Must be ≥32 bytes or checkout-token minting fails. Generate with `openssl rand -hex 32`. Rotating it invalidates every outstanding token. |
 | `ALLOWED_APP_ORIGIN`            |          | Browser origin for CORS (default `http://localhost:3000`).                                                                                                                     |
 | `APP_RETURN_URI_WEB`            |          | HTTPS URI the return broker redirects web clients to (default `https://localhost:3000/`).                                                                                      |
 | `ZENPAY_ALLOWED_CHECKOUT_HOSTS` |          | Comma-separated allowlist of checkout URL hosts (default `pay.sandbox.travelpay.com.au`).                                                                                      |
@@ -184,7 +184,7 @@ endpoint — those were removed from the reference backend's design; see
 - **Timing-safe comparisons** — all cryptographic comparisons use constant-time digest equality to prevent timing attacks.
 - **No outbound calls at launch** — the checkout URL is constructed entirely from query parameter serialization; there is no HTTP call to ZenPay at session creation time.
 - **Callback URL tokens gate status/return access** — the example backend mints an HMAC-SHA3-512 signed `?t=<token>` at checkout-exchange time and requires it on `GET /api/v1/sessions` and `GET /return`; it never gates `POST /api/v1/callbacks` acceptance, which is authenticated by `ValidationCode` alone.
-- **No sensitive data in logs** — passwords, card numbers, CVVs, and secrets are never logged. Only payment identifiers, event types, status codes, and non-sensitive business fields appear in structured JSON logs. Full tokens (`checkoutToken`, `sessionToken`, `t`) are never logged either — see [example/backend/README.md § Security Model](../example/backend/README.md#security-model) for the full posture, including the anonymous checkout-creation boundary's rate limiting and retry policy.
+- **No sensitive data in logs** — passwords, card numbers, CVVs, and secrets are never logged. Only payment identifiers, event types, status codes, and non-sensitive business fields appear in structured JSON logs. Full tokens (`checkoutToken`, `t`) are never logged either — see [example/backend/README.md § Security Model](../example/backend/README.md#security-model) for the full posture, including the anonymous checkout-creation boundary's rate limiting.
 
 ---
 
@@ -221,7 +221,7 @@ melos run test
 ### Code Quality
 
 - **Strict analysis**: `strict-casts`, `strict-inference`, `strict-raw-types` — no untyped `dynamic`.
-- **Public API docs enforced**: `public_member_api_docs: error` on the core package.
+- **Public API docs by convention**: every exported class, method, enum, and typedef in `lib/` carries a doc comment. `public_member_api_docs` is disabled in `analysis_options.yaml` — Dart's primary-constructor syntax gives no separate line the lint can attach to.
 - **Dead code is an error**: unused imports, private members, and locals are compiler errors.
 - **Style**: `final` locals, constructors first, `dart format` with the repo's 160-character `page_width`.
 
@@ -241,8 +241,7 @@ The reference backend tests (`../example/backend/test/`) cover:
 - Health endpoint configuration reporting
 - Checkout-token preparation with idempotency enforcement (create, replay, conflict) and product/mode validation
 - Checkout-exchange replay (same token → same attempt, no duplicate) and per-IP rate limiting
-- Retry-token policy (terminal-session rejection, max-attempts, minimum interval) and session-token authorization
-- Checkout/session token issuance, verification, expiry, tamper, and cross-scope confusion rejection
+- Checkout-token issuance, verification, expiry, tamper, and cross-scope confusion rejection
 - Callback URL token issuance and verification (missing/forged/expired `t`)
 - Callback signature verification and status mapping
 - Return broker redirect behavior (mobile App Link, web)
