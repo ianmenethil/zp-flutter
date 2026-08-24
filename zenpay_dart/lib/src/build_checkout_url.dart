@@ -67,14 +67,11 @@ ZpUrlFailure? validateZpCheckoutUrlRequest(ZpCheckoutOptions request) {
   }
 
   // merchantCode is spliced directly into the URL path as one segment
-  // (`$basePath/$merchantCode/Authorise`), unencoded — matching the
-  // TypeScript SDK's generateUrl(), which does the same raw concatenation
-  // with no path-segment validation of its own. A `/` would silently split
-  // it into extra segments; a bare "." or ".." would be consumed by RFC 3986
-  // dot-segment normalization instead of surviving as a literal value. Both
-  // build successfully but land on a different path than intended, so this
-  // package rejects them explicitly — a Dart-only addition beyond what TS
-  // validates, since TS has no equivalent check.
+  // (`$basePath/$merchantCode/Authorise`), unencoded. A `/` would silently
+  // split it into extra segments; a bare "." or ".." would be consumed by
+  // RFC 3986 dot-segment normalization instead of surviving as a literal
+  // value. Both build successfully but land on a different path than
+  // intended, so this package rejects them explicitly.
   if (request.merchantCode.contains('/') || request.merchantCode == '.' || request.merchantCode == '..') {
     return const ZpUrlFailure(ZpErrors.merchantCodeInvalidPathSegment);
   }
@@ -125,10 +122,9 @@ Map<String, String> _buildQueryParams(
   'allowUnionPayOneOffPayment': request.allowUnionPayOneOffPayment.toString(),
   'allowAliPayPlusOneOffPayment': request.allowAliPayPlusOneOffPayment.toString(),
   'isJsPlugin': request.isJsPlugin.toString(),
-  // Every field below is omitted entirely when unset, matching TypeScript's
-  // generateUrl(): it iterates Object.entries() on the resolved options
-  // object, so a key the caller never set was never a property at all and
-  // never reaches the query string — sending it as `key=` would not match.
+  // Every field below is omitted entirely when unset — a key the caller
+  // never set never reaches the query string at all, rather than being
+  // sent as an empty `key=`.
   if (request.callbackUrl != null) 'callbackUrl': request.callbackUrl!,
   if (request.redirectUrl != null) 'redirectUrl': request.redirectUrl!,
   if (request.sendConfirmationEmailToMerchant != null) 'sendConfirmationEmailToMerchant': request.sendConfirmationEmailToMerchant!.toString(),

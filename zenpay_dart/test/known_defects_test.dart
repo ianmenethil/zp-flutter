@@ -46,8 +46,8 @@ void main() {
   // `createZpCheckoutUrl` splices `merchantCode` into the URL path, where a
   // literal `/` is a segment separator and `..` is removed by RFC 3986
   // dot-segment normalisation. Asserting a specific allowed charset would be
-  // inventing a rule the TypeScript SDK does not define either, so instead
-  // this asserts the contract that must hold whatever charset is chosen:
+  // inventing an arbitrary rule, so instead this asserts the contract that
+  // must hold whatever charset is chosen:
   //
   //   the call either fails validation, or merchantCode occupies exactly one
   //   path segment between the base path and `Authorise`
@@ -111,12 +111,11 @@ void main() {
   // Finding #2 — non-finite paymentAmount.
   //
   // `createZpCallbackUrlToken`'s own dartdoc promises `ArgumentError` for a
-  // malformed payload and states it matches TS's `createZpCallbackUrlToken`,
-  // "which throws TypeError/RangeError for the identical cases". TS's Zod
-  // schema rejects NaN/Infinity; the Dart guard `_isAmountShaped` only checks
-  // `is num`, so they pass and blow up later inside `jsonEncode` as
-  // `JsonUnsupportedObjectError` — a type the documented contract never
-  // mentions and a caller catching `ArgumentError` will not handle.
+  // malformed payload. The Dart guard `_isAmountShaped` only checks `is
+  // num`, so NaN/Infinity pass validation and blow up later inside
+  // `jsonEncode` as `JsonUnsupportedObjectError` — a type the documented
+  // contract never mentions and a caller catching `ArgumentError` will not
+  // handle.
   group('createZpCallbackUrlToken rejects non-finite paymentAmount', () {
     test('control: a finite num is accepted', () {
       expect(

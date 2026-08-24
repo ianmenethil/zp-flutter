@@ -25,3 +25,14 @@ pre-commit:
     no-js-bridge:
       # run: '! grep -rnE "addJavaScriptChannel|setOnConsoleMessage" zenpay_embedded/lib'
       run: '! grep -rn -e "addJavaScriptChannel" -e "setOnConsoleMessage" zenpay_embedded/lib'
+    webview-teardown:
+      # Regression guard for the "full teardown on dismiss" PCI control
+      # (ARCHITECTURE.md § 4): fails if the embedded WebView's dismiss path
+      # ever stops clearing cache/local storage/cookies.
+      run: 'grep -q "clearCache" zenpay_embedded/lib/src/render_checkout_web_view.dart && grep -q "clearLocalStorage" zenpay_embedded/lib/src/render_checkout_web_view.dart && grep -q "WebViewCookieManager" zenpay_embedded/lib/src/render_checkout_web_view.dart'
+    webview-no-host-allowlist:
+      # Regression guard for the "HTTPS-only, no host allowlist on WebView
+      # navigation" PCI control (ARCHITECTURE.md § 4): 3DS/issuer ACS hosts
+      # can't be enumerated in advance, so navigation must never be filtered
+      # by the checkout-URL host allowlist.
+      run: '! grep -n -e "isAllowedCheckoutUrl" -e "allowedCheckoutHosts" -e "validate_checkout_url.dart" zenpay_embedded/lib/src/decide_web_view_navigation.dart'

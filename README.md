@@ -18,32 +18,13 @@ Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) — start there before touc
 
 ---
 
-## 🏗️ Architecture & Flow
+## 🏗️ Architecture
 
-The repository is structured to mirror exactly how you will integrate ZenPay into your own production systems. The client app uses the Flutter SDK for presentation, while a backend server uses the pure-Dart SDK to handle cryptography and secure session creation.
+The repository is structured to mirror exactly how you will integrate ZenPay into your own production systems: a backend using the pure-Dart SDK for cryptography and secure session creation, a client using the Flutter SDK for presentation, and an optional embedded WebView presenter layered on top of that.
 
-```mermaid
-graph TD
-    subgraph example ["Integration Example"]
-        APP[example/app<br/>(Flutter Mobile/Web)]
-        BACKEND[example/backend<br/>(Shelf Server)]
-    end
+📐 **See [ARCHITECTURE.md](ARCHITECTURE.md)** for the full integration diagram, the end-to-end flow, and how `zenpay_embedded` adds an alternate presentation without replacing anything.
 
-    subgraph sdks ["ZenPay SDKs"]
-        F_SDK[zenpay_flutter<br/>(Client SDK)]
-        D_SDK[zenpay_dart<br/>(Backend SDK)]
-    end
-
-    APP -->|Uses| F_SDK
-    BACKEND -->|Uses| D_SDK
-
-    APP -->|1. Request Checkout Token| BACKEND
-    BACKEND -->|2. Generate Hash & URL| D_SDK
-    BACKEND -.->|3. Return Token| APP
-    APP -->|4. Present Checkout| F_SDK
-    F_SDK -.->|5. Deep-link Return| APP
-    APP -->|6. Verify Status| BACKEND
-```
+🔒 **See [PCI_SAQ_A.md](PCI_SAQ_A.md)** for PCI DSS SAQ A across both presentation surfaces — why the default is the safer architectural choice, and every control `zenpay_embedded` enforces when you opt into the alternative.
 
 ---
 
@@ -53,6 +34,7 @@ graph TD
 | :-------------------------------------------- | :---------------- | :----------------------------------------------------------------------------------------------------------------------- |
 | [`zenpay_dart`](zenpay_dart/README.md)       | `zenpay_dart/`    | Pure-Dart backend SDK: fingerprints, launch URLs, callback verification, callback URL tokens. Server-side only.          |
 | [`zenpay_flutter`](zenpay_flutter/README.md) | `zenpay_flutter/` | Flutter client SDK: presents ZenPay Hosted Checkout, handles the return, reports one typed outcome.                      |
+| [`zenpay_embedded`](zenpay_embedded/README.md) | `zenpay_embedded/` | Optional in-app WebView presenter, layered on top of `zenpay_flutter` — see [ARCHITECTURE.md](ARCHITECTURE.md). Opt-in only, not the default. |
 | [example](example/README.md)                 | `example/`        | Combined reference: a Shelf backend (`example/backend/`) and a Flutter app (`example/app/`) demonstrating the full flow. |
 
 Each package has its own `CLAUDE.md` (agent guidelines) and `README.md` (usage docs); every `CLAUDE.md` has an `AGENTS.md` symlink alongside it.

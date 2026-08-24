@@ -16,10 +16,9 @@ bool constantTimeEqual(String a, String b) => HashDigest(Uint8List.fromList(utf8
 /// Callback fields this backend derives from ZenPay's raw response once
 /// `zenpay_dart` has verified authenticity.
 ///
-/// `verifyZpCallback` itself returns no data — mirrors `@ianmenethil/zp-hcp`'s
-/// TypeScript `verifyZpCallback`, which is pass/fail only. Reading and
-/// interpreting the response is every integrator's own job, this backend
-/// included; [rawPayload] carries the whole thing, unfiltered.
+/// `verifyZpCallback` itself returns no data — it is pass/fail only. Reading
+/// and interpreting the response is every integrator's own job, this
+/// backend included; [rawPayload] carries the whole thing, unfiltered.
 class CallbackFields {
   /// Creates a [CallbackFields].
   const CallbackFields({

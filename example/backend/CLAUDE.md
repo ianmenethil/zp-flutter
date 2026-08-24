@@ -59,7 +59,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 
 ### `lib/src/rate_limiter.dart`
 
-**Overview:** Fixed-window request rate limiter. Ported from `development/samples/backend/lib/src/rate_limiter.dart` (`development/` is slated for deletion — this is the surviving copy).
+**Overview:** Fixed-window request rate limiter. Ported from `development/samples/backend/lib/src/rate_limiter.dart` (`development/` has since been deleted from the repo; this is the surviving copy).
 
 - **`class FixedWindowRateLimiter`**: a fixed-window request-rate limiter keyed by an arbitrary string (typically client IP) — `allow(key)` returns whether a request is permitted within the configured `limit`/`window`; used by `server_app.dart` to bound the anonymous checkout-creation and callback endpoints per IP.
 
@@ -128,7 +128,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 ## Related Guides
 
 - **[Combined Example](../CLAUDE.md)** — Two-app architecture, how this backend and `example/app` fit together.
-- **[zenpay_dart](../../zenpay_dart/CLAUDE.md)** — The SDK this backend depends on (`../../zenpay_dart` via Melos `path:`) for fingerprinting, callback verification, and callback tokens.
+- **[zenpay_dart](../../zenpay_dart/CLAUDE.md)** — The SDK this backend depends on (resolved to `../../zenpay_dart` by the root Dart pub workspace, not a `path:` dependency) for fingerprinting, callback verification, and callback tokens.
 - **[example/app](../app/CLAUDE.md)** — The Flutter client this backend serves sessions to.
 
 ---

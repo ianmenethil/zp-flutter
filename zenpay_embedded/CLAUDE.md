@@ -88,6 +88,6 @@ melos run test
 ```
 
 Confirm the bridge gate actually fires: temporarily add an `addJavaScriptChannel` call under
-`lib/`, then run `grep -rnE "addJavaScriptChannel|setOnConsoleMessage" zenpay_embedded/lib`
-(the same check `lefthook.yml`'s `no-js-bridge` command runs) and confirm it's found, then
+`lib/`, then run `grep -rn -e "addJavaScriptChannel" -e "setOnConsoleMessage" zenpay_embedded/lib`
+(the live check `lefthook.yml`'s `no-js-bridge` command runs) and confirm it's found, then
 remove it.

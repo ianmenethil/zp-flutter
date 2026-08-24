@@ -86,10 +86,9 @@ void main() {
       () {
         // Extra fields aren't part of the hash pipe, so adding them here
         // doesn't invalidate the golden validationCode above. There is
-        // nothing to read off the result: verifyZpCallback returns no data
-        // (mirrors `@ianmenethil/zp-hcp`'s TypeScript verifyZpCallback) — the
-        // caller already holds this same `response` map and reads whatever
-        // it needs from it directly.
+        // nothing to read off the result: verifyZpCallback returns no
+        // data — the caller already holds this same `response` map and
+        // reads whatever it needs from it directly.
         final result = verifyZpCallback(mode, {
           'response': {
             'merchantUniquePaymentId': mupid,

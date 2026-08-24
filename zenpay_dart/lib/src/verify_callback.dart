@@ -1,12 +1,12 @@
 /// Incoming HCP callback verification.
 ///
-/// Mirrors `@ianmenethil/zp-hcp`'s TypeScript `verifyZpCallback`: this proves
-/// callback *authenticity* only and returns no data — you already have the
-/// full callback body (you passed it in), so read whatever fields you need
-/// from it directly, e.g. `payload['response']['paymentStatus']` against
-/// [ZpPaymentStatus] to check *success* separately. [ZpPluginMode] exposes
-/// [ZpPluginMode.callbackReferenceField] so you don't have to hardcode which
-/// field carries the reference for a given mode.
+/// `verifyZpCallback` proves callback *authenticity* only and returns no
+/// data — you already have the full callback body (you passed it in), so
+/// read whatever fields you need from it directly, e.g.
+/// `payload['response']['paymentStatus']` against [ZpPaymentStatus] to
+/// check *success* separately. [ZpPluginMode] exposes
+/// [ZpPluginMode.callbackReferenceField] so you don't have to hardcode
+/// which field carries the reference for a given mode.
 library;
 
 import 'package:zenpay_dart/src/constants.dart';

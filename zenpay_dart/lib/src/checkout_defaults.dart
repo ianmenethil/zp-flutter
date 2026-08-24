@@ -1,21 +1,14 @@
 /// Default option and UI-hint values applied when the caller omits them.
 ///
-/// [ZpCheckoutDefaults] mirrors the TypeScript SDK's `defaults.ts` 1:1 so the
-/// two can be diffed as a unit when either side changes. Internal —
-/// deliberately not exported from `zenpay_dart.dart`, matching the TypeScript
-/// package, which declares `defaults` but exports neither the value nor its
-/// type.
-///
-/// Two of the sixteen TypeScript keys have no entry in [ZpCheckoutDefaults]:
+/// [ZpCheckoutDefaults] is internal — deliberately not exported from
+/// `zenpay_dart.dart`. Two fields intentionally have no entry here:
 /// - `action: "Authorise"` is not caller-configurable; it is the URL path
 ///   segment, held in `checkout_url.dart`.
 /// - `onPluginClose` is a browser modal callback. The Flutter equivalent is the
 ///   `ZpPresentationDismissed` outcome, not a launch option.
 ///
-/// [ZpUiDefaults] ports a *different* TypeScript file — `ZP_DEFAULTS` in
-/// `plugin/core/constants.ts` — output/rendering hints applied at URL-build
-/// time, not merged into the request. Its title fallbacks additionally go
-/// beyond that TypeScript source: see the class doc for details.
+/// [ZpUiDefaults] is a separate namespace: output/rendering hints applied at
+/// URL-build time, not merged into the request.
 library;
 
 import 'package:zenpay_dart/src/models/checkout_options.dart';
@@ -23,24 +16,24 @@ import 'package:zenpay_dart/src/models/enums.dart';
 
 /// The default value for every optional [ZpCheckoutOptions] field that has one.
 abstract final class ZpCheckoutDefaults {
-  /// Plugin operating mode. TypeScript: `mode: 0`.
+  /// Plugin operating mode.
   static const ZpPluginMode mode = ZpPluginMode.makePayment;
 
-  /// Who absorbs the surcharge. TypeScript: `overrideFeePayer: 0`.
+  /// Who absorbs the surcharge.
   static const ZpOverrideFeePayer overrideFeePayer = ZpOverrideFeePayer.accountDefault;
 
-  /// Who operates the checkout. TypeScript: `userMode: 0`.
+  /// Who operates the checkout.
   static const ZpUserMode userMode = ZpUserMode.customer;
 
   /// How the checkout is presented.
   ///
-  /// **Diverges from TypeScript**, which defaults to `displayMode: 0` (Modal).
-  /// Modal renders the checkout in an iframe inside a host page — impossible
-  /// from a Custom Tab or SFSafariViewController, which is all this SDK
-  /// launches. Redirect is the only mode that can work here.
+  /// Defaults to Redirect, not Modal: Modal renders the checkout in an
+  /// iframe inside a host page — impossible from a Custom Tab or
+  /// SFSafariViewController, which is all this SDK launches. Redirect is
+  /// the only mode that can work here.
   static const ZpDisplayMode displayMode = ZpDisplayMode.redirectUrl;
 
-  /// Whether the hosted page hides its header. TypeScript: `hideHeader: true`.
+  /// Whether the hosted page hides its header.
   static const bool hideHeader = true;
 
   /// Whether terms and conditions are hidden.
@@ -75,11 +68,6 @@ abstract final class ZpCheckoutDefaults {
 }
 
 /// Default UI/output hints applied when the caller omits them.
-///
-/// The height and [maxWidth] hints mirror the TypeScript SDK's `ZP_DEFAULTS`
-/// (`plugin/core/constants.ts`). The title fallbacks do not: TypeScript has a
-/// single mode-independent title constant. Per-mode title fallbacks are a
-/// zenpay_dart-specific addition, not a TypeScript SDK port.
 abstract final class ZpUiDefaults {
   /// Checkout title used when the caller's `title` option is omitted or empty,
   /// for every mode except `ZpPluginMode.tokenise`.
@@ -89,10 +77,9 @@ abstract final class ZpUiDefaults {
   /// and `mode` is `ZpPluginMode.tokenise`.
   static const titleFallbackTokenise = 'Tokenize Card';
 
-  /// Modal max-width hint (px). Matches TypeScript's `ZP_DEFAULTS.WIDTH_MODAL`
-  /// — fixed, not mode-dependent, not caller-overridable. TypeScript documents
-  /// this as informational only: a host rendering an iframe/modal is CSS-driven
-  /// and may ignore it.
+  /// Modal max-width hint (px) — fixed, not mode-dependent, not
+  /// caller-overridable. Informational only: a host rendering an
+  /// iframe/modal is CSS-driven and may ignore it.
   static const maxWidth = '600px';
 
   /// Min-height hint (px) for `ZpPluginMode.tokenise`.

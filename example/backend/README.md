@@ -2,8 +2,9 @@
 
 Minimal reference merchant backend for the combined ZenPay example: a Shelf
 HTTP server that creates checkout sessions, verifies ZenPay webhooks, and
-brokers the browser return. Depends on [`zenpay_dart`](../../zenpay_dart/README.md)
-via a local Melos `path:` dependency.
+brokers the browser return. Depends on [`zenpay_dart`](../../zenpay_dart/README.md),
+resolved to the local package by the root Dart pub workspace (not a `path:`
+dependency — see [`pubspec.yaml`](pubspec.yaml)).
 
 Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) (`AGENTS.md` here is a
 symlink to it). Combined example overview: [../README.md](../README.md).
@@ -61,6 +62,7 @@ Listens on `0.0.0.0:<PORT>`, shuts down cleanly on `Ctrl+C`.
 | `CHECKOUT_RATE_LIMIT_PER_MINUTE` |          | Per-IP requests/minute on `/checkout/token` and `/checkout/exchange` (default `20`).                                                                                                                                                                                                                                      |
 | `RECAPTCHA_PROJECT_NUMBER`       |          | GCP project _number_ (not ID) reCAPTCHA Enterprise assessments are created under. When set, requires a valid `X-Recaptcha-Token` on web checkout-creation requests. Empty disables enforcement.                                                                                                                          |
 | `RECAPTCHA_SERVICE_ACCOUNT_JSON` |          | GCP Service Account JSON (raw or file path) authorized to call the reCAPTCHA Enterprise API, used to verify reCAPTCHA tokens. Required when `RECAPTCHA_PROJECT_NUMBER` is set.                                                                                                                                           |
+| `RECAPTCHA_SITE_KEY_WEB`         |          | reCAPTCHA site key the web client's assessment token must match. Required when `RECAPTCHA_PROJECT_NUMBER` is set.                                                                                                                                                                                                        |
 
 ---
 

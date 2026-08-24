@@ -3,8 +3,8 @@
 Reference Flutter client for the combined ZenPay example: fetches a checkout
 session from [`example/backend`](../backend/README.md), presents ZenPay
 Hosted Checkout via [`zenpay_flutter`](../../zenpay_flutter/README.md), and
-handles the return. Depends on `zenpay_flutter` via a local Melos `path:`
-dependency.
+handles the return. Depends on `zenpay_flutter`, resolved to the local
+package by the root Dart pub workspace (not a `path:` dependency).
 
 Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) (`AGENTS.md` here is a
 symlink to it). Combined example overview: [../README.md](../README.md).

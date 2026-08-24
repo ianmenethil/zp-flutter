@@ -16,8 +16,9 @@ Monorepo overview: [../README.md](../README.md).
 | [backend](backend/README.md)             | `example/backend/`  | `zenpay_dart`         | Shelf server. Holds API keys, creates sessions, builds launch URLs, verifies webhooks. |
 | [app](app/README.md)                     | `example/app/`      | `zenpay_flutter`      | Flutter mobile/web app. Fetches a session, presents checkout, handles the return deep-link. |
 
-Both depend on their SDK via a local Melos `path:` dependency — see the root
-[`pubspec.yaml`](../pubspec.yaml) workspace list.
+Both depend on their SDK via the Dart pub workspace (ordinary version constraints resolved
+to the local sibling package — a `path:` dependency is rejected once a package is a
+workspace member) — see the root [`pubspec.yaml`](../pubspec.yaml) workspace list.
 
 ---
 

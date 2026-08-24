@@ -7,7 +7,7 @@ Reference Flutter client for the combined ZenPay example: fetches a checkout ses
 ## Related Guides
 
 - **[Combined Example](../CLAUDE.md)** — Two-app architecture, how this app and `example/backend` fit together.
-- **[zenpay_flutter](../../zenpay_flutter/CLAUDE.md)** — The SDK this app depends on (`../../zenpay_flutter` via Melos `path:`) for checkout presentation and return handling.
+- **[zenpay_flutter](../../zenpay_flutter/CLAUDE.md)** — The SDK this app depends on (resolved to `../../zenpay_flutter` by the root Dart pub workspace, not a `path:` dependency) for checkout presentation and return handling.
 - **[example/backend](../backend/CLAUDE.md)** — The server this app fetches sessions from.
 
 ---

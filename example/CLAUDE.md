@@ -26,14 +26,14 @@ Because ZenPay involves secure payments, it requires a backend. Thus, the `examp
 
 ---
 
-## 2. Dependency source — Local `path:` via Melos
+## 2. Dependency source — the Dart pub workspace
 
-- `backend/` depends on **`zenpay_dart`** using a local `path:` dependency (`../../zenpay_dart`).
-- `app/` depends on **`zenpay_flutter`** using a local `path:` dependency (`../../zenpay_flutter`).
+- `backend/` depends on **`zenpay_dart`** via an ordinary version constraint (`^0.1.0`).
+- `app/` depends on **`zenpay_flutter`** (and `zenpay_embedded`) the same way.
 
-**Why:** This repository is a unified Melos monorepo. During development and testing, the examples must link directly to the local packages to ensure all changes are instantly verifiable across the entire SDK. When running `melos bootstrap` at the root, these paths are automatically managed.
+**Why:** This repository is a unified Dart pub workspace (Melos drives the multi-package scripts on top of it — see the root [`pubspec.yaml`](../pubspec.yaml)). Every workspace member declares `resolution: workspace` in its own `pubspec.yaml`, so `dart pub get` at the root (`melos bs`) automatically resolves each of those ordinary version constraints to its local sibling package — a `path:` dependency is actually *rejected* once a package is a workspace member, since the workspace already provides that link.
 
-_(Note: When users clone this example from GitHub in the future, they will replace the `path:` overrides with standard `pub.dev` version constraints)._
+Once published, external consumers resolve the exact same version constraint against pub.dev instead of the local workspace member — nothing in the constraint itself changes at release.
 
 ---
 

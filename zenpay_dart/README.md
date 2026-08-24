@@ -24,21 +24,21 @@ This package is one member of the [`zp-flutter-sdk`](../README.md) monorepo — 
 
 ```
 lib/
-├── zenpay_dart.dart           # Barrel export (public API)
+├── zenpay_dart.dart              # Barrel export (public API)
 └── src/
-    ├── callback.dart          # SHA3-512 callback verification
-    ├── callback_token.dart    # HMAC-SHA3-512 signed URL tokens
-    ├── checkout_url.dart      # Authorise launch URL construction
-    ├── constants.dart         # Shared constants, regex patterns, error messages
-    ├── crypto.dart            # SHA3-512, constant-time comparison, ID generation
-    ├── defaults.dart          # Default ZpCheckoutOptions values
-    ├── fingerprint.dart       # Outgoing fingerprint (SHA3-512 hash pipe)
-    └── models/                # Request/result data classes and wire enums
-        ├── callback_models.dart
-        ├── callback_token_models.dart
+    ├── build_checkout_url.dart   # Authorise launch URL construction
+    ├── build_fingerprint.dart    # Outgoing fingerprint (SHA3-512 hash pipe)
+    ├── checkout_defaults.dart    # Default ZpCheckoutOptions values
+    ├── constants.dart            # Shared constants, regex patterns, error messages
+    ├── crypto_utils.dart         # SHA3-512, constant-time comparison, ID generation
+    ├── sign_callback_token.dart  # HMAC-SHA3-512 signed URL tokens
+    ├── verify_callback.dart      # SHA3-512 callback verification
+    └── models/                   # Request/result data classes and wire enums
+        ├── callback_input.dart
+        ├── callback_token_data.dart
         ├── checkout_options.dart
         ├── enums.dart
-        └── fingerprint_models.dart
+        └── fingerprint_result.dart
 ```
 
 The reference backend lives at `../example/backend/` (own `lib/src/`,
@@ -119,7 +119,7 @@ detail, including the identity model and security posture:
 
 | Method | Path                              |          Auth           | Description                                                                              |
 | :----- | :--------------------------------- | :----------------------: | :------------------------------------------------------------------------------------------ |
-| `POST` | `/api/v1/checkout/token`          |                          | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `Idempotency-Key` header (16–128 chars); anonymous but rate-limited per IP and App-Check-gated. |
+| `POST` | `/api/v1/checkout/token`          |                          | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `Idempotency-Key` header (16–128 chars); anonymous but rate-limited per IP and reCAPTCHA-gated for web clients. |
 | `POST` | `/api/v1/checkout/exchange`       | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL.     |
 | `GET`  | `/api/v1/sessions?t=...`          | `t` token                | Retrieves authoritative payment status for the one attempt named by the verified token.  |
 | `POST` | `/api/v1/callbacks`               |                          | ZenPay server-to-server webhook. Verifies SHA3-512 `ValidationCode`.                     |

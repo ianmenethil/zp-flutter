@@ -1,7 +1,8 @@
 /// Fixed-window request rate limiter.
 ///
 /// Ported from `development/samples/backend/lib/src/rate_limiter.dart`
-/// (`development/` is slated for deletion — this is the surviving copy).
+/// (`development/` has since been deleted from the repo — this is the
+/// surviving copy).
 library;
 
 class _RateLimitWindow {

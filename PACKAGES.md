@@ -94,7 +94,7 @@ Official first-party Flutter plugins and lint config.
 | `dart_code_linter` | `^4.1.9` | `zenpay_dart`, `zenpay_flutter`, `zenpay_embedded` (dev) | `bancolombia.com` | Unused-code/dead-code detection (`melos run lint` → `dart_code_linter:metrics analyze lib`). Not declared at the workspace root — each package that needs it declares it itself. |
 | `dotenv` | `^4.2.0` | `example/backend` | `practicalflutter.com` | Loads `example/backend/.env` into `AppConfig` (API keys, `TOKEN_SECRET`, etc. — see that package's `.env.example`). |
 | `hashlib` | `^2.4.2` | `zenpay_dart`, `example/backend` | `bitanon.dev` | SHA3-512 hashing, HMAC-SHA3-512, and secure random bytes — the cryptographic core of fingerprints, callback `ValidationCode` verification, and callback URL tokens. |
-| `melos` | `^8.3.0` | root (dev) | `invertase.io` (Invertase) | The monorepo package-management tool itself — links local `path:` deps, runs `melos run <script>` across every package. |
+| `melos` | `^8.3.0` | root (dev) | `invertase.io` (Invertase) | The monorepo package-management tool itself — drives the Dart pub workspace that links sibling packages via ordinary version constraints (not `path:` deps), runs `melos run <script>` across every package. |
 | `very_good_analysis` | `^10.3.0` | root, `zenpay_dart` (dev) | `verygood.ventures` (Very Good Ventures) | Stricter-than-default analysis rules (`strict-casts`, `strict-inference`, `strict-raw-types`) — the basis for this repo's "no `dynamic`" strictness rule. |
 
 ---

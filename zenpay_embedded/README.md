@@ -38,33 +38,13 @@ Dispose the presenter alongside your `ZpCheckout` controller: `await presenter.d
 
 An embedded WebView does not, by itself, change PCI scope in either direction — the hosted
 page renders in the same engine either way, and the merchant application never handles card
-data. What changes is the attack surface the host application exposes to that page. This
-package enforces:
+data. What changes is the attack surface the host application exposes to that page, and this
+package enforces that surface stays minimal.
 
-- **No JavaScript bridge to the hosted page.** `addJavaScriptChannel` and
-  `setOnConsoleMessage` are barred by a `lefthook` pre-commit grep gate over this package's
-  `lib/`, not by convention. On iOS, `webview_flutter` injects the JS-side shim for any
-  channel with `isForMainFrameOnly: false`, and `WKUserContentController.add(_:name:)`
-  registers the handler at the `WKWebViewConfiguration` level regardless — reachable from
-  every frame the hosted page loads, including third-party 3DS/ACS frames, with no
-  supported way to scope it narrower.
-- **No caller-supplied `WebViewController`.** The internal widget builds its own controller;
-  nothing external can attach a channel to it.
-- **HTTPS-only navigation, no host allowlist on navigation.** 3DS sends the customer to
-  issuer ACS hosts that cannot be enumerated in advance, so navigation is restricted to
-  `https` rather than allowlisted by host. The host allowlist keeps its existing job:
-  validating the checkout URL before launch (`isAllowedCheckoutUrl`, `zenpay_flutter`).
-- **Full page navigation only.** The WebView's top-level document is always the ZenPay
-  hosted page itself — never a merchant page with the checkout embedded as a sub-frame
-  alongside merchant script. That coexistence (merchant script + PSP iframe in the same
-  document) is what typically moves an integration from SAQ A to SAQ A-EP; it does not occur
-  here.
-- **Full teardown on dismiss.** Navigate to `about:blank`, then clear cache, local storage,
-  and cookies, in that order. This is app-wide — `webview_flutter` exposes no per-instance
-  browsing-data store on either platform — so dismissing checkout also signs out any other
-  WebView in the host app. Accepted deliberately: the alternative is a live payment session
-  surviving in shared storage.
-
-**This package does not guarantee SAQ-A eligibility.** Scope and SAQ eligibility depend on
-the merchant's complete environment, payment integration, provider status, and
-acquirer/payment-brand rules, and must be confirmed with the merchant's acquirer and/or QSA.
+📐 **See [PCI_SAQ_A.md](../PCI_SAQ_A.md)** for the full policy: why the default Custom
+Tabs/Safari presenter is the safer architectural choice in the first place, every control
+this package enforces (JS bridge, controller ownership, navigation policy, full-page-only
+navigation, teardown on dismiss, Google Pay), which ones are backed by `lefthook` regression
+guards, and the outstanding compliance gates that remain before embedded mode can be
+advertised as SAQ-A-compatible. This package does not, on its own, guarantee SAQ-A
+eligibility — that determination sits with the merchant's acquirer and/or QSA.
