@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 // Imported by path, not through the package barrel: the policy is internal.
-import 'package:zenpay_embedded/src/navigation_policy.dart';
+import 'package:zenpay_embedded/src/decide_web_view_navigation.dart';
 
 void main() {
   final returnUriAddress = Uri.parse('https://payments.example.com/zenpay/app-return');

@@ -7,8 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 
-import 'package:zenpay_embedded/src/navigation_policy.dart';
-import 'package:zenpay_embedded/src/web_view_return_uri_source.dart';
+import 'package:zenpay_embedded/src/decide_web_view_navigation.dart';
+import 'package:zenpay_embedded/src/listen_for_return_in_web_view.dart';
 
 /// State-attachment interface between [ZenPayCheckoutWebView] and
 /// `EmbeddedCheckoutPresenter`.

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:zenpay_embedded/src/web_view_return_uri_source.dart';
+import 'package:zenpay_embedded/src/listen_for_return_in_web_view.dart';
 
 void main() {
   group('WebViewReturnUriSource', () {

@@ -6,4 +6,4 @@
 /// merchants who never import it never resolve that dependency at all.
 library;
 
-export 'src/embedded_checkout_presenter.dart';
+export 'src/open_checkout_in_web_view.dart';

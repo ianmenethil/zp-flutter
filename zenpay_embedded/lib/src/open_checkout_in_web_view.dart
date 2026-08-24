@@ -4,8 +4,8 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:zenpay_embedded/src/web_view_return_uri_source.dart';
-import 'package:zenpay_embedded/src/zenpay_checkout_web_view.dart';
+import 'package:zenpay_embedded/src/listen_for_return_in_web_view.dart';
+import 'package:zenpay_embedded/src/render_checkout_web_view.dart';
 import 'package:zenpay_flutter/zenpay_checkout.dart';
 
 /// Presents ZenPay Hosted Checkout in an in-app WebView, inside a modal
