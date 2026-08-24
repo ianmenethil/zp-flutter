@@ -45,6 +45,16 @@ final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 final _phoneAllowedCharsPattern = RegExp(r'^[0-9 ()+-]+$');
 final _phoneDigitPattern = RegExp('[0-9]');
 
+/// Readable one-line summary of a [ZpCheckoutEvent] for [debugPrint] — the
+/// event classes carry no `toString()` override of their own.
+String _describeCheckoutEvent(ZpCheckoutEvent event) => switch (event) {
+  ZpLaunchRejectedEvent(:final reason) => 'launch rejected: $reason',
+  ZpPresentedEvent(:final checkoutHost, :final launched) => 'presented $checkoutHost (launched: $launched)',
+  ZpReturnRejectedEvent(:final reason) => 'return rejected: ${reason.name}',
+  ZpReturnAcceptedEvent() => 'return accepted',
+  ZpFinishedEvent(:final outcome, :final duration, :final cause) => 'finished: $outcome after $duration${cause != null ? ' (cause: $cause)' : ''}',
+};
+
 /// Blank is fine — [_CheckoutPageState._pay] falls back to a placeholder value for
 /// an empty field. Only rejects text that was actually typed and is bad.
 String? _validateEmail(String rawValue) {
@@ -122,6 +132,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
       configuration: ZpCheckoutConfiguration(
         allowedCheckoutHosts: allowedCheckoutHosts,
         expectedReturnUri: appReturnUri,
+        // Surfaces what actually happened during a checkout — presented,
+        // return accepted/rejected (and why), and the final outcome — so a
+        // real deep-link return is visible and distinguishable from the
+        // resume-detection fallback (`ZpPresentationDismissed`).
+        observer: ZpCheckoutObserver.from((event) => debugPrint('[ZpCheckout] ${_describeCheckoutEvent(event)}')),
       ),
       returnUriSource: widget.returnUriSource ?? createDefaultReturnUriSource(),
       presenter: widget.presenter,
