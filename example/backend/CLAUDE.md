@@ -4,18 +4,126 @@ Reference merchant backend for the combined ZenPay example: a Shelf HTTP server 
 
 ---
 
-## File list and purpose
+## Source Guide
 
-- **[lib/src/attempt_store.dart](lib/src/attempt_store.dart)** — in-memory checkout-attempt store with a TTL purge.
-- **[lib/src/checkout_token.dart](lib/src/checkout_token.dart)** — mints/verifies the signed `checkoutToken` capability used by the two-step checkout flow.
-- **[lib/src/config.dart](lib/src/config.dart)** — loads `AppConfig` from environment/`.env`.
-- **[lib/src/models.dart](lib/src/models.dart)** — checkout domain models and ZenPay status mapping.
-- **[lib/src/rate_limiter.dart](lib/src/rate_limiter.dart)** — per-IP fixed-window rate limiter for the anonymous checkout-creation boundary.
-- **[lib/src/recaptcha_verifier.dart](lib/src/recaptcha_verifier.dart)** — Google Cloud reCAPTCHA Enterprise assessment check; see Security below.
-- **[lib/src/security.dart](lib/src/security.dart)** — constant-time comparison and ZenPay callback verification helpers.
-- **[lib/src/server_app.dart](lib/src/server_app.dart)** — the HTTP surface: routes, request parsing, response building.
-- **[lib/src/session_service.dart](lib/src/session_service.dart)** — the two-step checkout token/exchange flow.
-- **[lib/src/signed_token.dart](lib/src/signed_token.dart)** / **[lib/src/token_keys.dart](lib/src/token_keys.dart)** — per-purpose HMAC-SHA3-512 key derivation shared by `checkoutToken` and the SDK's `t` token.
+Overview of every source file, detailing each file's purpose along with a concise breakdown of its notable classes, functions, and constants — what they do, why they exist, and where they're used.
+
+### `bin/server.dart`
+
+**Overview:** Process entrypoint. Sets up colored structured logging, loads config, refuses to start when required env vars are missing, starts the periodic `AttemptStore` purge timer, and serves the Shelf handler until `SIGINT`.
+
+- **`_levelColor(Level level)`**: maps a `logging` `Level` to an ANSI color code (red for severe/shout, yellow for warning, cyan for info, gray otherwise); used by the root logger's `onRecord` listener.
+- **`main()`**: entrypoint — configures `Logger.root`, calls `loadConfig()`, refuses to start if `sessionConfigurationErrors`/`callbackConfigurationErrors` report missing env vars, starts a `Timer.periodic` purge of `AttemptStore` keyed by `checkoutStatusTtlMinutes`, serves `buildHandler` via `shelf_io.serve`, and awaits `ProcessSignal.sigint` to shut down cleanly.
+
+### `lib/src/attempt_store.dart`
+
+**Overview:** In-memory repository for `CheckoutAttempt` records, indexed by `merchantUniquePaymentId` and by idempotency key, with a TTL purge. A reference detail, not a durability guarantee — a real merchant backend persists attempts.
+
+- **`class AttemptStoreError`**: thrown on an internal store invariant violation (`'DUPLICATE_CHECKOUT_ATTEMPT'`, `'CHECKOUT_ATTEMPT_NOT_FOUND'`); carries a machine-readable `code`.
+- **`class AttemptStore`**: in-memory checkout-attempt store — `create` inserts a new attempt (throwing on duplicate MUPID), `getByMerchantPaymentId`/`getByIdempotencyKey` look up an attempt, `replace` updates an existing attempt's fields, and `purgeCreatedBefore` removes attempts older than a cutoff; used throughout `server_app.dart`'s route handlers and by `bin/server.dart`'s periodic purge timer.
+
+### `lib/src/checkout_token.dart`
+
+**Overview:** Signed checkout-exchange capability tokens — an example-backend concept, not part of `zenpay_dart`. Binds every immutable input needed to build one specific ZenPay attempt into a short-lived signed capability that `POST /checkout/exchange` verifies and replays deterministically. Deliberately separate from `zenpay_dart`'s `ZpCallbackUrlToken` (`t`) — see `token_keys.dart` for the key-level separation.
+
+- **`class CheckoutTokenPayload`**: immutable claims of a checkout token (MUPID, mode, client, customer fields, timestamp, amount) — everything `/checkout/exchange` needs to deterministically rebuild the same ZenPay attempt on every exchange of the same token.
+- **`sealed class CheckoutTokenResult`**: base result class for token verification (`CheckoutTokenVerified` or `CheckoutTokenFailure`); returned by `verifyCheckoutToken`.
+- **`final class CheckoutTokenVerified`**: wraps a successfully verified and decoded `CheckoutTokenPayload`.
+- **`enum CheckoutTokenFailureReason`**: why a checkout token failed verification (`malformed`, `badSignature`, `expired`, `wrongScope`).
+- **`final class CheckoutTokenFailure`**: a failed checkout token verification carrying its `CheckoutTokenFailureReason`.
+- **`createCheckoutToken(CheckoutTokenPayload payload, Object secret, {required int expiresInSeconds})`**: mints a signed, stateless checkout token; called by `session_service.dart`'s `prepareCheckout`.
+- **`verifyCheckoutToken(String token, Object secret)`**: verifies and decodes a token minted by `createCheckoutToken`; called by `session_service.dart`'s `exchangeCheckout`.
+
+### `lib/src/config.dart`
+
+**Overview:** Runtime configuration for the example backend — loads settings from a `.env` file overlaid with process environment variables (process environment variables always take precedence).
+
+- **`class ZenPayCredentials`**: ZenPay API credentials (`merchantCode`, `apiKey`, `username`, `password`) used for fingerprinting and callback verification; must never be logged or serialized to client responses.
+- **`class ZenPayConfig`**: ZenPay Hosted Payment Page endpoint configuration and allowlist — `hppEndpointUrl`, `allowedCheckoutHosts`, `credentials`.
+- **`class AppConfig`**: immutable runtime configuration for the whole backend — port, public base URL, CORS origin, TTLs, `tokenSecret` (the root secret every token type derives its signing key from — see `token_keys.dart`), rate limit, reCAPTCHA/Firebase settings, and `zenPay`.
+- **`loadConfig()`**: loads `AppConfig` from `.env` overlaid by real process environment variables; called once by `bin/server.dart`.
+- **`sessionConfigurationErrors(AppConfig config)`**: lists environment variables missing for session creation (ZenPay credentials, `TOKEN_SECRET`); used by `bin/server.dart` to refuse startup and by `server_app.dart` to 503 checkout requests.
+- **`callbackConfigurationErrors(AppConfig config)`**: lists environment variables missing for callback verification; same startup/503 usage as above.
+
+### `lib/src/models.dart`
+
+**Overview:** Checkout domain models and ZenPay status mapping.
+
+- **`enum CheckoutClient`**: presentation environment the checkout session was initiated from (`web`, `mobile`) — iframe checkout is disabled project-wide; `tryParse` parses the `X-Client` header value.
+- **`enum MerchantPaymentStatus`**: merchant-facing payment lifecycle state returned during status polling (`created` through `unknown`).
+- **`mapZenPayStatus(int statusCode)`**: translates a raw ZenPay wire status code into a `MerchantPaymentStatus`; used by `server_app.dart`'s callback handler.
+- **`class CheckoutAttempt`**: tracks the payment identifier, launch parameters, and verified callback results for one ZenPay checkout attempt — its identity is its `merchantUniquePaymentId`; `copyWith` returns a modified copy.
+- **`class PrepareCheckoutBody`**: validated `POST /api/v1/checkout/token` request body.
+- **`class ExchangeCheckoutResponse`**: launch data returned to the client from `POST /api/v1/checkout/exchange`; `toJson()` serializes it to the response body shape.
+- **`class HttpError`**: controlled HTTP exception carrying a status code and machine-readable code; thrown by request handlers and turned into a `{"error": code}` JSON response by `server_app.dart`'s `buildHandler`.
+
+### `lib/src/rate_limiter.dart`
+
+**Overview:** Fixed-window request rate limiter. Ported from `development/samples/backend/lib/src/rate_limiter.dart` (`development/` is slated for deletion — this is the surviving copy).
+
+- **`class FixedWindowRateLimiter`**: a fixed-window request-rate limiter keyed by an arbitrary string (typically client IP) — `allow(key)` returns whether a request is permitted within the configured `limit`/`window`; used by `server_app.dart` to bound the anonymous checkout-creation and callback endpoints per IP.
+
+### `lib/src/recaptcha_verifier.dart`
+
+**Overview:** Verifies reCAPTCHA Enterprise tokens against Google Cloud, gating `POST /checkout/token` for web clients only — mobile requests skip this check entirely.
+
+- **`class RecaptchaResult`**: outcome of a reCAPTCHA Enterprise assessment — `valid`.
+- **`abstract interface class RecaptchaVerifier`**: verifies a client-supplied token for an expected action under a site key; implemented by `GoogleCloudRecaptchaVerifier` and faked in tests so they never hit Google's real endpoint.
+- **`final class GoogleCloudRecaptchaVerifier`**: `RecaptchaVerifier` backed by the official `googleapis` reCAPTCHA Enterprise REST client — no third-party JWT library; the `.withApi` constructor bypasses service-account credential loading for tests. `verify` builds and sends an `Assessment` request, checks token validity, action match, and risk score, and redacts the client token before logging the request/response.
+
+### `lib/src/security.dart`
+
+**Overview:** Callback signature verification and timing-safe comparison — derives the merchant-facing fields this backend needs out of a ZenPay webhook once `zenpay_dart` has verified authenticity.
+
+- **`constantTimeEqual(String a, String b)`**: compares two strings in constant time via SHA-256 digest equality; used for reference/cookie/header comparisons outside the SDK's own hash checks.
+- **`class CallbackFields`**: callback fields this backend derives from ZenPay's raw response — `reference`, `statusCode`, optional `failureCode`/`failureReason`, and the unfiltered `rawPayload`.
+- **`class CallbackVerification`**: result of authenticating an incoming ZenPay webhook body — `.ok(fields)` for success, `.rejected(reason)` for failure (`'malformed'` or `'rejected'`).
+- **`verifyCallback(Map<String, Object?> payload, CheckoutAttempt attempt, ZenPayCredentials credentials)`**: verifies an incoming webhook via `zenpay_dart`'s `verifyZpCallback` and derives `CallbackFields` from the payload on success; called by `server_app.dart`'s callback handler.
+
+### `lib/src/server_app.dart`
+
+**Overview:** The example backend's HTTP surface — health, two-step checkout creation, status lookup, callback verification, and browser return. A minimal demo backend, not a hardened one — see § 1 Scope & Responsibilities for what "minimal" means here and why.
+
+- **`buildHandler(AppConfig config, AttemptStore store, {RecaptchaVerifier? recaptchaVerifier})`**: builds the top-level Shelf handler for every route below — parses/logs each request into one merged `http_trace` record, catches `HttpError` and unexpected exceptions into a JSON `{"error": code}` response, handles CORS preflight, and echoes `X-Request-Id`; called by `bin/server.dart`.
+- **`describeRoutes()`**: returns the server's registered `(method, path)` route table, for `bin/server.dart`'s startup log.
+- **`logEvent(String event, {Map<String, Object?> fields, bool isError})`**: logs a structured JSON event line; used by `bin/server.dart`'s `server_started` log.
+- **`_handleCreateCheckoutToken`** (`POST /api/v1/checkout/token`): step 1 of checkout creation — rate-limits, validates the request body, runs the web-only reCAPTCHA check, and returns a signed checkout token via `session_service.dart`'s `prepareCheckout`.
+- **`_handleExchangeCheckout`** (`POST /api/v1/checkout/exchange`): step 2 — verifies the `Authorization: Bearer` checkout token and builds (or replays) the ZenPay checkout URL via `session_service.dart`'s `exchangeCheckout`.
+- **`_handleGetSession`** (`GET /api/v1/sessions`): returns the backend's authoritative status for the attempt named by the verified `?t=` token — no caller-supplied id is ever trusted directly.
+- **`_handleCallback`** (`POST /api/v1/callbacks`): verifies the ZenPay `ValidationCode` signature via `security.dart`'s `verifyCallback` and applies the result to the matching stored attempt — the sole authoritative source of payment status.
+- **`_handleReturn`** (`GET /return`): the browser landing page after ZenPay redirects back; marks the attempt as browser-returned (provisional, not callback-verified) and forwards to the app/web return destination.
+- **`_handleWellKnown`**: serves the App Link / Universal Link verification files (`assetlinks.json`, `apple-app-site-association`) from `well_known/`.
+
+### `lib/src/session_service.dart`
+
+**Overview:** Two-step checkout: prepare a signed capability, then exchange it for a ZenPay checkout URL. No outbound network call happens at launch time — the launch URL is computed locally via `package:zenpay_dart`.
+
+- **`returnPath`, `callbacksPath`, `appReturnPath`**: route path constants — where ZenPay redirects the browser, where it POSTs the server-to-server callback, and where the mobile App Link / Universal Link config points, respectively.
+- **`appReturnUriFor(CheckoutAttempt attempt, AppConfig config)`**: resolves the return URI for an attempt's client kind — a path on this backend for mobile, `config.appReturnUriWeb` for web.
+- **`prepareCheckout(PrepareCheckoutBody body, String idempotencyKey, AppConfig config, AttemptStore store)`**: step 1 — validates, resolves the trusted amount, mints a fresh MUPID/timestamp, persists a pending `CheckoutAttempt`, and returns a signed checkout token; a repeated `idempotencyKey` re-mints a token for the same attempt rather than creating a new one.
+- **`exchangeCheckout(String checkoutToken, AppConfig config, AttemptStore store)`**: step 2 — verifies the checkout token and builds (or, on replay, reuses) the ZenPay checkout URL for the attempt it names, via `_buildCheckoutUrl`.
+- **`_buildCheckoutUrl(...)`**: computes the SHA3-512 fingerprint via `zenpay_dart`'s `createZpFingerprint`, mints the signed return/status token (`t`) via `createZpCallbackUrlToken`, and builds the validated HCP launch URL via `createZpCheckoutUrl`; called by `exchangeCheckout`.
+- **`class ZenPaySessionException`**: thrown when checkout session URL generation fails or violates security allowlists; carries a machine-readable `code`.
+- **`resolveCheckoutUrl(String endpointUrl, AppConfig config)`**: validates that a generated launch URL uses HTTPS and targets an allowed host from `config.zenPay.allowedCheckoutHosts`.
+
+### `lib/src/signed_token.dart`
+
+**Overview:** Shared HMAC-SHA3-512 signed-token codec underlying `checkoutToken` (`checkout_token.dart`), plus `deriveTokenKey` — the domain-separation primitive `token_keys.dart` uses so `checkoutToken` and `zenpay_dart`'s own `ZpCallbackUrlToken` each sign with a cryptographically distinct derived key despite sharing one configured root secret.
+
+- **`sealed class SignedTokenDecodeResult`**: base result class for `decodeSignedToken` (`SignedTokenDecoded`, `SignedTokenMalformed`, or `SignedTokenBadSignature`).
+- **`final class SignedTokenDecoded`**: the token's signature verified and its body decoded to a `claims` map — callers still own validating its shape.
+- **`final class SignedTokenMalformed`**: the token was too short, not valid base64url, or not a JSON object.
+- **`final class SignedTokenBadSignature`**: the signature does not match the supplied secret.
+- **`deriveTokenKey(Object rootSecret, String purpose)`**: derives a purpose-scoped signing key from `rootSecret` via HMAC-SHA3-512 over `purpose` — an HKDF-style domain separator; used by `token_keys.dart`.
+- **`encodeSignedToken(Map<String, Object?> claims, Object secret)`**: encodes claims as a compact HMAC-SHA3-512 signed token; used by `checkout_token.dart`'s `createCheckoutToken`.
+- **`decodeSignedToken(String token, Object secret)`**: decodes and verifies a token minted by `encodeSignedToken`; used by `checkout_token.dart`'s `verifyCheckoutToken`.
+
+### `lib/src/token_keys.dart`
+
+**Overview:** Purpose-scoped signing keys, all derived from the one configured root secret (`AppConfig.tokenSecret`) — real cryptographic domain separation between `checkoutToken` and `zenpay_dart`'s `ZpCallbackUrlToken`, not just a `scope` claim checked after decoding.
+
+- **`checkoutTokenKey(AppConfig config)`**: signing key for `checkoutToken` (`checkout_token.dart`); derived via `deriveTokenKey` with the `'checkout-token-v1'` purpose label.
+- **`callbackTokenKey(AppConfig config)`**: signing key for `zenpay_dart`'s `ZpCallbackUrlToken` (`t`), passed as the `Object secret` argument the SDK already accepts; derived with the `'callback-token-v1'` purpose label.
 
 ## Related Guides
 

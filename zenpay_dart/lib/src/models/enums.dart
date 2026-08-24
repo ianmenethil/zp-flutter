@@ -22,13 +22,7 @@ enum const ZpPluginMode(
   /// Resolves a mode from its ZenPay wire value.
   ///
   /// Throws [ArgumentError] when [value] is unsupported.
-  static ZpPluginMode fromWireValue(int value) => switch (value) {
-    0 => makePayment,
-    1 => tokenise,
-    2 => customPayment,
-    3 => preauthorization,
-    _ => throw ArgumentError.value(value, 'value', 'Unsupported mode.'),
-  };
+  static ZpPluginMode fromWireValue(int value) => tryFromWireValue(value) ?? (throw ArgumentError.value(value, 'value', 'Unsupported mode.'));
 
   /// Resolves [value] to a known mode, or `null`.
   static ZpPluginMode? tryFromWireValue(int value) => switch (value) {

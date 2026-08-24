@@ -36,22 +36,46 @@ exists for merchants who explicitly need inline/modal checkout instead.
 6. **Do not promise SAQ-A eligibility anywhere in this package's docs.** State what the
    package's controls do; eligibility is the merchant's acquirer/QSA's call.
 
-## Key files
+## Source Guide
 
-- `lib/src/decide_web_view_navigation.dart` — `decideNavigation`, not exported from the
-  barrel (internal only). Restricts navigation to `https` and intercepts the return redirect
-  before the WebView can follow it.
-- `lib/src/listen_for_return_in_web_view.dart` — `WebViewReturnUriSource implements
-  ZpReturnUriSource`. A navigation happening inside an in-process WebView is not handed off
-  to the OS App Link/Universal Link resolver the way a system browser surface's navigation
-  is, so `zenpay_flutter`'s `AppLinksReturnUriSource` never sees it — this class is what
-  makes the return visible to `ZpCheckout` instead.
-- `lib/src/render_checkout_web_view.dart` — `ZenPayCheckoutWebView`, the `webview_flutter`
-  widget itself. Internal; constructed only by `EmbeddedCheckoutPresenter`.
-- `lib/src/open_checkout_in_web_view.dart` — `EmbeddedCheckoutPresenter extends
-  CheckoutPresenter`. Shows/dismisses its own modal bottom sheet via a
-  `GlobalKey<NavigatorState>` supplied at construction, since `ZpCheckout.open` calls
-  `openCheckout` without a `BuildContext` of its own.
+### `lib/src/decide_web_view_navigation.dart`
+
+**Overview:** Navigation policy for the embedded checkout WebView. Kept out of the widget because a `NavigationDelegate` cannot be driven without a `WebViewPlatform`, and this is the half worth testing on the VM. Not exported from the barrel — internal rule, not API.
+
+- **`blankPage`**: The inert `about:blank` page the widget loads to take the hosted checkout off screen; allowed past the `https`-only rule below rather than blocked by it.
+- **`decideNavigation(String url, {required Uri returnUriAddress, required void Function(Uri uri) onReturnUri})`**: Decides whether the embedded WebView may follow `url` — blocks every non-`https` scheme (issuer 3DS ACS hosts can't be enumerated in advance, so this can't be narrowed to a host allowlist), and calls `onReturnUri` then prevents navigation exactly when `url` matches `returnUriAddress`.
+
+### `lib/src/listen_for_return_in_web_view.dart`
+
+**Overview:** Return URI source backed by intercepted WebView navigation, rather than OS-level App Links/Universal Links — a navigation inside an in-process WebView is never handed off to the platform's deep-link resolver, so `zenpay_flutter`'s `AppLinksReturnUriSource` never sees it.
+
+- **`final class WebViewReturnUriSource implements ZpReturnUriSource`**: Feeds return URIs intercepted from `ZenPayCheckoutWebView`'s navigation delegate into a broadcast stream.
+- **`WebViewReturnUriSource.uris`**: The stream `ZpCheckout` subscribes to.
+- **`WebViewReturnUriSource.addUri(Uri uri)`**: Emits an intercepted return URI; performs no validation of its own — `ZpCheckout` applies its own authoritative `ZpReturnValidator` to everything received here.
+- **`WebViewReturnUriSource.dispose()`**: Closes the underlying stream controller.
+
+### `lib/src/render_checkout_web_view.dart`
+
+**Overview:** Renders one ZenPay Hosted Checkout session inside an in-app WebView. Always constructed by `EmbeddedCheckoutPresenter` as the content of a modal bottom sheet it presents itself — never instantiated or placed in a merchant's own widget tree, and deliberately accepts no caller-supplied `WebViewController` (a supplied controller could carry a JS channel the `no-js-bridge` grep gate can't see).
+
+- **`abstract interface class EmbeddedStateInterface`**: State-attachment interface between `ZenPayCheckoutWebView` and `EmbeddedCheckoutPresenter` (`loadUrl`, `clear`); internal, not exported.
+- **`final class ZenPayCheckoutWebView extends StatefulWidget`**: The `webview_flutter` widget itself — wires `decideNavigation` into its `NavigationDelegate`, enables the Android Payment Request API for Google Pay, and shows a fixed load-failure message on `onWebResourceError` (the platform's own error description is discarded since it can embed the checkout URL's secure token).
+- **`_ZenPayCheckoutWebViewState.clear()`**: Takes the hosted checkout off screen and discards its browsing state (cache, local storage, cookies) — app-wide, since `webview_flutter` exposes no per-instance browsing-data store on either platform.
+
+### `lib/src/open_checkout_in_web_view.dart`
+
+**Overview:** Presenter implementation backing the embedded in-app WebView mode. Presents ZenPay Hosted Checkout in a modal bottom sheet it shows and dismisses itself — owns the entire presentation surface the same way `zenpay_flutter`'s Custom Tabs/`SFSafariViewController` presenter owns its surface. Requires the `GlobalKey<NavigatorState>` already attached to the host app's `MaterialApp`, since `ZpCheckout.open` calls `openCheckout` without a `BuildContext` of its own.
+
+- **`final class EmbeddedCheckoutPresenter extends CheckoutPresenter`**: The presenter itself; owns a `WebViewReturnUriSource` that must be passed as the owning `ZpCheckout`'s `returnUriSource`.
+- **`EmbeddedCheckoutPresenter.openCheckout(Uri url, {required bool showTitle, required bool allowExternalBrowserFallback})`**: Presents `url` in a modal bottom sheet hosting the embedded WebView. `showTitle`/`allowExternalBrowserFallback` have no equivalent in this presentation mode and are accepted only to satisfy the `CheckoutPresenter` contract.
+- **`EmbeddedCheckoutPresenter.dismissCheckout()`**: Pops the sheet if one is open.
+- **`EmbeddedCheckoutPresenter.dispose()`**: Closes this presenter's event stream and its `returnUriSource`; call once, when the owning `ZpCheckout` is disposed.
+
+### `lib/zenpay_embedded.dart`
+
+**Overview:** The root library barrel file. An explicit opt-in with its own `webview_flutter` dependency footprint — merchants who never import it never resolve that dependency at all.
+
+- **`zenpay_embedded.dart` (Barrel Export)**: Exports only `open_checkout_in_web_view.dart` (`EmbeddedCheckoutPresenter`). `ZenPayCheckoutWebView`, `decideNavigation`, and `WebViewReturnUriSource` all stay internal — see rule 5 below.
 
 ## Verification
 

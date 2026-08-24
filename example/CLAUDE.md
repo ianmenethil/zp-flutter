@@ -41,3 +41,15 @@ _(Note: When users clone this example from GitHub in the future, they will repla
 
 - **UI/Visual Design**: Specified by the project owner, not invented here. Do not build or guess at UI before that spec is given.
 - **Simplicity**: The example app should be minimal and focused entirely on demonstrating the integration of the SDKs, avoiding complex third-party state management libraries unless requested.
+
+---
+
+## 4. Verification
+
+This directory holds no source of its own — see [example/backend § Verification Commands](backend/CLAUDE.md#3-verification-commands) and [example/app § Verification Commands](app/CLAUDE.md#3-verification-commands) for the two halves. From the **repository root**, both are covered by:
+
+```pwsh
+melos run format
+melos run analyze
+melos run test
+```
