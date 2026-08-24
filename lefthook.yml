@@ -21,7 +21,7 @@ pre-commit:
     lint:
       run: dart run melos run lint
     test:
-      run: dart run melos run test
+      run: dart run melos run test && dart run melos run test:dart
     no-js-bridge:
       # run: '! grep -rnE "addJavaScriptChannel|setOnConsoleMessage" zenpay_embedded/lib'
       run: '! grep -rn -e "addJavaScriptChannel" -e "setOnConsoleMessage" zenpay_embedded/lib'

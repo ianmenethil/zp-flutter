@@ -196,5 +196,5 @@ This package is part of a Melos monorepo. Before completing any change, ensure a
 melos run format
 melos run analyze
 melos run lint
-melos run test
+melos run test:dart --scope=zenpay_dart
 ```

@@ -71,6 +71,7 @@ melos run format
 melos run analyze
 melos run lint
 melos run test
+melos run test:dart
 ```
 
 Also: `dart run scripts/check_claude_md.dart` — checks every `CLAUDE.md` in the repo against

@@ -52,4 +52,5 @@ This directory holds no source of its own — see [example/backend § Verificati
 melos run format
 melos run analyze
 melos run test
+melos run test:dart
 ```

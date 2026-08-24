@@ -8,7 +8,6 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:zenpay_flutter/src/checkout/run_checkout_flow.dart' show ZpCheckout;
 import 'package:zenpay_flutter/src/observability/checkout_telemetry.dart';
-import 'package:zenpay_flutter/zenpay_checkout.dart' show ZpCheckout;
 
 const _httpsScheme = 'https';
 const _errMissingHosts = 'At least one non-empty checkout host is required.';

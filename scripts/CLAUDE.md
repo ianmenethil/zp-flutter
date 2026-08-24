@@ -160,6 +160,7 @@ Run from the **repository root**:
 
 ```pwsh
 melos run test
+melos run test:dart
 ```
 
 Or directly:

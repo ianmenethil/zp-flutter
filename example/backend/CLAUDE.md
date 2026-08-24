@@ -157,7 +157,7 @@ Part of the root Melos monorepo. Run from the **repository root**:
 ```pwsh
 melos run format
 melos run analyze
-melos run test
+melos run test:dart --scope=zenpay_example_backend
 ```
 
 Or directly against this package:

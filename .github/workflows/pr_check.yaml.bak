@@ -29,5 +29,5 @@ jobs:
         run: dart run melos run analyze
 
       - name: Run Tests
-        run: dart run melos run test
+        run: dart run melos run test && dart run melos run test:dart
 

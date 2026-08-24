@@ -6,7 +6,6 @@ library;
 
 import 'package:zenpay_flutter/src/checkout/run_checkout_flow.dart';
 import 'package:zenpay_flutter/src/configuration/checkout_settings.dart' show ZpCheckoutConfiguration;
-import 'package:zenpay_flutter/zenpay_checkout.dart' show ZpCheckoutConfiguration;
 
 /// Base sealed class for exceptions thrown by the ZenPay Checkout SDK.
 ///

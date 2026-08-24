@@ -215,7 +215,7 @@ Or, from the **repository root**, across every package at once (see [../CLAUDE.m
 ```pwsh
 melos run format
 melos run analyze
-melos run test
+melos run test:dart --scope=zenpay_dart
 ```
 
 ### Code Quality

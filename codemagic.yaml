@@ -32,7 +32,7 @@ workflows:
       - name: Analyze (all packages)
         script: melos run analyze
       - name: Test (all packages)
-        script: melos run test
+        script: melos run test && melos run test:dart
       - name: Build Android (debug)
         script: |
           cd example/app

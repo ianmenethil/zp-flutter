@@ -54,16 +54,8 @@ enum MerchantPaymentStatus {
   unknown,
 }
 
-/// Looks up the [ZpPaymentStatus] matching a raw ZenPay wire status code.
-ZpPaymentStatus? _zpPaymentStatusFromWireValue(int value) {
-  for (final status in ZpPaymentStatus.values) {
-    if (status.wireValue == value) return status;
-  }
-  return null;
-}
-
 /// Translates a ZenPay wire status code into a [MerchantPaymentStatus].
-MerchantPaymentStatus mapZenPayStatus(int statusCode) => switch (_zpPaymentStatusFromWireValue(statusCode)) {
+MerchantPaymentStatus mapZenPayStatus(int statusCode) => switch (ZpPaymentStatus.tryFromWireValue(statusCode)) {
   ZpPaymentStatus.pending || ZpPaymentStatus.inProgress => MerchantPaymentStatus.pending,
   ZpPaymentStatus.successful => MerchantPaymentStatus.successful,
   ZpPaymentStatus.failed => MerchantPaymentStatus.failed,

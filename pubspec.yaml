@@ -36,9 +36,16 @@ melos:
   scripts:
     test:
       exec: flutter test
-      description: Run Flutter/Dart tests across all packages.
+      description: Run tests for Flutter packages.
       packageFilters:
         dirExists: test
+        flutter: true
+    test:dart:
+      exec: dart test
+      description: Run tests for pure Dart packages.
+      packageFilters:
+        dirExists: test
+        flutter: false
     format:
       exec: dart format .
       description: Format all Dart and Flutter code.
