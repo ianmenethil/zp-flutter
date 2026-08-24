@@ -69,6 +69,11 @@ String _usage() {
     row('--docker-rebuild', 'Stop, remove images, rebuild fresh, and run.'),
     row('--cf-deploy', 'Deploy the Cloudflare Workers backend and Containers.'),
     row(
+      '--sync-examples',
+      'Regenerate zenpay_dart/example and zenpay_flutter/example from '
+          'example/backend + example/app.',
+    ),
+    row(
       '--release:dart:minor',
       'Bump zenpay_dart to the next minor version, prep for pub.dev.',
     ),
@@ -172,6 +177,11 @@ Future<void> main(List<String> arguments) async {
       help: 'Deploy the Cloudflare Workers backend and Containers.',
     )
     ..addFlag(
+      'sync-examples',
+      negatable: false,
+      help: 'Regenerate zenpay_dart/example and zenpay_flutter/example from example/backend + example/app.',
+    )
+    ..addFlag(
       'release:dart:minor',
       negatable: false,
       help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.',
@@ -244,6 +254,7 @@ Future<void> main(List<String> arguments) async {
     if (args['docker-run'] as bool) 'docker-run',
     if (args['docker-rebuild'] as bool) 'docker-rebuild',
     if (args['cf-deploy'] as bool) 'cf-deploy',
+    if (args['sync-examples'] as bool) 'sync-examples',
     if (args['release:dart:minor'] as bool) 'release:dart:minor',
     if (args['release:dart:major'] as bool) 'release:dart:major',
     if (args['release:flutter:minor'] as bool) 'release:flutter:minor',
@@ -254,8 +265,8 @@ Future<void> main(List<String> arguments) async {
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --android-webview '
                 '--ios --web --stream --tunnel --quick-tunnel --docker-build '
-                '--docker-run --docker-rebuild --release:dart:minor --release:dart:major '
-                '--release:flutter:major.'
+                '--docker-run --docker-rebuild --sync-examples --release:dart:minor '
+                '--release:dart:major --release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
     stderr
@@ -303,6 +314,8 @@ Future<void> main(List<String> arguments) async {
     await _dockerRebuild(root);
   } else if (mode == 'cf-deploy') {
     await _cfDeploy(root);
+  } else if (mode == 'sync-examples') {
+    await _syncExamples(root);
   } else if (mode.startsWith('release:')) {
     // release:<dart|flutter>:<minor|major>
     final parts = mode.split(':');
@@ -928,6 +941,20 @@ String _defaultQuickTunnelUrl(String root) {
   return 'http://localhost:7000';
 }
 
+/// Regenerates `zenpay_dart/example` and `zenpay_flutter/example` from
+/// `example/backend`/`example/app` — see
+/// `scripts/sync_package_examples.dart`'s own doc comment for why: those are
+/// the single source of truth, gitignored generated copies are what
+/// `dart pub publish` actually bundles. Always called by [_release] before
+/// its `--dry-run` validation, so the published archive's example can never
+/// go stale silently; also runnable standalone via `--sync-examples`.
+Future<void> _syncExamples(String root) async {
+  await _runChecked('dart', [
+    'run',
+    'scripts/sync_package_examples.dart',
+  ], cwd: root);
+}
+
 /// Bumps [package]'s version and preps it for a pub.dev publish, via Melos.
 ///
 /// [bump] is `'minor'` or `'major'`. The target is always a stable exact
@@ -988,6 +1015,9 @@ Future<void> _release(
     '--no-git-tag-version',
     '--no-git-commit-version',
   ], cwd: root);
+
+  _info('Regenerating package example from example/backend + example/app...');
+  await _syncExamples(root);
 
   _info('Validating with dart pub publish --dry-run...');
   await _runChecked('dart', [

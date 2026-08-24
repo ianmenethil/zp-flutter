@@ -1,10 +1,7 @@
-/// Platform-agnostic reCAPTCHA Enterprise client contract for this demo.
+/// reCAPTCHA Enterprise client contract for this demo — web only.
 ///
-/// `package:recaptcha_enterprise_flutter` only implements Android and iOS
-/// (see its `pubspec.yaml` — `plugin.platforms` lists no `web:` entry), so
-/// this app defines its own minimal client shape and resolves a
-/// platform-specific implementation via `app_recaptcha_client_factory.dart`,
-/// mirroring `zenpay_flutter`'s `CheckoutPresenter` resolution pattern.
+/// The concrete implementation is `app_recaptcha_client_web.dart`, resolved
+/// via `app_recaptcha_client_factory.dart`'s conditional import.
 library;
 
 /// A reCAPTCHA Enterprise client capable of minting an assessment token.

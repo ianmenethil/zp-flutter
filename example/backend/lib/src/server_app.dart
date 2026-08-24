@@ -7,10 +7,11 @@
 /// rate-limited per IP; it is not authenticated, because there is no
 /// merchant login in this demo — see `session_service.dart`'s doc comment.
 ///
-/// Mobile app attestation hook: verifies Firebase App Check (wrapping Apple
-/// App Attest / Android Play Integrity / Web reCAPTCHA) as an admission check
-/// inside both checkout-creation steps before any token is minted or URL
-/// built. Enabled when `FIREBASE_PROJECT_NUMBER` is configured.
+/// reCAPTCHA Enterprise admission check, web only: verifies a token from
+/// `POST /api/v1/checkout/token` before any checkout token is minted. Mobile
+/// checkout requests (`X-Client: mobile`) skip this check entirely — there is
+/// no reCAPTCHA client on Android/iOS. Enabled when `FIREBASE_PROJECT_NUMBER`
+/// is configured.
 library;
 
 import 'dart:convert';
@@ -230,19 +231,14 @@ Future<shelf.Response> _handleCreateCheckoutToken(
   final rawBody = await _readJson(request);
   final body = _parsePrepareCheckoutBody(request, rawBody);
 
-  if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty) {
+  if (recaptchaVerifier != null && config.firebaseProjectNumber.isNotEmpty && body.client == CheckoutClient.web) {
     final recaptchaToken = request.headers[_HeaderNames.xRecaptchaToken];
     if (recaptchaToken == null || recaptchaToken.isEmpty) {
       throw HttpError(401, 'RECAPTCHA_TOKEN_MISSING');
     }
 
     final siteKey = request.headers['x-recaptcha-site-key'] ?? '';
-    final validSiteKeys = [
-      config.recaptchaSiteKeyWeb,
-      config.recaptchaSiteKeyAndroid,
-      config.recaptchaSiteKeyIos,
-    ].where((k) => k.isNotEmpty).toList();
-    if (!validSiteKeys.contains(siteKey)) {
+    if (siteKey.isEmpty || siteKey != config.recaptchaSiteKeyWeb) {
       throw HttpError(401, 'RECAPTCHA_SITE_KEY_INVALID');
     }
 

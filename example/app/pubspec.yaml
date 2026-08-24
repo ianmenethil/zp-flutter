@@ -17,7 +17,6 @@ dependencies:
   # list); a path dep is rejected because the workspace already links it.
   # Once published, external consumers get the pub.dev version from this same
   # constraint — nothing here changes at release.
-  recaptcha_enterprise_flutter: ^18.9.1
   zenpay_embedded: ^0.1.0
   zenpay_flutter: ^0.1.0
 

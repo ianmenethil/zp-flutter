@@ -63,8 +63,6 @@ AppConfig _config({
   firebaseProjectNumber: firebaseProjectNumber,
   firebaseServiceAccountJson: firebaseServiceAccountJson,
   recaptchaSiteKeyWeb: 'web_key',
-  recaptchaSiteKeyAndroid: 'android_key',
-  recaptchaSiteKeyIos: 'ios_key',
   zenPay: ZenPayConfig(
     hppEndpointUrl: Uri.parse('https://pay.sandbox.travelpay.com.au/Online/v5'),
     allowedCheckoutHosts: {'pay.sandbox.travelpay.com.au'},
@@ -664,6 +662,25 @@ void main() {
         expect(response.statusCode, 201);
         final decoded = jsonDecode(response.body) as Map<String, Object?>;
         expect(decoded['checkoutToken'], isNotNull);
+      },
+    );
+
+    test(
+      'skips reCAPTCHA entirely for x-client: mobile, even without a token',
+      () async {
+        await server.close(force: true);
+        final verifier = _FakeRecaptchaVerifier(shouldPass: false);
+        await startServer(
+          _config(firebaseProjectNumber: '123456789'),
+          recaptchaVerifier: verifier,
+        );
+
+        final response = await prepare(
+          idempotencyKey: 'idempotency-key-mobile-no-recaptcha',
+          client: 'mobile',
+        );
+
+        expect(response.statusCode, 201);
       },
     );
 

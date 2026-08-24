@@ -22,8 +22,6 @@ AppConfig _config() => AppConfig(
   firebaseProjectNumber: '',
   firebaseServiceAccountJson: '',
   recaptchaSiteKeyWeb: 'web_key',
-  recaptchaSiteKeyAndroid: 'android_key',
-  recaptchaSiteKeyIos: 'ios_key',
   zenPay: ZenPayConfig(
     hppEndpointUrl: Uri.parse('https://pay.sandbox.travelpay.com.au/Online/v5'),
     allowedCheckoutHosts: {'pay.sandbox.travelpay.com.au'},

@@ -4,16 +4,11 @@
 /// backend; anything real comes from `.env`.
 library;
 
-import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:zenpay_example_app/core/recaptcha/app_recaptcha_client.dart';
 
-/// reCAPTCHA Enterprise site key for the current platform.
-final String recaptchaSiteKey = () {
-  if (kIsWeb) return '6LcMto4tAAAAABbToTnAcvrbyNrV4iltvsIZwHaX';
-  if (defaultTargetPlatform == TargetPlatform.android) return const String.fromEnvironment('RECAPTCHA_ANDROID_KEY', defaultValue: 'YOUR_ANDROID_KEY');
-  if (defaultTargetPlatform == TargetPlatform.iOS) return const String.fromEnvironment('RECAPTCHA_IOS_KEY', defaultValue: 'YOUR_IOS_KEY');
-  return '';
-}();
+/// reCAPTCHA Enterprise site key — web only.
+const String recaptchaSiteKey = kIsWeb ? '6LcMto4tAAAAABbToTnAcvrbyNrV4iltvsIZwHaX' : '';
 
 /// The reCAPTCHA Enterprise client, set once `main()`'s
 /// `fetchAppRecaptchaClient` call resolves. Null until then, and permanently

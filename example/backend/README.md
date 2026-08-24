@@ -193,13 +193,15 @@ not a way to mint unlimited attempts from one token.
   login in this demo, so `POST /checkout/token` cannot be made airtight by
   the token/exchange split alone. It is bounded instead by a per-IP rate
   limit (`CHECKOUT_RATE_LIMIT_PER_MINUTE`), an `Idempotency-Key` requirement,
-  strict input validation, and a 64KB body cap. Mobile app attestation is
-  available at this exact boundary via Firebase App Check (wrapping Apple App
-  Attest / Android Play Integrity / Web reCAPTCHA, `lib/src/app_check.dart`) —
-  set `FIREBASE_PROJECT_NUMBER` and `FIREBASE_SERVICE_ACCOUNT_JSON` to require
-  a valid `X-Firebase-AppCheck` token on both checkout-creation endpoints; see
-  `lib/src/server_app.dart`'s doc comment. None of the above is authentication;
-  don't confuse rate limiting, idempotency, or a signed capability token with it.
+  strict input validation, and a 64KB body cap. reCAPTCHA Enterprise
+  verification is available at this exact boundary for web checkout requests
+  (`lib/src/recaptcha_verifier.dart`) — set `FIREBASE_PROJECT_NUMBER`,
+  `FIREBASE_SERVICE_ACCOUNT_JSON`, and `RECAPTCHA_SITE_KEY_WEB` to require a
+  valid `X-Recaptcha-Token` on `POST /checkout/token`; see
+  `lib/src/server_app.dart`'s doc comment. Mobile checkout requests
+  (`X-Client: mobile`) skip this check entirely — there is no reCAPTCHA client
+  on Android/iOS. None of the above is authentication; don't confuse rate
+  limiting, idempotency, or a signed capability token with it.
 - **Token hygiene** — full tokens are never logged; structured logs carry
   `requestId`/`merchantUniquePaymentId`/`paymentReference` instead.
   Signature checks are constant-time (`package:hashlib`'s

@@ -1,3 +1,10 @@
+# Points straight at very_good_analysis (declared in this package's own
+# dev_dependencies below) rather than ../analysis_options.yaml, which only
+# resolves inside this monorepo's shared pub workspace — an extracted,
+# standalone copy of this package has no `../` to find. The three rules
+# restated below mirror the root analysis_options.yaml's own local overrides.
+include: package:very_good_analysis/analysis_options.yaml
+
 analyzer:
   exclude:
     - build/**
@@ -7,10 +14,17 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
-include: ../analysis_options.yaml
+
+formatter:
+  page_width: 160
 
 linter:
   rules:
+    lines_longer_than_80_chars: false
+    # one_member_abstracts is deliberately not restated here (unlike the root
+    # analysis_options.yaml): the analyzer flags it as deprecated_lint —
+    # "shouldn't be enabled" — even set to false, in the very_good_analysis
+    # version resolved for this package.
     # Dart's primary-constructor syntax (used by the model classes in
     # lib/src/models/) gives a class no separate line a constructor doc can
     # attach to, so this lint can't be satisfied for them. Off package-wide

@@ -67,8 +67,6 @@ class AppConfig {
     required this.firebaseProjectNumber,
     required this.firebaseServiceAccountJson,
     required this.recaptchaSiteKeyWeb,
-    required this.recaptchaSiteKeyAndroid,
-    required this.recaptchaSiteKeyIos,
     required this.zenPay,
   });
 
@@ -116,14 +114,9 @@ class AppConfig {
   /// Raw JSON string or file path to GCP Service Account credentials.
   final String firebaseServiceAccountJson;
 
-  /// reCAPTCHA Enterprise site key for the web client.
+  /// reCAPTCHA Enterprise site key for the web client — reCAPTCHA is
+  /// web-only; mobile checkout requests skip this check entirely.
   final String recaptchaSiteKeyWeb;
-
-  /// reCAPTCHA Enterprise site key for the Android client.
-  final String recaptchaSiteKeyAndroid;
-
-  /// reCAPTCHA Enterprise site key for the iOS client.
-  final String recaptchaSiteKeyIos;
 
   /// ZenPay endpoint configuration and credentials.
   final ZenPayConfig zenPay;
@@ -174,8 +167,6 @@ AppConfig loadConfig() {
     firebaseProjectNumber: value('FIREBASE_PROJECT_NUMBER', ''),
     firebaseServiceAccountJson: value('FIREBASE_SERVICE_ACCOUNT_JSON', ''),
     recaptchaSiteKeyWeb: value('RECAPTCHA_SITE_KEY_WEB', 'YOUR_SITE_KEY_WEB'),
-    recaptchaSiteKeyAndroid: value('RECAPTCHA_SITE_KEY_ANDROID', 'YOUR_SITE_KEY_ANDROID'),
-    recaptchaSiteKeyIos: value('RECAPTCHA_SITE_KEY_IOS', 'YOUR_SITE_KEY_IOS'),
     zenPay: ZenPayConfig(
       hppEndpointUrl: Uri.parse(
         value(

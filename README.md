@@ -10,8 +10,8 @@ Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) — start there before touc
 
 ## 📱 Previews
 
-| Android Native Launch | Android In-App WebView |
-| :---: | :---: |
+|     Android Native Launch     |            Android In-App WebView             |
+| :---------------------------: | :-------------------------------------------: |
 | ![Android Demo](android.webp) | ![Android WebView Demo](android-webview.webp) |
 
 ---
@@ -26,15 +26,15 @@ graph TD
         APP[example/app<br/>(Flutter Mobile/Web)]
         BACKEND[example/backend<br/>(Shelf Server)]
     end
-    
+
     subgraph sdks ["ZenPay SDKs"]
         F_SDK[zenpay_flutter<br/>(Client SDK)]
         D_SDK[zenpay_dart<br/>(Backend SDK)]
     end
-    
+
     APP -->|Uses| F_SDK
     BACKEND -->|Uses| D_SDK
-    
+
     APP -->|1. Request Checkout Token| BACKEND
     BACKEND -->|2. Generate Hash & URL| D_SDK
     BACKEND -.->|3. Return Token| APP
@@ -47,13 +47,45 @@ graph TD
 
 ## 📦 Packages
 
-| Package                                     | Path               | What it is                                                                 |
-| :------------------------------------------- | :------------------ | :--------------------------------------------------------------------------- |
-| [`zenpay_dart`](zenpay_dart/README.md)       | `zenpay_dart/`      | Pure-Dart backend SDK: fingerprints, launch URLs, callback verification, callback URL tokens. Server-side only. |
-| [`zenpay_flutter`](zenpay_flutter/README.md) | `zenpay_flutter/`   | Flutter client SDK: presents ZenPay Hosted Checkout, handles the return, reports one typed outcome. |
-| [example](example/README.md)                 | `example/`          | Combined reference: a Shelf backend (`example/backend/`) and a Flutter app (`example/app/`) demonstrating the full flow. |
+| Package                                      | Path              | What it is                                                                                                               |
+| :------------------------------------------- | :---------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| [`zenpay_dart`](zenpay_dart/README.md)       | `zenpay_dart/`    | Pure-Dart backend SDK: fingerprints, launch URLs, callback verification, callback URL tokens. Server-side only.          |
+| [`zenpay_flutter`](zenpay_flutter/README.md) | `zenpay_flutter/` | Flutter client SDK: presents ZenPay Hosted Checkout, handles the return, reports one typed outcome.                      |
+| [example](example/README.md)                 | `example/`        | Combined reference: a Shelf backend (`example/backend/`) and a Flutter app (`example/app/`) demonstrating the full flow. |
 
 Each package has its own `CLAUDE.md` (agent guidelines) and `README.md` (usage docs); every `CLAUDE.md` has an `AGENTS.md` symlink alongside it.
+
+### How `zenpay_dart/example/` and `zenpay_flutter/example/` work
+
+Neither directory is hand-written or checked into git. `example/backend/` and
+`example/app/` above are the single source of truth; `scripts/sync_package_examples.dart`
+copies whatever `git` tracks (or would track, respecting each source's own
+`.gitignore`) out of them into:
+
+- `zenpay_dart/example/` ← `example/backend`
+- `zenpay_flutter/example/backend/` ← `example/backend`
+- `zenpay_flutter/example/app/` ← `example/app`
+
+`.env`, `build/`, `.dart_tool/`, and internal `CLAUDE.md`/`AGENTS.md` guideline
+files are never copied. All three destinations are gitignored and fully
+replaced on every run — never edit them directly, edit
+`example/backend`/`example/app` instead.
+
+This exists because `dart pub publish` bundles each package's own `example/`
+folder for its pub.dev score, and a monorepo-root `example/` sibling directory
+is never included in an individual package's publish archive. Run it manually
+with:
+
+```pwsh
+dart run cli.dart --sync-examples
+```
+
+It also runs automatically before every `--release:dart:*`/`--release:flutter:*`.
+**Known issue:** `zenpay_dart/example/` and `zenpay_flutter/example/` are
+currently also excluded from the actual `dart pub publish` archive by the same
+`.gitignore` rule that keeps them out of git — confirmed via `dart pub publish
+--dry-run`. Resolving this (un-ignoring the generated content, or committing a
+small hand-written example instead) is still an open decision.
 
 ---
 
