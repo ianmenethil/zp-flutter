@@ -21,7 +21,7 @@
   "vars": {
     "PUBLIC_BASE_URL": "https://flutter-demo.zenithpayments.support",
     "ALLOWED_APP_ORIGIN": "https://flutter-demo.zenithpayments.support",
-    "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/return",
+    "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/",
     "FIREBASE_PROJECT_NUMBER": "356498821161",
   },
   "containers": [
@@ -39,7 +39,7 @@
       // Baked into the Flutter web build's --dart-define; must be set
       // explicitly or app_config.dart falls back to an empty string.
       "image_vars": {
-        "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/return",
+        "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/",
         "BACKEND_BASE_URL": "https://flutter-demo.zenithpayments.support",
       },
     },
