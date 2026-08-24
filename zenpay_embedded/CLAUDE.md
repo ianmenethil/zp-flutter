@@ -22,8 +22,8 @@ exists for merchants who explicitly need inline/modal checkout instead.
    own; a supplied controller could carry a channel that the grep gate above cannot see.
 3. **Never let the WebView navigate to anything that isn't `https`, and never allowlist
    navigation by host.** 3DS/issuer ACS hosts cannot be enumerated in advance
-   (`navigation_policy.dart`). The host allowlist's job stays where it already is: validating
-   the checkout URL before launch, in `zenpay_flutter`.
+   (`decide_web_view_navigation.dart`). The host allowlist's job stays where it already is:
+   validating the checkout URL before launch, in `zenpay_flutter`.
 4. **Never let the WebView load a merchant-authored page.** Its top-level document must
    always be the ZenPay hosted page itself. A merchant page with the checkout embedded as a
    sub-frame alongside merchant script is a different, materially riskier architecture (see
@@ -38,17 +38,17 @@ exists for merchants who explicitly need inline/modal checkout instead.
 
 ## Key files
 
-- `lib/src/navigation_policy.dart` — `decideNavigation`, not exported from the barrel
-  (internal only). Restricts navigation to `https` and intercepts the return redirect before
-  the WebView can follow it.
-- `lib/src/web_view_return_uri_source.dart` — `WebViewReturnUriSource implements
+- `lib/src/decide_web_view_navigation.dart` — `decideNavigation`, not exported from the
+  barrel (internal only). Restricts navigation to `https` and intercepts the return redirect
+  before the WebView can follow it.
+- `lib/src/listen_for_return_in_web_view.dart` — `WebViewReturnUriSource implements
   ZpReturnUriSource`. A navigation happening inside an in-process WebView is not handed off
   to the OS App Link/Universal Link resolver the way a system browser surface's navigation
   is, so `zenpay_flutter`'s `AppLinksReturnUriSource` never sees it — this class is what
   makes the return visible to `ZpCheckout` instead.
-- `lib/src/zenpay_checkout_web_view.dart` — the `webview_flutter` widget itself. Internal;
-  constructed only by `EmbeddedCheckoutPresenter`.
-- `lib/src/embedded_checkout_presenter.dart` — `EmbeddedCheckoutPresenter extends
+- `lib/src/render_checkout_web_view.dart` — `ZenPayCheckoutWebView`, the `webview_flutter`
+  widget itself. Internal; constructed only by `EmbeddedCheckoutPresenter`.
+- `lib/src/open_checkout_in_web_view.dart` — `EmbeddedCheckoutPresenter extends
   CheckoutPresenter`. Shows/dismisses its own modal bottom sheet via a
   `GlobalKey<NavigatorState>` supplied at construction, since `ZpCheckout.open` calls
   `openCheckout` without a `BuildContext` of its own.
