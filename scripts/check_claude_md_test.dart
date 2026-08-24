@@ -67,6 +67,15 @@ melos run test
       );
     });
 
+    test('accepts CRLF and CR line endings', () {
+      final violations = checkClaudeMd(
+        docText: '# package — description\r\n\r\n## Related Guides\r\n\r\n- link\r\n\r\n## Verification\r\n',
+        sourceDir: Directory.systemTemp.createTempSync().path,
+        template: const ClmTemplate(requiredSections: _sections, coverageGlobs: []),
+      );
+      expect(violations, isEmpty);
+    });
+
     test('reports sections out of order', () {
       final violations = checkClaudeMd(
         docText: '# t\n\n## Verification\n\n## Related Guides\n',
@@ -114,6 +123,21 @@ melos run test
         template: const ClmTemplate(
           requiredSections: [],
           coverageGlobs: ['lib/**/*.dart', '*.dart'],
+        ),
+      );
+      expect(violations, isEmpty);
+    });
+
+    test('accepts the link style with the path inside a markdown link', () {
+      Directory('${dir.path}/lib/src').createSync(recursive: true);
+      File('${dir.path}/lib/src/foo.dart').createSync();
+
+      final violations = checkClaudeMd(
+        docText: '# package\n\n- **[foo.dart](lib/src/foo.dart)**: Implements F.\n',
+        sourceDir: dir.path,
+        template: const ClmTemplate(
+          requiredSections: [],
+          coverageGlobs: ['lib/**/*.dart'],
         ),
       );
       expect(violations, isEmpty);

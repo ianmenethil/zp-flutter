@@ -1,5 +1,8 @@
 ## 0.1.0
 
+- Merged internal `lib/src/return_handling/web/web_message_format.dart` and
+  `web_origin_check.dart` into a single `web_return_protocol.dart`; public
+  exports unchanged.
 - Fixed `AppLinksReturnUriSource` and `FakeReturnUriSource` (in `lib/testing.dart`)
   replaying stale initial deep links on every subscription to the return URI stream.
   The native App Links implementation caches the cold-start link once for the process

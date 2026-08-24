@@ -7,8 +7,7 @@ import 'dart:js_interop';
 
 import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart' show CheckoutPresenter;
 
-import 'package:zenpay_flutter/src/return_handling/web/web_message_format.dart';
-import 'package:zenpay_flutter/src/return_handling/web/web_origin_check.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_return_protocol.dart';
 
 @JS('opener')
 external JSObject? get _opener;

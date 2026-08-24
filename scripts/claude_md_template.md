@@ -25,10 +25,11 @@ coverage: *.dart
   also satisfies `## Verification Commands` and `## 3. Verification Commands`.
   Required sections must appear in the order listed above.
 - **Coverage**: every matched file must appear as a *dedicated entry* — the
-  file's path (relative to the CLAUDE.md's directory) at the start of a
+  file's path (relative to the CLAUDE.md's directory) anywhere inside a
   heading or bullet line, e.g. `` ### `lib/src/foo.dart` `` or
-  `` - `lib/src/foo.dart` — what it does``. A passing mention inside prose
-  does not count: the point is a guide that *displays* every underlying
+  `` - `lib/src/foo.dart` — what it does`` or the link style
+  `` - **[foo.dart](lib/src/foo.dart)**: does F.``. A passing mention inside
+  prose does not count: the point is a guide that *displays* every underlying
   source file with an explanation of what it contains, not one that merely
   name-drops them.
 - `lib/**/*.dart` and `bin/**/*.dart` are recursive; `*.dart` covers only

@@ -15,7 +15,7 @@ import 'dart:js_interop';
 import 'package:zenpay_flutter/src/presentation/open_checkout_contract.dart' show CheckoutPresenter;
 
 import 'package:zenpay_flutter/src/return_handling/listen_for_return_contract.dart';
-import 'package:zenpay_flutter/src/return_handling/web/web_origin_check.dart';
+import 'package:zenpay_flutter/src/return_handling/web/web_return_protocol.dart';
 
 @JS('addEventListener')
 external void _addWindowMessageListener(String type, JSFunction listener);

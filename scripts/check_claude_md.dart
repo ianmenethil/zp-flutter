@@ -14,7 +14,7 @@
 //      headings in each document, in the same order.
 //   2. File coverage — every file matched by a template `coverage:` glob
 //      (expanded relative to the CLAUDE.md's own directory) must appear as a
-//      dedicated entry: the file's path at the start of a heading or bullet
+//      dedicated entry: the file's path anywhere inside a heading or bullet
 //      line. A passing mention inside prose does not count — the point of the
 //      rule is a guide that *displays* every underlying source file with an
 //      explanation of what it contains, not one that merely name-drops them.
@@ -65,7 +65,10 @@ List<String> checkClaudeMd({
   required ClmTemplate template,
 }) {
   final violations = <String>[];
-  final lines = docText.split('\n');
+  // Normalize CRLF/CR line endings first — a trailing \r makes Dart's `$`
+  // anchor miss, so the heading and entry regexes below must see clean line
+  // strings (mixed-ending repos hit this with CRLF files).
+  final lines = docText.replaceAll('\r\n', '\n').replaceAll('\r', '\n').split('\n');
 
   // Every document must open with a top-level `# ` title.
   if (!lines.any((line) => RegExp(r'^#\s').hasMatch(line))) {
@@ -119,17 +122,14 @@ List<String> checkClaudeMd({
   return violations;
 }
 
-/// True when [path] starts some line as a dedicated entry — a heading
-/// (`### ...`) or bullet (`- `/`* `) line that opens with the path itself,
-/// optionally wrapped in backticks, bold markers, or a markdown link.
-/// Mid-prose mentions (`...see lib/src/foo.dart for...`) deliberately don't
-/// count.
+/// True when [path] has a dedicated entry — a heading (`### ...`) or bullet
+/// (`- `/`* `) line containing the path anywhere in it, so both styles in use
+/// pass: `` ### `lib/src/foo.dart` `` and the link style
+/// `` - **[foo.dart](lib/src/foo.dart)**: does F.``. Mid-prose mentions
+/// (`...see lib/src/foo.dart for...`) deliberately don't count.
 bool _hasEntry(String path, List<String> lines) {
-  final entry = RegExp(
-    r'^\s*(?:#{1,3}\s+)?(?:[-*]\s+)?(?:\*\*)?\[?`?'
-    '${RegExp.escape(path)}',
-  );
-  return lines.any(entry.hasMatch);
+  final entryLine = RegExp(r'^\s*(?:#{1,3}\s+|[-*]\s+)');
+  return lines.any((line) => entryLine.hasMatch(line) && line.contains(path));
 }
 
 /// Expands [glob] (a template `coverage:` pattern) under [sourceDir],
