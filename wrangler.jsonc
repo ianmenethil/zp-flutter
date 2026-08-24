@@ -15,9 +15,6 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
   // Served only on the custom domain below. Without workers_dev: false here,
-  // `wrangler deploy` silently re-enables the *.workers.dev route on every
-  // deploy even after disabling it in the dashboard (Cloudflare's own
-  // documented behavior) — this is what was overriding the domain switch.
   "workers_dev": false,
   "preview_urls": false,
   "routes": [
@@ -82,7 +79,10 @@
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["ZenpayBackendContainer", "ZenpayFrontendContainer"],
+      "new_sqlite_classes": [
+        "ZenpayBackendContainer",
+        "ZenpayFrontendContainer",
+      ],
     },
   ],
 }

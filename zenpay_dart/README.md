@@ -4,7 +4,7 @@ Pure-Dart backend SDK for the ZenPay Hosted Checkout Plugin (HCP). Provides SHA3
 
 > **Server-side only.** Never import this package from a Flutter mobile app or frontend. Fingerprint generation and callback verification involve merchant credentials that must stay on your server.
 
-Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md) (per-file guide: [lib/CLAUDE.md](lib/CLAUDE.md)). Monorepo overview: [../README.md](../README.md).
+Contributor/agent guidelines: [CLAUDE.md](CLAUDE.md). Monorepo overview: [../README.md](../README.md).
 
 ---
 
@@ -47,7 +47,7 @@ The reference backend lives at `../example/backend/` (own `lib/src/`,
 
 For detailed per-entity documentation of every class, function, and enum:
 
-- **[lib/CLAUDE.md](lib/CLAUDE.md)** — Core `zenpay_dart` package source guide (`AGENTS.md` here is a symlink to it).
+- **[CLAUDE.md](CLAUDE.md)** — Core `zenpay_dart` package source guide (`AGENTS.md` here is a symlink to it).
 - **[../example/backend/CLAUDE.md](../example/backend/CLAUDE.md)** — Reference backend guide.
 
 ---
