@@ -58,7 +58,6 @@ String _usage() {
     row('--stream', 'Mirror an Android device via scrcpy.'),
     row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
     row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
-    row('--distribute', 'Build Android APK and upload to Firebase App Distribution.'),
     row(
       '--docker-build',
       'Build backend + frontend images (docker/local/docker-compose.yml).',
@@ -69,7 +68,6 @@ String _usage() {
     ),
     row('--docker-rebuild', 'Stop, remove images, rebuild fresh, and run.'),
     row('--cf-deploy', 'Deploy the Cloudflare Workers backend and Containers.'),
-    row('--register-device', 'Register Firebase App Check debug token.'),
     row(
       '--release:dart:minor',
       'Bump zenpay_dart to the next minor version, prep for pub.dev.',
@@ -152,11 +150,6 @@ Future<void> main(List<String> arguments) async {
       'quick-tunnel',
       negatable: false,
       help: 'Run an ephemeral *.trycloudflare.com tunnel.',
-    )
-    ..addFlag(
-      'distribute',
-      negatable: false,
-      help: 'Build Android APK and upload to Firebase App Distribution.',
     )
     ..addFlag(
       'docker-build',
@@ -247,7 +240,6 @@ Future<void> main(List<String> arguments) async {
     if (args['stream'] as bool) 'stream',
     if (args['tunnel'] as bool) 'tunnel',
     if (args['quick-tunnel'] as bool) 'quick-tunnel',
-    if (args['distribute'] as bool) 'distribute',
     if (args['docker-build'] as bool) 'docker-build',
     if (args['docker-run'] as bool) 'docker-run',
     if (args['docker-rebuild'] as bool) 'docker-rebuild',
@@ -261,7 +253,7 @@ Future<void> main(List<String> arguments) async {
     _error(
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --android-webview '
-                '--ios --web --stream --tunnel --quick-tunnel --distribute --docker-build '
+                '--ios --web --stream --tunnel --quick-tunnel --docker-build '
                 '--docker-run --docker-rebuild --release:dart:minor --release:dart:major '
                 '--release:flutter:major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
@@ -303,8 +295,6 @@ Future<void> main(List<String> arguments) async {
     await _tunnel(root);
   } else if (mode == 'quick-tunnel') {
     await _quickTunnel(root, url: args['url'] as String?);
-  } else if (mode == 'distribute') {
-    await _distribute(root);
   } else if (mode == 'docker-build') {
     await _dockerBuild(root);
   } else if (mode == 'docker-run') {
@@ -988,26 +978,6 @@ Future<void> _release(
       '  1. Review the diff (pubspec.yaml, CHANGELOG.md), commit it.',
     )
     ..writeln('  2. cd $package && dart pub publish');
-}
-
-Future<void> _distribute(String root) async {
-  if (!_hasCommand('firebase')) {
-    _error('firebase command not found. Install it with: npm install -g firebase-tools');
-    exit(1);
-  }
-
-  _info('Building Android APK (release)...');
-  await _runChecked('flutter', ['build', 'apk', '--release'], cwd: '$root/example/app');
-
-  _info('Uploading to Firebase App Distribution...');
-  // The App ID for Android (from google-services.json / user info).
-  const appId = '1:356498821161:android:0c4280696058bb9fc68c38';
-  await _execForeground('firebase', [
-    'appdistribution:distribute',
-    'build/app/outputs/flutter-apk/app-release.apk',
-    '--app',
-    appId,
-  ], cwd: '$root/example/app');
 }
 
 /// Path to the Compose file, relative to the repo root — every `docker
