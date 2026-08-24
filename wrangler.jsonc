@@ -1,20 +1,10 @@
 {
-  // Fronts two Cloudflare Containers as one Worker — see src/index.ts, which
-  // routes each request by path to whichever container owns it. Backend
-  // (docker/cloudflare/Dockerfile.backend) serves /api/v1/*, /return,
-  // /.well-known/*; frontend (docker/cloudflare/Dockerfile.frontend, nginx)
-  // serves the built Flutter Web app for everything else. These are
-  // Cloudflare-specific Dockerfiles, deliberately separate from
-  // docker/local/ (used by docker/local/docker-compose.yml for local dev)
-  // — the local ones need mkcert TLS + compose networking that don't apply
-  // once Cloudflare's own edge is terminating HTTPS. Deploy with
-  // `npm run cf:deploy` (needs Docker running locally and a Workers Paid
-  // plan). Secrets (ZENPAY_*, TOKEN_SECRET, etc. from example/backend/.env)
-  // are set separately via `wrangler secret put <NAME>`, not committed here.
+  // Worker fronts two Containers, routed by path in src/index.ts. Secrets
+  // (ZENPAY_*, TOKEN_SECRET, etc.) are set via `wrangler secret put`, never here.
   "name": "flutter-demo",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-21",
-  // Served only on the custom domain below. Without workers_dev: false here,
+  // Custom domain only — must stay false or wrangler re-enables *.workers.dev on deploy.
   "workers_dev": false,
   "preview_urls": false,
   "routes": [
@@ -23,16 +13,11 @@
       "custom_domain": true,
     },
   ],
-  // Required to see the container's OWN stdout/stderr (not just the Worker's)
-  // in the dashboard/tail — see https://developers.cloudflare.com/containers/faq/.
+  // Shows container stdout/stderr (not just the Worker's) in the dashboard/tail.
   "observability": {
     "enabled": true,
   },
-  // Non-secret backend config, forwarded into the container via envVars in
-  // src/index.ts — production values (this Worker's own URL), NOT the
-  // localhost ones in example/backend/.env. Secrets (ZENPAY_*, TOKEN_SECRET,
-  // FIREBASE_SERVICE_ACCOUNT_JSON) stay out of this file, via
-  // `wrangler secret put <NAME>`.
+  // Non-secret config forwarded to the container via envVars (src/index.ts).
   "vars": {
     "PUBLIC_BASE_URL": "https://flutter-demo.zenithpayments.support",
     "ALLOWED_APP_ORIGIN": "https://flutter-demo.zenithpayments.support",
@@ -43,21 +28,16 @@
     {
       "class_name": "ZenpayBackendContainer",
       "image": "./docker/cloudflare/Dockerfile.backend",
-      // Both Dockerfiles COPY from repo-root paths (zenpay_dart/,
-      // example/backend/, ...) — without this, Wrangler defaults the build
-      // context to the Dockerfile's own directory, where none of those
-      // paths exist, and every COPY fails "not found".
+      // Dockerfiles COPY from repo-root paths; without this, the build
+      // context defaults to the Dockerfile's own directory and COPY fails.
       "image_build_context": ".",
     },
     {
       "class_name": "ZenpayFrontendContainer",
       "image": "./docker/cloudflare/Dockerfile.frontend",
       "image_build_context": ".",
-      // --build-arg equivalent — baked into the Flutter web build's
-      // --dart-define. Unset here means Docker's ARG defaults to an empty
-      // string (not absent), which example/app/lib/core/config/app_config.dart
-      // then uses AS-IS instead of falling back to its own default, so it
-      // must be set explicitly to this Worker's real URL.
+      // Baked into the Flutter web build's --dart-define; must be set
+      // explicitly or app_config.dart falls back to an empty string.
       "image_vars": {
         "APP_RETURN_URI_WEB": "https://flutter-demo.zenithpayments.support/return",
         "BACKEND_BASE_URL": "https://flutter-demo.zenithpayments.support",
