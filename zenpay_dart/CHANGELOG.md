@@ -2,6 +2,7 @@
 
 Initial port of the `@ianmenethil/zp-hcp@0.1.30` shared/server API surface:
 
+- Reorganized internal `lib/src/` file names for clarity: `callback.dart` → `verify_callback.dart`, `callback_token.dart` → `sign_callback_token.dart`, `checkout_url.dart` → `build_checkout_url.dart`, `fingerprint.dart` → `build_fingerprint.dart`, `defaults.dart` → `checkout_defaults.dart`, and `models/fingerprint_models.dart` → `models/fingerprint_result.dart`; public exports unchanged.
 - SHA3-512 fingerprint generation (`createZpFingerprint`) for the Authorise request.
 - Hosted-checkout Authorise launch URL construction (`createZpCheckoutUrl`) with single-pass percent-encoding.
 - Fixed `createZpCheckoutUrl` query string encoding to preserve `=` for empty-string parameters, matching TypeScript SDK behavior instead of Dart's `Uri.replace` default.

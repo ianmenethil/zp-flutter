@@ -3,7 +3,6 @@ library;
 
 /// Payment operating mode used by ZenPay HCP.
 enum const ZpPluginMode(
-  /// Integer value sent to ZenPay.
   final int wireValue,
 ) {
   /// `0` — capture a one-off payment.
@@ -14,8 +13,7 @@ enum const ZpPluginMode(
 
   /// `2` — custom payment.
   ///
-  /// The actual amount is supplied to ZenPay, but the fingerprint and
-  /// callback hash always use `"0"` for the amount field.
+  /// The actual amount is supplied to ZenPay, but the fingerprint and callback hash always use `"0"` for the amount field.
   customPayment(2),
 
   /// `3` — place a preauthorization hold.
@@ -59,7 +57,6 @@ enum const ZpPluginMode(
 
 /// How hosted checkout is presented.
 enum const ZpDisplayMode(
-  /// Integer value sent to ZenPay.
   final int wireValue,
 ) {
   /// `0` — modal iframe.
@@ -71,7 +68,6 @@ enum const ZpDisplayMode(
 
 /// Customer- or merchant-facing checkout mode.
 enum const ZpUserMode(
-  /// Integer value sent to ZenPay.
   final int wireValue,
 ) {
   /// `0` — customer-facing checkout.
@@ -83,7 +79,6 @@ enum const ZpUserMode(
 
 /// Who pays the ZenPay transaction fee.
 enum const ZpOverrideFeePayer(
-  /// Integer value sent to ZenPay.
   final int wireValue,
 ) {
   /// `0` — use the merchant account default.
@@ -98,7 +93,6 @@ enum const ZpOverrideFeePayer(
 
 /// Payment and preauthorization status codes returned by ZenPay.
 enum const ZpPaymentStatus(
-  /// Integer value returned by ZenPay.
   final int wireValue,
 ) {
   /// `0` — pending.

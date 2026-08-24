@@ -7,8 +7,8 @@
 /// builder does not have that bug: reserved characters stay escaped.
 library;
 
+import 'package:zenpay_dart/src/checkout_defaults.dart';
 import 'package:zenpay_dart/src/constants.dart';
-import 'package:zenpay_dart/src/defaults.dart';
 import 'package:zenpay_dart/src/models/checkout_options.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 

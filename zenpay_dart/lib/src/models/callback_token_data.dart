@@ -1,7 +1,7 @@
 /// Models for the signed callback URL token payload, options, and results.
 library;
 
-import 'package:zenpay_dart/src/crypto.dart';
+import 'package:zenpay_dart/src/crypto_utils.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 /// Payload stored inside a signed callback URL token.

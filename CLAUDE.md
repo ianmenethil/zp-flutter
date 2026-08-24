@@ -20,7 +20,8 @@ Each package has its own `CLAUDE.md` (also readable as `AGENTS.md`, a symlink to
 2. **[zenpay_flutter/CLAUDE.md](zenpay_flutter/CLAUDE.md)** ([README](zenpay_flutter/README.md)): Flutter client SDK. UI orchestration, deep-link return handling, URL launching, client-side lifecycle.
 3. **[zenpay_embedded/CLAUDE.md](zenpay_embedded/CLAUDE.md)** ([README](zenpay_embedded/README.md)): Optional embedded in-app WebView presentation, depends on `zenpay_flutter`. Opt-in only, not the default.
 4. **[example/CLAUDE.md](example/CLAUDE.md)** ([README](example/README.md)): Reference integration — a mock merchant backend ([example/backend/CLAUDE.md](example/backend/CLAUDE.md)) and a test mobile app ([example/app/CLAUDE.md](example/app/CLAUDE.md)) demonstrating the full end-to-end flow.
-5. **`scripts/`**: repo-maintenance Dart scripts (`apply_platform_config.dart`, `sync_package_examples.dart`) — no `CLAUDE.md` yet.
+5. **[docker/CLAUDE.md](docker/CLAUDE.md)**: Local Docker Compose stack and the Cloudflare Container images built from the same example app.
+6. **[scripts/CLAUDE.md](scripts/CLAUDE.md)**: Repo-maintenance Dart scripts (`apply_platform_config.dart`, `sync_package_examples.dart`) invoked by `cli.dart`.
 
 ---
 

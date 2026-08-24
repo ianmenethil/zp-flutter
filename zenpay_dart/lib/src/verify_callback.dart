@@ -10,8 +10,8 @@
 library;
 
 import 'package:zenpay_dart/src/constants.dart';
-import 'package:zenpay_dart/src/crypto.dart';
-import 'package:zenpay_dart/src/models/callback_models.dart';
+import 'package:zenpay_dart/src/crypto_utils.dart';
+import 'package:zenpay_dart/src/models/callback_input.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 typedef _CallbackShape = ({

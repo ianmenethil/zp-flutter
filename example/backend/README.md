@@ -43,38 +43,38 @@ Listens on `0.0.0.0:<PORT>`, shuts down cleanly on `Ctrl+C`.
 
 ### Configuration
 
-| Variable                        | Required | Description                                                                                                                                                                    |
-| :------------------------------- | :------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PORT`                          |          | HTTP listen port (default `7000`).                                                                                                                                             |
-| `PUBLIC_BASE_URL`                |    ✓     | Public HTTPS URL of this server. ZenPay derives `redirectUrl` and `callbackUrl` from it. Use a tunnel for local development: `cloudflared tunnel --url http://localhost:7000`. |
-| `ZENPAY_HPP_ENDPOINT_URL`        |    ✓     | Full HCP Authorise endpoint URL (e.g. `https://pay.sandbox.travelpay.com.au/Online/v5`).                                                                                       |
-| `ZENPAY_MERCHANT_CODE`           |    ✓     | Merchant code for the ZenPay account.                                                                                                                                          |
-| `ZENPAY_API_KEY`                 |    ✓     | API key for the ZenPay merchant account.                                                                                                                                       |
-| `ZENPAY_USERNAME`                |    ✓     | Hashed into the SHA3-512 fingerprint; never leaves this backend.                                                                                                               |
-| `ZENPAY_PASSWORD`                |    ✓     | Hashed into the SHA3-512 fingerprint; never leaves this backend.                                                                                                               |
+| Variable                         | Required | Description                                                                                                                                                                                                                                                                                                               |
+| :------------------------------- | :------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PORT`                           |          | HTTP listen port (default `7000`).                                                                                                                                                                                                                                                                                        |
+| `PUBLIC_BASE_URL`                |    ✓     | Public HTTPS URL of this server. ZenPay derives `redirectUrl` and `callbackUrl` from it. Use a tunnel for local development: `cloudflared tunnel --url http://localhost:7000`.                                                                                                                                            |
+| `ZENPAY_HPP_ENDPOINT_URL`        |    ✓     | Full HCP Authorise endpoint URL (e.g. `https://pay.sandbox.travelpay.com.au/Online/v5`).                                                                                                                                                                                                                                  |
+| `ZENPAY_MERCHANT_CODE`           |    ✓     | Merchant code for the ZenPay account.                                                                                                                                                                                                                                                                                     |
+| `ZENPAY_API_KEY`                 |    ✓     | API key for the ZenPay merchant account.                                                                                                                                                                                                                                                                                  |
+| `ZENPAY_USERNAME`                |    ✓     | Hashed into the SHA3-512 fingerprint; never leaves this backend.                                                                                                                                                                                                                                                          |
+| `ZENPAY_PASSWORD`                |    ✓     | Hashed into the SHA3-512 fingerprint; never leaves this backend.                                                                                                                                                                                                                                                          |
 | `TOKEN_SECRET`                   |    ✓     | Root secret every token type (`checkoutToken`, the `?t=` return/status token) derives its own signing key from — see [Checkout Identity Model](#checkout-identity-model). Must be ≥32 bytes or session creation fails. `openssl rand -hex 32`. Rotating it invalidates every outstanding token of both types immediately. |
-| `ALLOWED_APP_ORIGIN`             |          | Browser origin for CORS (default `http://localhost:3000`).                                                                                                                     |
-| `APP_RETURN_URI_WEB`             |          | HTTPS URI the return broker redirects web clients to (default `https://localhost:3000/`).                                                                                      |
-| `ZENPAY_ALLOWED_CHECKOUT_HOSTS`  |          | Comma-separated allowlist of checkout URL hosts (default `pay.sandbox.travelpay.com.au`).                                                                                      |
-| `CHECKOUT_STATUS_TTL_MINUTES`    |          | How long to keep in-memory attempts before purging (default `60`).                                                                                                              |
-| `CHECKOUT_TOKEN_TTL_SECONDS`     |          | Lifetime of a `POST /api/v1/checkout/token` capability (default `300`) — short, since it only needs to survive the gap before `/checkout/exchange`.                            |
-| `CHECKOUT_RATE_LIMIT_PER_MINUTE` |          | Per-IP requests/minute on `/checkout/token` and `/checkout/exchange` (default `20`).                                                                                            |
-| `FIREBASE_PROJECT_NUMBER`        |          | Firebase project *number* (not ID). When set, requires a valid `X-Firebase-AppCheck` token on both checkout-creation endpoints. Empty disables enforcement.                    |
-| `FIREBASE_SERVICE_ACCOUNT_JSON`  |          | GCP Service Account JSON (raw or file path) with `firebaseappcheck.tokenVerifier`, used to verify App Check tokens. Required when `FIREBASE_PROJECT_NUMBER` is set.             |
+| `ALLOWED_APP_ORIGIN`             |          | Browser origin for CORS (default `http://localhost:3000`).                                                                                                                                                                                                                                                                |
+| `APP_RETURN_URI_WEB`             |          | HTTPS URI the return broker redirects web clients to (default `https://localhost:3000/`).                                                                                                                                                                                                                                 |
+| `ZENPAY_ALLOWED_CHECKOUT_HOSTS`  |          | Comma-separated allowlist of checkout URL hosts (default `pay.sandbox.travelpay.com.au`).                                                                                                                                                                                                                                 |
+| `CHECKOUT_STATUS_TTL_MINUTES`    |          | How long to keep in-memory attempts before purging (default `60`).                                                                                                                                                                                                                                                        |
+| `CHECKOUT_TOKEN_TTL_SECONDS`     |          | Lifetime of a `POST /api/v1/checkout/token` capability (default `300`) — short, since it only needs to survive the gap before `/checkout/exchange`.                                                                                                                                                                       |
+| `CHECKOUT_RATE_LIMIT_PER_MINUTE` |          | Per-IP requests/minute on `/checkout/token` and `/checkout/exchange` (default `20`).                                                                                                                                                                                                                                      |
+| `FIREBASE_PROJECT_NUMBER`        |          | Firebase project _number_ (not ID). When set, requires a valid `X-Firebase-AppCheck` token on both checkout-creation endpoints. Empty disables enforcement.                                                                                                                                                               |
+| `FIREBASE_SERVICE_ACCOUNT_JSON`  |          | GCP Service Account JSON (raw or file path) with `firebaseappcheck.tokenVerifier`, used to verify App Check tokens. Required when `FIREBASE_PROJECT_NUMBER` is set.                                                                                                                                                       |
 
 ---
 
 ## API Endpoints
 
-| Method | Path                                       |         Auth          | Description                                                                                             |
-| :----- | :------------------------------------------ | :--------------------: | :--------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/v1/checkout/token`                    |                        | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `X-Client` (`web`/`mobile`) and `Idempotency-Key` (16–128 chars) headers. Anonymous but rate-limited per IP and App-Check-gated. `X-Request-Id` is echoed back for log correlation. |
-| `POST` | `/api/v1/checkout/exchange`                 | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL. Also App-Check-gated when `FIREBASE_PROJECT_NUMBER` is set. |
-| `GET`  | `/api/v1/sessions?t=...`                    |  `t` token   | Authoritative status for the one ZenPay attempt named by the verified callback URL token.                |
-| `POST` | `/api/v1/callbacks`                         |                        | ZenPay server-to-server webhook. Verified by `ValidationCode` alone, no `t` token.                       |
-| `GET`  | `/return?t=...`                             |  `t` token   | Browser redirect broker — 303 for mobile/web.                                                            |
-| `GET`  | `/.well-known/assetlinks.json`              |                        | Android App Links verification file.                                                                    |
-| `GET`  | `/.well-known/apple-app-site-association`   |                        | iOS Universal Links verification file.                                                                  |
+| Method | Path                                      |           Auth           | Description                                                                                                                                                                                                                                                                               |
+| :----- | :---------------------------------------- | :----------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/v1/checkout/token`                  |                          | Step 1 — prepares a checkout, resolves the trusted amount, returns a signed `checkoutToken`. Requires `X-Client` (`web`/`mobile`) and `Idempotency-Key` (16–128 chars) headers. Anonymous but rate-limited per IP and App-Check-gated. `X-Request-Id` is echoed back for log correlation. |
+| `POST` | `/api/v1/checkout/exchange`               | `Bearer <checkoutToken>` | Step 2 — verifies the token, builds (or, on replay, reuses) the ZenPay checkout URL. Also App-Check-gated when `FIREBASE_PROJECT_NUMBER` is set.                                                                                                                                          |
+| `GET`  | `/api/v1/sessions?t=...`                  |        `t` token         | Authoritative status for the one ZenPay attempt named by the verified callback URL token.                                                                                                                                                                                                 |
+| `POST` | `/api/v1/callbacks`                       |                          | ZenPay server-to-server webhook. Verified by `ValidationCode` alone, no `t` token.                                                                                                                                                                                                        |
+| `GET`  | `/return?t=...`                           |        `t` token         | Browser redirect broker — 303 for mobile/web.                                                                                                                                                                                                                                             |
+| `GET`  | `/.well-known/assetlinks.json`            |                          | Android App Links verification file.                                                                                                                                                                                                                                                      |
+| `GET`  | `/.well-known/apple-app-site-association` |                          | iOS Universal Links verification file.                                                                                                                                                                                                                                                    |
 
 There is no `POST` endpoint that mints a fresh ZenPay checkout URL from a
 single anonymous request — see [Security Model](#security-model) for why.
@@ -106,15 +106,15 @@ with a new MUPID**, created through the normal `/checkout/token` →
 Two token types, both signed from one configured root secret
 (`TOKEN_SECRET`) but kept deliberately separate two ways:
 
-| Token | Scope claim | Authorizes |
-| :--- | :--- | :--- |
-| `checkoutToken` | `checkout:exchange` | `POST /checkout/exchange` for one attempt (one MUPID) only |
+| Token                                          | Scope claim              | Authorizes                                                             |
+| :--------------------------------------------- | :----------------------- | :--------------------------------------------------------------------- |
+| `checkoutToken`                                | `checkout:exchange`      | `POST /checkout/exchange` for one attempt (one MUPID) only             |
 | `t` (`ZpCallbackUrlToken`, from `zenpay_dart`) | — (unmodified SDK shape) | `GET /api/v1/sessions`, `GET /return` for one attempt (one MUPID) only |
 
 1. **Key separation (primary).** `lib/src/token_keys.dart` derives a
    different signing key per token type from the one root secret
    (`deriveTokenKey` in `lib/src/signed_token.dart`: HMAC-SHA3-512 over a
-   fixed purpose label). A token minted for one purpose fails *signature*
+   fixed purpose label). A token minted for one purpose fails _signature_
    verification under another purpose's key — this holds before any claim
    is even decoded, and covers the SDK's own `t` token too even though its
    `ZpCallbackUrlTokenPayload` shape is untouched.
@@ -171,7 +171,7 @@ If checkout fails, is dismissed, or times out, pressing Pay again is simply
 a fresh `POST /checkout/token` → `/checkout/exchange` — a new, unrelated
 MUPID and checkout URL. There is no app- or backend-level "retry" concept.
 
-Replaying the *same* `checkoutToken` against `/checkout/exchange` twice
+Replaying the _same_ `checkoutToken` against `/checkout/exchange` twice
 always resolves to the same attempt (same MUPID, same checkout URL) — it is
 not a way to mint unlimited attempts from one token.
 

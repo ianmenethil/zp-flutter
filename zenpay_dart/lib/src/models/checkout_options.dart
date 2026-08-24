@@ -1,9 +1,9 @@
 /// Models for the hosted-checkout Authorise request options.
 library;
 
-import 'package:zenpay_dart/src/crypto.dart';
-import 'package:zenpay_dart/src/defaults.dart';
-import 'package:zenpay_dart/src/fingerprint.dart';
+import 'package:zenpay_dart/src/build_fingerprint.dart';
+import 'package:zenpay_dart/src/checkout_defaults.dart';
+import 'package:zenpay_dart/src/crypto_utils.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 /// The Authorise request: every field ZenPay's hosted-checkout endpoint accepts, minus browser-only concerns such as theme, fonts, modal sizing, and lifecycle callbacks.

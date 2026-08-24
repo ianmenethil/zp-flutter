@@ -1,7 +1,7 @@
 /// Models for incoming ZenPay server-to-server callback verification.
 library;
 
-import 'package:zenpay_dart/src/crypto.dart';
+import 'package:zenpay_dart/src/crypto_utils.dart';
 
 /// Merchant-known credentials, amount, and MUPID used to verify a callback.
 class const ZpVerifyCallbackContext({

@@ -2,8 +2,8 @@
 library;
 
 import 'package:zenpay_dart/src/constants.dart';
-import 'package:zenpay_dart/src/crypto.dart';
-import 'package:zenpay_dart/src/models/fingerprint_models.dart';
+import 'package:zenpay_dart/src/crypto_utils.dart';
+import 'package:zenpay_dart/src/models/fingerprint_result.dart';
 
 (ZpCents?, ZpFingerprintFailure?) _validate(ZpFingerprintInput request) {
   if (request.apiKey.length < ZpCore.minCredentialLength) {

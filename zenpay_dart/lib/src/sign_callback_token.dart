@@ -8,8 +8,8 @@ import 'dart:typed_data';
 import 'package:hashlib/hashlib.dart';
 
 import 'package:zenpay_dart/src/constants.dart';
-import 'package:zenpay_dart/src/crypto.dart';
-import 'package:zenpay_dart/src/models/callback_token_models.dart';
+import 'package:zenpay_dart/src/crypto_utils.dart';
+import 'package:zenpay_dart/src/models/callback_token_data.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
 Uint8List _keyBytes(Object secret) {
