@@ -1,7 +1,3 @@
 # Internal agent-guideline docs — not part of the published API surface.
 CLAUDE.md
 AGENTS.md
-# lib/CLAUDE.md is stale content merged into the root CLAUDE.md above; the
-# file itself is currently locked by another process and couldn't be deleted
-# yet (see CLAUDE.md restructure). Keep excluding it until it's actually gone.
-lib/CLAUDE.md
