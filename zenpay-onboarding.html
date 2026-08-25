@@ -1433,6 +1433,7 @@ dart run scripts/check_claude_md.dart">Copy</button></div>
                 <tr><td><code>--docker-rebuild</code></td><td>Stop, remove images, rebuild fresh, and run.</td></tr>
                 <tr><td><code>--cf-deploy</code></td><td>Deploys the Cloudflare Workers backend and Containers. Maintainers only.</td></tr>
                 <tr><td><code>--sync-examples</code></td><td>Regenerates <code>zenpay_dart/example</code> and <code>zenpay_flutter/example</code> from the real sources. Never hand-edit those.</td></tr>
+                <tr><td><code>--check</code></td><td>Runs every format/analyze/test/CLAUDE.md/PCI check CI and the pre-commit hook require, across the whole tree — not just staged files. Reports each step live, then reprints any failing step's output under a final "Why" section.</td></tr>
                 <tr><td><code>--release-dart-minor</code><br><code>--release-dart-major</code></td><td>Bumps <code>zenpay_dart</code>, re-syncs its example, validates with <code>dart pub publish --dry-run</code>. Never commits, tags, or publishes.</td></tr>
                 <tr><td><code>--release-flutter-minor</code><br><code>--release-flutter-major</code></td><td>The same, for <code>zenpay_flutter</code>.</td></tr>
               </tbody>
@@ -1458,7 +1459,7 @@ dart run scripts/check_claude_md.dart">Copy</button></div>
 
         <div class="sub" id="cli-verify">
           <h3>Verification</h3>
-          <p>Run from the repository root. These are the same gates the pre-commit hook enforces, and GitHub Actions re-runs formatting, analysis and the full test matrix on every pull request (<code>.github/workflows/pr_check.yaml</code>).</p>
+          <p>Run from the repository root. These are the same gates the pre-commit hook enforces, and both CI pipelines re-run on every push and pull request: GitHub Actions (<code>.github/workflows/pr_check.yaml</code>) re-runs formatting, analysis and the full test matrix; Codemagic (<code>codemagic.yaml</code>) runs the same checks plus Android/iOS/Web debug builds.</p>
           <div class="cmd">
             <div class="cmd-head"><span class="cmd-label">repository root</span><button class="copy" type="button" data-copy="melos bs
 melos run format
@@ -1474,6 +1475,11 @@ dart run scripts/check_claude_md.dart">Copy</button></div>
 <span class="p">$</span> dart run scripts/check_claude_md.dart</pre>
           </div>
           <p>No <code>melos run lint</code> — this repo declares no separate lint package (<code>dart_code_linter</code>, <code>very_good_analysis</code>) anywhere; strictness comes entirely from <code>analyze</code> plus each package's <code>analysis_options.yaml</code>. The last command checks every <code>CLAUDE.md</code> against <code>scripts/claude_md_template.md</code> &mdash; required sections in order, plus a dedicated entry for every source file. There are nine, one per package plus the root.</p>
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">repository root</span><button class="copy" type="button" data-copy="dart run cli.dart --check">Copy</button></div>
+            <pre><span class="p">$</span> dart run cli.dart --check</pre>
+          </div>
+          <p>Runs all of the above in one shot, across the whole tree — not just staged files, unlike the pre-commit hook's <code>format</code>/<code>analyze-root</code> gates. A failing step reprints its own output under a final "Why" section so you don't have to scroll back for it.</p>
         </div>
       </section>
 

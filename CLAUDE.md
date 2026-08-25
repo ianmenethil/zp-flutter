@@ -67,8 +67,11 @@ We use [Melos](https://melos.invertase.dev) to manage dependencies and run verif
 
 ### CI
 
-CI is currently disabled (`.github/workflows/pr_check.yaml.bak`, not a live
-`.yml`). The `lefthook` pre-commit gate is the only enforcement today.
+Two pipelines run on every push/PR: GitHub Actions (`.github/workflows/pr_check.yaml`) runs
+format/analyze/test only; Codemagic (`codemagic.yaml`) runs the same checks plus Android/iOS/Web
+debug builds. `lefthook`'s pre-commit gate enforces a staged-files-scoped subset of the same
+checks locally before either one ever runs — `dart run cli.dart --check` runs everything both
+require, across the whole tree, without waiting for a push.
 
 ---
 
@@ -83,6 +86,10 @@ melos run analyze
 melos run test
 melos run test:dart
 ```
+
+Or `dart run cli.dart --check` after `melos bs`, which runs all of the above plus
+`scripts/check_claude_md.dart` and the three PCI regression guards in one pass, and reports
+why anything that fails actually failed.
 
 Also: `dart run scripts/check_claude_md.dart` — checks every `CLAUDE.md` in the repo against
 `scripts/claude_md_template.md` (required sections, per-file coverage). See
