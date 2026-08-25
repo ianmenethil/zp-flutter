@@ -603,7 +603,17 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
     if (File('$appDir/localhost+2.pem').existsSync()) {
       stdout.writeln('TLS cert already present.');
     } else if (_hasCommand('mkcert')) {
-      await _runChecked('mkcert', ['-install'], cwd: appDir);
+      // -install also tries Firefox's and any JDK's own trust stores; a
+      // JDK bundled under Program Files (Android Studio's default install)
+      // needs admin rights to write its cacerts and fails there without
+      // it. That failure is cosmetic here — nothing in this repo runs
+      // under a JDK/JBR, only the system store (which mkcert checks first
+      // and reports separately) has to trust the cert for Chrome/nginx —
+      // so it must not abort bootstrap.
+      final installCode = await _runLive('mkcert', ['-install'], cwd: appDir);
+      if (installCode != 0) {
+        _warn('mkcert -install reported errors (often a Java keystore permission issue) — continuing.');
+      }
       await _runChecked('mkcert', ['localhost', '127.0.0.1', '::1'], cwd: appDir);
     } else {
       _warn(
