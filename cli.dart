@@ -68,10 +68,10 @@ String _usage() {
       'Regenerate zenpay_dart/example and zenpay_flutter/example from '
           'example/backend + example/app.',
     ),
-    row('--release:dart:minor', 'Bump zenpay_dart to the next minor version, prep for pub.dev.'),
-    row('--release:dart:major', 'Bump zenpay_dart to the next major version, prep for pub.dev.'),
-    row('--release:flutter:minor', 'Bump zenpay_flutter to the next minor version, prep for pub.dev.'),
-    row('--release:flutter:major', 'Bump zenpay_flutter to the next major version, prep for pub.dev.'),
+    row('--release-dart-minor', 'Bump zenpay_dart to the next minor version, prep for pub.dev.'),
+    row('--release-dart-major', 'Bump zenpay_dart to the next major version, prep for pub.dev.'),
+    row('--release-flutter-minor', 'Bump zenpay_flutter to the next minor version, prep for pub.dev.'),
+    row('--release-flutter-major', 'Bump zenpay_flutter to the next major version, prep for pub.dev.'),
     '',
     _bold('Options:'),
     row('--device=<id>', 'Device id for --android / --ios / --stream.'),
@@ -98,8 +98,8 @@ String _usage() {
     _dim('  dart run $_scriptName --docker-build'),
     _dim('  dart run $_scriptName --docker-run'),
     _dim('  dart run $_scriptName --docker-rebuild'),
-    _dim('  dart run $_scriptName --release:dart:minor'),
-    _dim('  dart run $_scriptName --release:flutter:major'),
+    _dim('  dart run $_scriptName --release-dart-minor'),
+    _dim('  dart run $_scriptName --release-flutter-major'),
   ].join('\n');
 }
 
@@ -119,10 +119,10 @@ Future<void> main(List<String> arguments) async {
     ..addFlag('docker-rebuild', negatable: false, help: 'Delete existing image, build fresh, and run.')
     ..addFlag('cf-deploy', negatable: false, help: 'Deploy the Cloudflare Workers backend and Containers.')
     ..addFlag('sync-examples', negatable: false, help: 'Regenerate zenpay_dart/example and zenpay_flutter/example from example/backend + example/app.')
-    ..addFlag('release:dart:minor', negatable: false, help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.')
-    ..addFlag('release:dart:major', negatable: false, help: 'Bump zenpay_dart to the next major version, prep for pub.dev.')
-    ..addFlag('release:flutter:minor', negatable: false, help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.')
-    ..addFlag('release:flutter:major', negatable: false, help: 'Bump zenpay_flutter to the next major version, prep for pub.dev.')
+    ..addFlag('release-dart-minor', negatable: false, help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.')
+    ..addFlag('release-dart-major', negatable: false, help: 'Bump zenpay_dart to the next major version, prep for pub.dev.')
+    ..addFlag('release-flutter-minor', negatable: false, help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.')
+    ..addFlag('release-flutter-major', negatable: false, help: 'Bump zenpay_flutter to the next major version, prep for pub.dev.')
     ..addOption('device', help: 'Device id for --android / --ios / --stream.')
     ..addOption('public-base-url', help: 'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.')
     ..addOption(
@@ -166,18 +166,18 @@ Future<void> main(List<String> arguments) async {
     if (args['docker-rebuild'] as bool) 'docker-rebuild',
     if (args['cf-deploy'] as bool) 'cf-deploy',
     if (args['sync-examples'] as bool) 'sync-examples',
-    if (args['release:dart:minor'] as bool) 'release:dart:minor',
-    if (args['release:dart:major'] as bool) 'release:dart:major',
-    if (args['release:flutter:minor'] as bool) 'release:flutter:minor',
-    if (args['release:flutter:major'] as bool) 'release:flutter:major',
+    if (args['release-dart-minor'] as bool) 'release:dart:minor',
+    if (args['release-dart-major'] as bool) 'release:dart:major',
+    if (args['release-flutter-minor'] as bool) 'release:flutter:minor',
+    if (args['release-flutter-major'] as bool) 'release:flutter:major',
   ];
   if (modes.length != 1) {
     _error(
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --android-webview '
                 '--ios --web --stream --tunnel --quick-tunnel --docker-build '
-                '--docker-run --docker-rebuild --sync-examples --release:dart:minor '
-                '--release:dart:major --release:flutter:major.'
+                '--docker-run --docker-rebuild --sync-examples --release-dart-minor '
+                '--release-dart-major --release-flutter-major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
     stderr
@@ -723,7 +723,9 @@ Future<void> _syncNativeAppLinkConfig(String root) async {
   await _runChecked('dart', ['run', 'scripts/apply_platform_config.dart', '--host', host], cwd: root);
 }
 
-/// Assumes the backend is already running.
+/// Warns rather than requires the backend already running: [_isPortOpen]'s
+/// check is a point-in-time heads-up, not a gate, since starting `--server`
+/// a moment after this runs is a normal ordering too.
 ///
 /// `adb reverse` is what lets the device reach the backend on the host's
 /// localhost. It is passed `-s` explicitly because a bare `adb reverse`
@@ -732,6 +734,11 @@ Future<void> _syncNativeAppLinkConfig(String root) async {
 /// targets for the same device.
 Future<void> _android(String root, {String? deviceId, String? target}) async {
   await _syncNativeAppLinkConfig(root);
+
+  _info('Make sure `dart run cli.dart --server` is already running in another terminal.');
+  if (!await _isPortOpen('localhost', 7000)) {
+    _warn('No backend detected on :7000 yet — checkout will fail until `--server` is running.');
+  }
 
   final device = deviceId ?? _pickAdbDevice();
 
@@ -745,6 +752,20 @@ Future<void> _android(String root, {String? deviceId, String? target}) async {
     if (target != null) ...['-t', target],
     '--dart-define-from-file=.env',
   ], cwd: '$root/example/app');
+}
+
+/// True if something is already listening on [host]:[port] — a 1-second
+/// connect attempt, not a full health check. Opposite of `_isPortFree` below
+/// (Docker's pre-flight, which checks a port is free to bind); this checks
+/// a port is already occupied, i.e. the backend is up.
+Future<bool> _isPortOpen(String host, int port) async {
+  try {
+    final socket = await Socket.connect(host, port, timeout: const Duration(seconds: 1));
+    await socket.close();
+    return true;
+  } on Object {
+    return false;
+  }
 }
 
 /// Auto-picks a single connected `adb` device, or the plain USB serial when

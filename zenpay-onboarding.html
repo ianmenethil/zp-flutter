@@ -1403,7 +1403,7 @@ dart run scripts/check_claude_md.dart">Copy</button></div>
                   <rect x="320" y="252" width="200" height="52" rx="7"></rect>
                 </g>
                 <text x="134" y="274" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".8">--sync-examples</text>
-                <text x="134" y="290" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".8">--release:*</text>
+                <text x="134" y="290" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".8">--release-*</text>
                 <text x="420" y="282" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".8">pub.dev dry-run</text>
                 <path d="M258 278 L 316 278" stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#g1)" opacity=".55"></path>
                 <text x="600" y="282" font-size="10" fill="currentColor" opacity=".65">— release path, touches none of the above</text>
@@ -1433,8 +1433,8 @@ dart run scripts/check_claude_md.dart">Copy</button></div>
                 <tr><td><code>--docker-rebuild</code></td><td>Stop, remove images, rebuild fresh, and run.</td></tr>
                 <tr><td><code>--cf-deploy</code></td><td>Deploys the Cloudflare Workers backend and Containers. Maintainers only.</td></tr>
                 <tr><td><code>--sync-examples</code></td><td>Regenerates <code>zenpay_dart/example</code> and <code>zenpay_flutter/example</code> from the real sources. Never hand-edit those.</td></tr>
-                <tr><td><code>--release:dart:minor</code><br><code>--release:dart:major</code></td><td>Bumps <code>zenpay_dart</code>, re-syncs its example, validates with <code>dart pub publish --dry-run</code>. Never commits, tags, or publishes.</td></tr>
-                <tr><td><code>--release:flutter:minor</code><br><code>--release:flutter:major</code></td><td>The same, for <code>zenpay_flutter</code>.</td></tr>
+                <tr><td><code>--release-dart-minor</code><br><code>--release-dart-major</code></td><td>Bumps <code>zenpay_dart</code>, re-syncs its example, validates with <code>dart pub publish --dry-run</code>. Never commits, tags, or publishes.</td></tr>
+                <tr><td><code>--release-flutter-minor</code><br><code>--release-flutter-major</code></td><td>The same, for <code>zenpay_flutter</code>.</td></tr>
               </tbody>
             </table>
           </div>

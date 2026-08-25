@@ -143,8 +143,8 @@ This reads the canonical host straight out of [`wrangler.jsonc`](wrangler.jsonc)
 | Mode | What it does | When to use it |
 | :--- | :--- | :--- |
 | `--sync-examples` | Regenerates `zenpay_dart/example/` and `zenpay_flutter/example/` from `example/backend`/`example/app` (§4 below). | After changing `example/backend` or `example/app`, before a release. |
-| `--release:dart:minor` / `--release:dart:major` | Bumps `zenpay_dart`'s version, re-syncs its example, validates with `dart pub publish --dry-run`. Never commits, tags, or publishes. | Preparing a `zenpay_dart` release. |
-| `--release:flutter:minor` / `--release:flutter:major` | Same, for `zenpay_flutter`. | Preparing a `zenpay_flutter` release. |
+| `--release-dart-minor` / `--release-dart-major` | Bumps `zenpay_dart`'s version, re-syncs its example, validates with `dart pub publish --dry-run`. Never commits, tags, or publishes. | Preparing a `zenpay_dart` release. |
+| `--release-flutter-minor` / `--release-flutter-major` | Same, for `zenpay_flutter`. | Preparing a `zenpay_flutter` release. |
 
 ---
 
@@ -189,7 +189,7 @@ with:
 dart run cli.dart --sync-examples
 ```
 
-It also runs automatically before every `--release:dart:*`/`--release:flutter:*`.
+It also runs automatically before every `--release-dart-*`/`--release-flutter-*`.
 **Known issue:** `zenpay_dart/example/` and `zenpay_flutter/example/` are
 currently also excluded from the actual `dart pub publish` archive by the same
 `.gitignore` rule that keeps them out of git — confirmed via `dart pub publish

@@ -72,7 +72,7 @@ monorepo-root `example/` sibling directory is never included in an individual pa
 publish archive. `example/backend` and `example/app` are the single source of truth —
 never hand-edit any of the three destinations; they're fully replaced on every run. Run
 manually with `dart run cli.dart --sync-examples`, or automatically before every
-`--release:dart:*`/`--release:flutter:*`.
+`--release-dart-*`/`--release-flutter-*`.
 
 - **`_excludedBasenames`**: Basenames skipped regardless of directory (`CLAUDE.md`,
   `AGENTS.md`), matching the existing `zenpay_dart/.pubignore` convention; `AGENTS.md` is

@@ -47,7 +47,7 @@ Official packages maintained by the Dart team.
 
 | Package | Version | Where | Why |
 | :--- | :--- | :--- | :--- |
-| `args` | `^2.7.0` | root (`cli.dart`) | Parses `cli.dart`'s `--server`/`--android`/`--release:*`/etc. mode flags and options via `ArgParser`. |
+| `args` | `^2.7.0` | root (`cli.dart`) | Parses `cli.dart`'s `--server`/`--android`/`--release-*`/etc. mode flags and options via `ArgParser`. |
 | `collection` | `^1.19.0` | `zenpay_flutter` | `SetEquality<String>` for value-equality on `ZpCheckoutConfiguration`'s `allowedCheckoutHosts` set (immutable config classes require `==`/`hashCode`). |
 | `coverage` | `^1.15.1` | `zenpay_dart` (dev) | LCOV coverage generation for pure-Dart packages (`melos run coverage:dart`; Flutter packages use `flutter test --coverage` instead). |
 | `http` | `^1.6.0` | `example/app` (dep); `example/backend` (dev) | `example/app`'s `checkout_service.dart` calls the backend's `/api/v1/checkout/*` and `/api/v1/sessions` endpoints; `example/backend`'s tests use it as an HTTP client against the running server. |

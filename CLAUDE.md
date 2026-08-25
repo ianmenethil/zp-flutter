@@ -36,7 +36,7 @@ Each package has its own `CLAUDE.md` (also readable as `AGENTS.md`, a symlink to
 - **`main()`**: Test suite entrypoint; groups mirror the four public seams listed above.
 - **`_server(...)`**: Runs `example/backend` (`dart run bin/server.dart`). Prompts for and persists `PUBLIC_BASE_URL` (unless `--keep-url`), propagates the derived mobile return URI into `example/app/.env`, and always re-syncs native Android/iOS App Link config to match.
 - **`_syncNativeAppLinkConfig(String root)`**: Points `AndroidManifest.xml`/`Runner.entitlements` at whatever host `example/backend/.env`'s `PUBLIC_BASE_URL` currently names, via `scripts/apply_platform_config.dart`. No-op if `.env` or the Android project don't exist yet.
-- **`_android(...)`**: Runs `example/app` on Android — `adb reverse tcp:7000` then `flutter run`; `--android-webview` mode passes `-t lib/embedded_demo_main.dart` to launch the `zenpay_embedded` WebView demo entrypoint instead of the default `lib/main.dart`.
+- **`_android(...)`**: Runs `example/app` on Android — warns (non-fatal, via `_isPortOpen`) if nothing is listening on `:7000` yet, then `adb reverse tcp:7000` then `flutter run`; `--android-webview` mode passes `-t lib/embedded_demo_main.dart` to launch the `zenpay_embedded` WebView demo entrypoint instead of the default `lib/main.dart`.
 - **`_ios(...)`**: Runs `example/app` on iOS. Hard-errors off Windows/Linux — Flutter cannot build iOS there at all.
 - **`_web(String root)`**: Runs `example/app` on Chrome, serving over TLS via the mkcert cert when present (falls back to plain HTTP with a warning otherwise, since the SDK requires an `https` return URI).
 - **`_stream({String? deviceId})`**: Mirrors a connected Android device's screen via `scrcpy`; independent of every other mode and the repo itself.
@@ -44,7 +44,7 @@ Each package has its own `CLAUDE.md` (also readable as `AGENTS.md`, a symlink to
 - **`_quickTunnel(String root, {String? url})`**: Runs an ephemeral `cloudflared tunnel --url` needing no Cloudflare account — prints a random `https://*.trycloudflare.com` URL to paste into `--server --public-base-url=<url>`.
 - **`_dockerBuild(String root)`** / **`_dockerRun(String root)`** / **`_dockerRebuild(String root)`**: Build, run, and (stop + rebuild fresh +) run the combined backend/frontend Docker Compose stack (`docker/local/docker-compose.yml`) on ports 7000/8080, starting the `cloudflared` tunnel alongside it when a token is configured.
 - **`_cfDeploy(String root)`**: Deploys the Cloudflare Workers backend and Containers via `npm run cf:deploy`.
-- **`_syncExamples(String root)`**: Regenerates `zenpay_dart/example` and `zenpay_flutter/example` from `example/backend`/`example/app` via `scripts/sync_package_examples.dart`. Runnable standalone (`--sync-examples`) or automatically before every `--release:*`.
+- **`_syncExamples(String root)`**: Regenerates `zenpay_dart/example` and `zenpay_flutter/example` from `example/backend`/`example/app` via `scripts/sync_package_examples.dart`. Runnable standalone (`--sync-examples`) or automatically before every `--release-*`.
 - **`_release(String root, {required String package, required String bump})`**: Bumps `zenpay_dart` or `zenpay_flutter` to the next minor/major stable version via `melos version` (no git tag/commit), re-syncs its example, and validates with `dart pub publish --dry-run`. Never commits, tags, or actually publishes — those stay manual.
 
 ---
