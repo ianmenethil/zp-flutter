@@ -1183,11 +1183,15 @@ Future<void> _check(String root) async {
 /// exact computed version sidesteps that and always sets precisely what was
 /// asked for.
 ///
-/// Deliberately stops short of anything consequential: `melos version` runs
-/// with `--no-git-tag-version --no-git-commit-version` (committing is yours
-/// to do, not this script's), and the actual `dart pub publish` is never run
-/// here — only validated with `--dry-run`. A pub.dev publish cannot be
-/// undone, so the real publish is always a separate, manual, deliberate step.
+/// `melos version` runs with `--no-git-tag-version --no-git-commit-version`,
+/// then this function commits the bump itself — scoped to exactly the files
+/// a release touches (the package's `pubspec.yaml`/`CHANGELOG.md`, the root
+/// `CHANGELOG.md`, and any dependent package whose constraint `melos
+/// version` cascade-bumped), via a scoped `git status --porcelain`, rather
+/// than `git add -A`, so it can never sweep up unrelated uncommitted
+/// work sitting elsewhere in the tree. `dart pub publish` — dry-run or real
+/// — is still never run here; a pub.dev publish cannot be undone, so that
+/// stays a separate, manual, deliberate step.
 Future<void> _release(String root, {required String package, required String bump}) async {
   final pubspecFile = File('$root/$package/pubspec.yaml');
   if (!pubspecFile.existsSync()) {
@@ -1220,19 +1224,41 @@ Future<void> _release(String root, {required String package, required String bum
   };
 
   _info('$package: $current -> $target');
-  await _runChecked('dart', ['run', 'melos', 'version', package, target, '--no-git-tag-version', '--no-git-commit-version'], cwd: root);
+  await _runChecked('dart', ['run', 'melos', 'version', package, target, '--no-git-tag-version', '--no-git-commit-version', '--yes'], cwd: root);
 
   _info('Regenerating package example from example/backend + example/app...');
   await _syncExamples(root);
 
-  _info('Validating with dart pub publish --dry-run...');
-  await _runChecked('dart', ['pub', 'publish', '--dry-run'], cwd: '$root/$package');
+  // melos version's own commit is disabled above (--no-git-commit-version),
+  // so this commits the same files by hand — scoped to exactly what a
+  // release touches, never `git add -A`, since this repo has other
+  // concurrent sessions with their own unrelated uncommitted work sitting in
+  // the same tree.
+  final dependents = switch (package) {
+    'zenpay_dart' => ['example/backend/pubspec.yaml'],
+    'zenpay_flutter' => ['example/app/pubspec.yaml', 'zenpay_embedded/pubspec.yaml'],
+    _ => const <String>[],
+  };
+  final candidates = ['$package/pubspec.yaml', '$package/CHANGELOG.md', 'CHANGELOG.md', ...dependents];
+  final statusResult = await Process.run('git', ['status', '--porcelain', '--', ...candidates], workingDirectory: root);
+  final changed = (statusResult.stdout as String)
+      .split('\n')
+      .map((line) => line.length > 3 ? line.substring(3).trim() : '')
+      .where((path) => path.isNotEmpty)
+      .toList();
+  if (changed.isNotEmpty) {
+    _info('Committing release bump (${changed.join(', ')})...');
+    await _runChecked('git', ['add', ...changed], cwd: root);
+    await _runChecked('git', ['commit', '-m', 'chore($package): release $target'], cwd: root);
+  } else {
+    _warn('No release files were modified — skipping commit.');
+  }
 
   stdout.writeln();
-  _success('$package is at $target and ready to publish.');
+  _success('$package $target is committed.');
   stdout
-    ..writeln('Nothing was committed, tagged, or published — that is all left to you:')
-    ..writeln('  1. Review the diff (pubspec.yaml, CHANGELOG.md), commit it.')
+    ..writeln('Not published yet — that is still on you:')
+    ..writeln('  1. cd $package && dart pub publish --dry-run   (validate on a clean tree)')
     ..writeln('  2. cd $package && dart pub publish');
 }
 

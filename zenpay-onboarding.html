@@ -1434,7 +1434,7 @@ dart run scripts/check_claude_md.dart">Copy</button></div>
                 <tr><td><code>--cf-deploy</code></td><td>Deploys the Cloudflare Workers backend and Containers. Maintainers only.</td></tr>
                 <tr><td><code>--sync-examples</code></td><td>Regenerates <code>zenpay_dart/example</code> and <code>zenpay_flutter/example</code> from the real sources. Never hand-edit those.</td></tr>
                 <tr><td><code>--check</code></td><td>Runs every format/analyze/test/CLAUDE.md/PCI check CI and the pre-commit hook require, across the whole tree — not just staged files. Reports each step live, then reprints any failing step's output under a final "Why" section.</td></tr>
-                <tr><td><code>--release-dart-patch</code><br><code>--release-dart-minor</code><br><code>--release-dart-major</code></td><td>Bumps <code>zenpay_dart</code>, re-syncs its example, validates with <code>dart pub publish --dry-run</code>. Never commits, tags, or publishes.</td></tr>
+                <tr><td><code>--release-dart-patch</code><br><code>--release-dart-minor</code><br><code>--release-dart-major</code></td><td>Bumps <code>zenpay_dart</code>, re-syncs its example, and commits the bump (scoped to exactly those files, never <code>git add -A</code>). Never tags or publishes — <code>dart pub publish --dry-run</code>, then <code>dart pub publish</code>, are still manual.</td></tr>
                 <tr><td><code>--release-flutter-patch</code><br><code>--release-flutter-minor</code><br><code>--release-flutter-major</code></td><td>The same, for <code>zenpay_flutter</code>.</td></tr>
               </tbody>
             </table>
