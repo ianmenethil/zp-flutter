@@ -26,7 +26,12 @@ workflows:
       - name: Bootstrap workspace
         script: |
           dart pub global activate melos
-          melos bs
+          for i in 1 2 3; do
+            melos bs && exit 0
+            echo "melos bs failed (attempt $i/3), retrying..."
+            sleep 5
+          done
+          exit 1
       - name: Format check
         script: dart format --output=none --set-exit-if-changed zenpay_dart zenpay_flutter zenpay_embedded example scripts cli.dart
       - name: Analyze (all packages)

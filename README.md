@@ -32,8 +32,8 @@ The repository is structured to mirror exactly how you will integrate ZenPay int
 
 | Package                                      | Path              | What it is                                                                                                               |
 | :-------------------------------------------- | :---------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| [`zenpay_dart`](zenpay_dart/README.md)       | `zenpay_dart/`    | Pure-Dart backend SDK: fingerprints, launch URLs, callback verification, callback URL tokens. Server-side only.          |
-| [`zenpay_flutter`](zenpay_flutter/README.md) | `zenpay_flutter/` | Flutter client SDK: presents ZenPay Hosted Checkout, handles the return, reports one typed outcome.                      |
+| [`zenpay_dart`](zenpay_dart/README.md) [![pub](https://img.shields.io/pub/v/zenpay_dart.svg)](https://pub.dev/packages/zenpay_dart) | `zenpay_dart/`    | Pure-Dart backend SDK: fingerprints, launch URLs, callback verification, callback URL tokens. Server-side only.          |
+| [`zenpay_flutter`](zenpay_flutter/README.md) [![pub](https://img.shields.io/pub/v/zenpay_flutter.svg)](https://pub.dev/packages/zenpay_flutter) | `zenpay_flutter/` | Flutter client SDK: presents ZenPay Hosted Checkout, handles the return, reports one typed outcome.                      |
 | [`zenpay_embedded`](zenpay_embedded/README.md) | `zenpay_embedded/` | Optional in-app WebView presenter, layered on top of `zenpay_flutter` — see [ARCHITECTURE.md](ARCHITECTURE.md). Opt-in only, not the default. |
 | [example](example/README.md)                 | `example/`        | Combined reference: a Shelf backend (`example/backend/`) and a Flutter app (`example/app/`) demonstrating the full flow. |
 
