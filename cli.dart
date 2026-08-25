@@ -1055,6 +1055,9 @@ bool _fileContainsAll(String filePath, List<String> needles) {
 /// tool dependency for its own checks. Keep these in sync with
 /// `lefthook.yml` if either changes.
 Future<void> _check(String root) async {
+  _info('Regenerating package example from example/backend + example/app...');
+  await _syncExamples(root);
+
   final results = <String, bool>{};
   final details = <String, String>{};
 
