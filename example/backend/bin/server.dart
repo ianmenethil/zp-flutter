@@ -68,6 +68,15 @@ Future<void> main() async {
     exit(1);
   }
 
+  // Catches a resolvable-but-missing credential file before
+  // GoogleCloudRecaptchaVerifier's own uncaught File read would crash-loop
+  // the process instead of failing once, cleanly.
+  if (recaptchaServiceAccountFileMissing(config)) {
+    stderr.writeln('Refusing to start — RECAPTCHA_SERVICE_ACCOUNT_JSON names a file that does not exist: ${config.recaptchaServiceAccountJson}');
+    stderr.writeln('Paste the service account JSON inline in .env instead, or fix the path.');
+    exit(1);
+  }
+
   final store = AttemptStore();
 
   Timer.periodic(const Duration(minutes: 1), (_) {

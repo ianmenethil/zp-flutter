@@ -1061,8 +1061,8 @@ Future<void> _requireDockerCompose() async {
 
 /// `docker/local/docker-compose.yml`'s backend service loads
 /// `example/backend/.env` via `env_file:`, which Compose refuses to start
-/// without — same failure shape as the old service-account bind-mount, so
-/// still worth catching here rather than in Compose's own error output.
+/// without, so it's worth catching here rather than in Compose's own error
+/// output.
 void _requireDockerEnvFile(String root) {
   final envFile = File('$root/example/backend/.env');
   if (!envFile.existsSync()) {
@@ -1072,6 +1072,22 @@ void _requireDockerEnvFile(String root) {
     );
     exit(1);
   }
+}
+
+/// Compose has no "skip this bind mount if the source is missing" option
+/// (verified against the current compose-spec docs — only `env_file:`
+/// entries support `required: false`), so
+/// `docker/local/docker-compose.yml`'s backend service unconditionally
+/// bind-mounts `example/backend/service-account.json` regardless of whether
+/// `RECAPTCHA_SERVICE_ACCOUNT_JSON` in `.env` actually references it. Same
+/// class of derived-local-artifact fix as [_requireDockerTlsCert]'s mkcert
+/// generation: create an empty placeholder if none exists, rather than
+/// failing `docker compose up` outright. An empty file is fine — reCAPTCHA
+/// staying fully disabled (all three `RECAPTCHA_*` vars empty) never reads
+/// it; a real key already there is left untouched.
+void _ensureDockerServiceAccountFile(String root) {
+  final file = File('$root/example/backend/service-account.json');
+  if (!file.existsSync()) file.writeAsStringSync('');
 }
 
 /// Docker's frontend (`docker/local/Dockerfile.frontend`) terminates TLS with the
@@ -1143,6 +1159,7 @@ String _readTunnelToken(String root) {
 Future<void> _dockerRun(String root) async {
   await _requireDockerCompose();
   _requireDockerEnvFile(root);
+  _ensureDockerServiceAccountFile(root);
   await _requireDockerTlsCert(root);
 
   for (final port in [_dockerBackendPort, _dockerFrontendPort]) {

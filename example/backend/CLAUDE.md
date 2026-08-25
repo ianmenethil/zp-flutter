@@ -13,7 +13,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 **Overview:** Process entrypoint. Sets up colored structured logging, loads config, refuses to start when required env vars are missing, starts the periodic `AttemptStore` purge timer, and serves the Shelf handler until `SIGINT`.
 
 - **`_levelColor(Level level)`**: maps a `logging` `Level` to an ANSI color code (red for severe/shout, yellow for warning, cyan for info, gray otherwise); used by the root logger's `onRecord` listener.
-- **`main()`**: entrypoint — configures `Logger.root`, calls `loadConfig()`, refuses to start if `sessionConfigurationErrors`/`callbackConfigurationErrors` report missing env vars or `recaptchaConfigurationErrors` reports a partially-configured reCAPTCHA, starts a `Timer.periodic` purge of `AttemptStore` keyed by `checkoutStatusTtlMinutes`, serves `buildHandler` via `shelf_io.serve`, and awaits `ProcessSignal.sigint` to shut down cleanly.
+- **`main()`**: entrypoint — configures `Logger.root`, calls `loadConfig()`, refuses to start if `sessionConfigurationErrors`/`callbackConfigurationErrors` report missing env vars, `recaptchaConfigurationErrors` reports a partially-configured reCAPTCHA, or `recaptchaServiceAccountFileMissing` reports an unresolvable credential path, starts a `Timer.periodic` purge of `AttemptStore` keyed by `checkoutStatusTtlMinutes`, serves `buildHandler` via `shelf_io.serve`, and awaits `ProcessSignal.sigint` to shut down cleanly.
 
 ### `lib/src/attempt_store.dart`
 
@@ -45,6 +45,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 - **`sessionConfigurationErrors(AppConfig config)`**: lists environment variables missing for session creation (ZenPay credentials, `TOKEN_SECRET`); used by `bin/server.dart` to refuse startup and by `server_app.dart` to 503 checkout requests.
 - **`callbackConfigurationErrors(AppConfig config)`**: lists environment variables missing for callback verification; same startup/503 usage as above.
 - **`recaptchaConfigurationErrors(AppConfig config)`**: reCAPTCHA is optional but atomic — returns `[]` when `RECAPTCHA_PROJECT_NUMBER`/`RECAPTCHA_SERVICE_ACCOUNT_JSON`/`RECAPTCHA_SITE_KEY_WEB` are all empty (disabled) or all set (enabled), otherwise the names of whichever are still empty; used by `bin/server.dart` to refuse startup rather than silently render the client widget with server-side enforcement off.
+- **`recaptchaServiceAccountFileMissing(AppConfig config)`**: true when `RECAPTCHA_SERVICE_ACCOUNT_JSON` names a file path (not inline JSON) that doesn't exist — a separate failure mode from the above, since all three vars can be consistently set and this can still fail (e.g. Docker's bind-mounted credential file absent). Used by `bin/server.dart` to refuse startup cleanly instead of `GoogleCloudRecaptchaVerifier`'s uncaught file read crash-looping the process.
 
 ### `lib/src/models.dart`
 

@@ -201,3 +201,16 @@ List<String> recaptchaConfigurationErrors(AppConfig config) {
     if (config.recaptchaSiteKeyWeb.isEmpty) 'RECAPTCHA_SITE_KEY_WEB',
   ];
 }
+
+/// True when [AppConfig.recaptchaServiceAccountJson] names a file path
+/// (rather than inline JSON) that doesn't exist — checked separately from
+/// [recaptchaConfigurationErrors], since all three vars can be correctly,
+/// consistently set and this can still fail, e.g. Docker's bind-mounted
+/// credential file being absent. `GoogleCloudRecaptchaVerifier` reads this
+/// path synchronously and uncaught, so left unchecked this surfaces as an
+/// unhandled `PathNotFoundException` crash loop instead of a clean refusal.
+bool recaptchaServiceAccountFileMissing(AppConfig config) {
+  final raw = config.recaptchaServiceAccountJson.trim();
+  if (raw.isEmpty || (raw.startsWith('{') && raw.endsWith('}'))) return false;
+  return !File(raw).existsSync();
+}
