@@ -69,8 +69,10 @@ String _usage() {
           'example/backend + example/app.',
     ),
     row('--check', 'Run every format/analyze/test/CLAUDE.md/PCI check CI and the pre-commit hook require.'),
+    row('--release-dart-patch', 'Bump zenpay_dart to the next patch version, prep for pub.dev.'),
     row('--release-dart-minor', 'Bump zenpay_dart to the next minor version, prep for pub.dev.'),
     row('--release-dart-major', 'Bump zenpay_dart to the next major version, prep for pub.dev.'),
+    row('--release-flutter-patch', 'Bump zenpay_flutter to the next patch version, prep for pub.dev.'),
     row('--release-flutter-minor', 'Bump zenpay_flutter to the next minor version, prep for pub.dev.'),
     row('--release-flutter-major', 'Bump zenpay_flutter to the next major version, prep for pub.dev.'),
     '',
@@ -100,6 +102,7 @@ String _usage() {
     _dim('  dart run $_scriptName --docker-run'),
     _dim('  dart run $_scriptName --docker-rebuild'),
     _dim('  dart run $_scriptName --check'),
+    _dim('  dart run $_scriptName --release-dart-patch'),
     _dim('  dart run $_scriptName --release-dart-minor'),
     _dim('  dart run $_scriptName --release-flutter-major'),
   ].join('\n');
@@ -122,8 +125,10 @@ Future<void> main(List<String> arguments) async {
     ..addFlag('cf-deploy', negatable: false, help: 'Deploy the Cloudflare Workers backend and Containers.')
     ..addFlag('sync-examples', negatable: false, help: 'Regenerate zenpay_dart/example and zenpay_flutter/example from example/backend + example/app.')
     ..addFlag('check', negatable: false, help: 'Run every format/analyze/test/CLAUDE.md/PCI check CI and the pre-commit hook require.')
+    ..addFlag('release-dart-patch', negatable: false, help: 'Bump zenpay_dart to the next patch version, prep for pub.dev.')
     ..addFlag('release-dart-minor', negatable: false, help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.')
     ..addFlag('release-dart-major', negatable: false, help: 'Bump zenpay_dart to the next major version, prep for pub.dev.')
+    ..addFlag('release-flutter-patch', negatable: false, help: 'Bump zenpay_flutter to the next patch version, prep for pub.dev.')
     ..addFlag('release-flutter-minor', negatable: false, help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.')
     ..addFlag('release-flutter-major', negatable: false, help: 'Bump zenpay_flutter to the next major version, prep for pub.dev.')
     ..addOption('device', help: 'Device id for --android / --ios / --stream.')
@@ -170,8 +175,10 @@ Future<void> main(List<String> arguments) async {
     if (args['cf-deploy'] as bool) 'cf-deploy',
     if (args['sync-examples'] as bool) 'sync-examples',
     if (args['check'] as bool) 'check',
+    if (args['release-dart-patch'] as bool) 'release:dart:patch',
     if (args['release-dart-minor'] as bool) 'release:dart:minor',
     if (args['release-dart-major'] as bool) 'release:dart:major',
+    if (args['release-flutter-patch'] as bool) 'release:flutter:patch',
     if (args['release-flutter-minor'] as bool) 'release:flutter:minor',
     if (args['release-flutter-major'] as bool) 'release:flutter:major',
   ];
@@ -180,8 +187,9 @@ Future<void> main(List<String> arguments) async {
       modes.isEmpty
           ? 'Pick exactly one of --bootstrap --server --android --android-webview '
                 '--ios --web --stream --tunnel --quick-tunnel --docker-build '
-                '--docker-run --docker-rebuild --sync-examples --release-dart-minor '
-                '--release-dart-major --release-flutter-major.'
+                '--docker-run --docker-rebuild --sync-examples --release-dart-patch '
+                '--release-dart-minor --release-dart-major --release-flutter-patch '
+                '--release-flutter-minor --release-flutter-major.'
           : 'Only one mode at a time: got ${modes.join(', ')}.',
     );
     stderr
@@ -1163,9 +1171,10 @@ Future<void> _check(String root) async {
 
 /// Bumps [package]'s version and preps it for a pub.dev publish, via Melos.
 ///
-/// [bump] is `'minor'` or `'major'`. The target is always a stable exact
-/// version with any `-dev.N` prerelease dropped (e.g. `0.1.0-dev.1` -> minor
-/// `0.2.0`, major `1.0.0`) — passed to `melos version` as an exact version,
+/// [bump] is `'patch'`, `'minor'`, or `'major'`. The target is always a
+/// stable exact version with any `-dev.N` prerelease dropped (e.g.
+/// `0.1.0-dev.1` -> patch `0.1.1`, minor `0.2.0`, major `1.0.0`) — passed to
+/// `melos version` as an exact version,
 /// not the `minor`/`major` keyword. Melos's own keyword bump only reads the
 /// release type when the current version is *not* already a same-preid
 /// prerelease; on a `-dev.N` version with no `--graduate` (which cannot be
@@ -1202,7 +1211,13 @@ Future<void> _release(String root, {required String package, required String bum
   }
   final major = parts[0]!;
   final minor = parts[1]!;
-  final target = bump == 'major' ? '${major + 1}.0.0' : '$major.${minor + 1}.0';
+  final patch = parts[2]!;
+  final target = switch (bump) {
+    'major' => '${major + 1}.0.0',
+    'minor' => '$major.${minor + 1}.0',
+    'patch' => '$major.$minor.${patch + 1}',
+    _ => throw ArgumentError.value(bump, 'bump', 'must be "patch", "minor", or "major"'),
+  };
 
   _info('$package: $current -> $target');
   await _runChecked('dart', ['run', 'melos', 'version', package, target, '--no-git-tag-version', '--no-git-commit-version'], cwd: root);

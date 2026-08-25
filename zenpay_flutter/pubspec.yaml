@@ -1,6 +1,6 @@
 name: zenpay_flutter
 description: Secure Flutter orchestration for ZenPay Hosted Checkout sessions.
-version: 0.1.0
+version: 0.1.1
 homepage: https://www.zenithpayments.com.au
 repository: https://github.com/ianmenethil/zp-flutter/tree/master/zenpay_flutter
 

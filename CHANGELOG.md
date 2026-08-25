@@ -1,4 +1,25 @@
-## 0.1.1
+# Change Log
+
+All notable changes to this project will be documented in this file.
+See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+
+## 2026-08-25
+
+### Changes
+
+---
+
+Packages with breaking changes:
+
+ - There are no breaking changes in this release.
+
+Packages with other changes:
+
+ - [`zenpay_flutter` - `v0.1.1`](#zenpay_flutter---v011)
+
+---
+
+#### `zenpay_flutter` - `v0.1.1`
 
  - **REFACTOR**(core): centralize constants, fix firebase_app_distribution import, and update docs.
  - **FIX**: sync App Link config, harden checkout URL/callback validation, close zenpay_flutter release findings.
@@ -17,4 +38,3 @@
  - **DOCS**: add CLAUDE.md reference guides for all modules and define transaction enum models.
  - **DOCS**: add CLAUDE.md and AGENTS.md documentation files, and add internal package synchronization script.
 
-## 0.1.0
