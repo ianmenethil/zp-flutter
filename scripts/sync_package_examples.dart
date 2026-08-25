@@ -79,12 +79,7 @@ void main(List<String> arguments) {
 /// directory's own `.gitignore`) under `$root/$source` into
 /// `$root/$destination`, replacing whatever was there. Public so tests can
 /// call it directly against a temp directory.
-void syncExample(
-  String root,
-  String source,
-  String destination, {
-  Map<String, String> localOverrides = const {},
-}) {
+void syncExample(String root, String source, String destination, {Map<String, String> localOverrides = const {}}) {
   final sourceDir = Directory('$root/$source');
   if (!sourceDir.existsSync()) {
     stderr.writeln('Source not found: ${sourceDir.path}');
@@ -101,14 +96,7 @@ void syncExample(
     Directory(destPath).deleteSync(recursive: true);
   }
 
-  final result = Process.runSync('git', [
-    'ls-files',
-    '--others',
-    '--exclude-standard',
-    '--cached',
-    '--',
-    source,
-  ], workingDirectory: root);
+  final result = Process.runSync('git', ['ls-files', '--others', '--exclude-standard', '--cached', '--', source], workingDirectory: root);
   if (result.exitCode != 0) {
     stderr.writeln('git ls-files failed for $source: ${result.stderr}');
     exit(1);
@@ -188,20 +176,16 @@ void _writeDependencyOverrides(String destPath, Map<String, String> localOverrid
 /// `../../analysis_options.yaml` (the monorepo root's file, only reachable
 /// because `example/backend`/`example/app` share the workspace's single
 /// resolved package graph — see [_stripWorkspaceResolution]). Once copied
-/// out as a standalone package, that include can't resolve
-/// `package:very_good_analysis/...` at all: the standalone copy was never
-/// given that dependency. Repoints it at `package:lints/recommended.yaml`
-/// instead, which every copied package's own `pubspec.yaml` genuinely
+/// out as a standalone package, that relative path doesn't exist at all —
+/// there is no `../../` to find. Repoints it at `package:lints/recommended.yaml`
+/// directly, which every copied package's own `pubspec.yaml` genuinely
 /// depends on (`lints: ^6.1.0`), so it resolves standalone. The
 /// `analyzer: exclude:` block above it is untouched.
 void _fixAnalysisOptionsInclude(String destPath) {
   final file = File('$destPath/analysis_options.yaml');
   if (!file.existsSync()) return;
   final content = file.readAsStringSync();
-  final patched = content.replaceFirst(
-    RegExp(r'^include:\s*\.\./\.\./analysis_options\.yaml\s*$', multiLine: true),
-    'include: package:lints/recommended.yaml',
-  );
+  final patched = content.replaceFirst(RegExp(r'^include:\s*\.\./\.\./analysis_options\.yaml\s*$', multiLine: true), 'include: package:lints/recommended.yaml');
   if (patched != content) {
     file.writeAsStringSync(patched);
   }

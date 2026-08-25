@@ -11,11 +11,10 @@ See [README.md](README.md) for the repo overview and [ARCHITECTURE.md](ARCHITECT
 | Everything | [Dart SDK](https://dart.dev/get-dart) `^3.13.0` and [Flutter SDK](https://docs.flutter.dev/get-started/install) (stable channel) — Flutter bundles a compatible Dart, so installing Flutter alone covers both. |
 | Everything | [Melos](https://melos.invertase.dev) `^8.3.0`: `dart pub global activate melos`. This repo is a [Dart pub workspace](https://dart.dev/tools/pub/workspaces) (see [`pubspec.yaml`](pubspec.yaml)); Melos drives the multi-package scripts (`melos bs`, `melos run test`, etc.). |
 | `--bootstrap`'s local TLS cert | [mkcert](https://github.com/FiloSottile/mkcert) — needed for `--web`'s HTTPS return flow, and for `--docker-run`/`--docker-rebuild` (the Docker frontend also terminates TLS with this cert). Pass `--skip-certs` to `--bootstrap` to skip it. |
-| `--android` / `--android-webview` | Android Studio + SDK, `adb`, and a device or emulator. |
-| `--ios` | Xcode + CocoaPods, **macOS only** — `cli.dart` hard-errors on Windows/Linux. |
+| `--docker-build` | Docker + Docker Compose only — **the recommended way to run the stack**, see §2. |
+| `--docker-run` / `--docker-rebuild` | Docker + Docker Compose, **plus**: `example/backend/.env` (from `--bootstrap`) and the mkcert TLS cert above. No GCP file needed — reCAPTCHA is `.env`-driven, same as native (§3 Docker). |
+| `--android` / `--android-webview` / `--ios` | Only needed for native device testing — Docker serves the backend and a web frontend, but cannot build or run the mobile app itself. Android: Android Studio + SDK, `adb`, and a device or emulator. iOS: Xcode + CocoaPods, **macOS only** — `cli.dart` hard-errors on Windows/Linux. |
 | `--tunnel` / `--quick-tunnel` | [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/). Needed to test anything beyond launching checkout — ZenPay's callback is server-to-server and cannot reach `localhost`. |
-| `--docker-build` | Docker + Docker Compose only. |
-| `--docker-run` / `--docker-rebuild` | Docker + Docker Compose, **plus**: `example/backend/.env` (from `--bootstrap`), the mkcert TLS cert above, and a GCP `example/backend/service-account.json` you supply yourself (nothing in this repo generates it — see §3 Docker). |
 | `--cf-deploy` | Node/npm and a Cloudflare account with access to this project's Worker — maintainers only. |
 | `--stream` | [`scrcpy`](https://github.com/Genymobile/scrcpy). |
 
@@ -52,27 +51,33 @@ Open `example/backend/.env` and set the fields the server needs to create a sess
 
 The server refuses to start session creation without these — see `sessionConfigurationErrors` in [`example/backend/lib/src/config.dart`](example/backend/lib/src/config.dart). Everything else in `.env.example` has a working default for local dev.
 
-### 2.3 Start the backend
+### 2.3 Start the stack (Docker — recommended)
+
+```pwsh
+dart run cli.dart --docker-run
+```
+
+One command runs `example/backend` (`:7000`) and a web build of `example/app` (`:8080`) together via `docker/local/docker-compose.yml` — see §3 Docker for prerequisites and what it checks before starting. Open `https://localhost:8080`. `PUBLIC_BASE_URL` isn't prompted here — set it in `example/backend/.env` yourself first if you need ZenPay's callback to reach you (§3, Tunnels).
+
+Docker only serves the backend and a **web** frontend — it never builds or runs the native Android/iOS app. Skip to 2.4 instead if you need mobile, or if you're actively changing backend/app code and want the faster native edit-reload loop.
+
+### 2.4 Native dev loop (Android / iOS, or active development)
 
 ```pwsh
 dart run cli.dart --server
 ```
 
-Starts `example/backend` on `:7000`. Prompts for `PUBLIC_BASE_URL` (unless `--keep-url`) and propagates whatever you enter into `example/app/.env` and the native Android/iOS App Link config automatically. `localhost` works for launching checkout; you need a real public HTTPS URL (§3, Tunnels) once you want ZenPay's server-to-server callback to reach you.
-
-### 2.4 Start the app
-
-In a **second terminal**, from the repo root:
+In a first terminal: starts `example/backend` on `:7000` natively. Prompts for `PUBLIC_BASE_URL` (unless `--keep-url`) and propagates whatever you enter into `example/app/.env` and the native Android/iOS App Link config automatically.
 
 ```pwsh
 dart run cli.dart --android   # or --ios / --web
 ```
 
-Starts `example/app`, talking to the backend from 2.3. `--android` sets up `adb reverse tcp:7000` for you first.
+In a **second terminal**: starts `example/app`, talking to the backend above. `--android` sets up `adb reverse tcp:7000` for you first.
 
 ### 2.5 What success looks like
 
-The app opens on a transaction-mode picker (Make Payment / Tokenise / Custom Payment / Preauthorization). Fill in the form, tap Pay, and you should land on ZenPay's hosted sandbox checkout page. That confirms steps 2.1–2.4 are wired correctly, even without a tunnel.
+Either path opens on a transaction-mode picker (Make Payment / Tokenise / Custom Payment / Preauthorization). Fill in the form, tap Pay, and you should land on ZenPay's hosted sandbox checkout page. That confirms the stack is wired correctly, even without a tunnel.
 
 To see the full round trip — checkout completing and the app receiving a verified result — you need `PUBLIC_BASE_URL` pointed at a real public URL ZenPay can call back to. That's what §3's tunnel modes are for.
 
@@ -96,6 +101,21 @@ Every mode runs as a **live, attached process** — `Ctrl+C` stops it, logs stre
 
 Shared options: `--device=<id>` (Android/iOS/stream device selection), `--public-base-url=<url>` and `--keep-url` (control the `--server` prompt), `--skip-certs` (`--bootstrap`).
 
+### Docker — recommended way to run the stack
+
+| Mode | What it does | When to use it |
+| :--- | :--- | :--- |
+| `--docker-build` | Builds the backend + frontend images (`docker/local/docker-compose.yml`). No `.env` or cert needed — it only builds images. | First time, or after a Dockerfile change. |
+| `--docker-run` | Runs both via Compose on `:7000`/`:8080`, plus the tunnel if `.env` has a token. | Running the stack without `flutter run` — the default way to demo the full flow. |
+| `--docker-rebuild` | Stops, removes images, rebuilds fresh, and runs (`--docker-build` + `--docker-run`). | Docker state looks stale or broken. |
+
+`--docker-run`/`--docker-rebuild` refuse to start unless **both** of these exist first — `cli.dart` checks and hard-errors with the specific one missing:
+
+- `example/backend/.env` — same file `--bootstrap` creates.
+- `example/app/localhost+2.pem` + `-key.pem` — the mkcert cert from `--bootstrap` (or run `mkcert localhost 127.0.0.1 ::1` in `example/app` yourself). The frontend container serves `https://localhost:8080` and terminates TLS with this exact cert (`docker/local/Dockerfile.frontend`) — the SDK's return URI must be HTTPS, same reason `--web` needs it.
+
+reCAPTCHA needs no GCP file: `RECAPTCHA_SERVICE_ACCOUNT_JSON` in `.env` accepts inline JSON or a file path, same as native, and the backend container loads `.env` directly (`env_file:`) — no bind mount. It's fully optional (all three `RECAPTCHA_*` vars empty), but never partial: `example/backend/lib/src/config.dart`'s `recaptchaConfigurationErrors`, checked at startup by the same `bin/server.dart` Docker runs, refuses to start if only some of `RECAPTCHA_PROJECT_NUMBER`/`RECAPTCHA_SERVICE_ACCOUNT_JSON`/`RECAPTCHA_SITE_KEY_WEB` are set — that state would otherwise render the client widget while silently never enforcing it server-side.
+
 ### Tunnels — exposing your local backend
 
 ZenPay's callback is server-to-server; it cannot reach `localhost`. To test the full flow (or App Link verification, which needs a publicly fetchable `/.well-known/`), your backend needs a real HTTPS URL.
@@ -106,20 +126,6 @@ ZenPay's callback is server-to-server; it cannot reach `localhost`. To test the 
 | `--tunnel` | Runs your own **named** `cloudflared` tunnel, using a token saved in `example/backend/.env`'s `CLOUDFLARE_TUNNEL_TOKEN`. | A stable URL across restarts (needed for a real App Link / Universal Link that must resolve consistently). |
 
 After starting either, run `--server` (or re-run it) and paste the printed URL when prompted for `PUBLIC_BASE_URL` — that also re-syncs the native Android/iOS App Link config automatically. See [example/README.md § Local dev vs. production host](example/README.md#local-dev-vs-production-host) for how that config switches between tunnel and production.
-
-### Docker
-
-| Mode | What it does | When to use it |
-| :--- | :--- | :--- |
-| `--docker-build` | Builds the backend + frontend images (`docker/local/docker-compose.yml`). No `.env`, cert, or service-account file needed — it only builds images. | First time, or after a Dockerfile change. |
-| `--docker-run` | Runs both via Compose on `:7000`/`:8080`, plus the tunnel if `.env` has a token. | Running the stack without `flutter run`. |
-| `--docker-rebuild` | Stops, removes images, rebuilds fresh, and runs (`--docker-build` + `--docker-run`). | Docker state looks stale or broken. |
-
-`--docker-run`/`--docker-rebuild` refuse to start unless **all** of these exist first — `cli.dart` checks and hard-errors with the specific one missing:
-
-- `example/backend/.env` — same file `--bootstrap` creates.
-- `example/app/localhost+2.pem` + `-key.pem` — the mkcert cert from `--bootstrap` (or run `mkcert localhost 127.0.0.1 ::1` in `example/app` yourself). The frontend container serves `https://localhost:8080` and terminates TLS with this exact cert (`docker/local/Dockerfile.frontend`) — the SDK's return URI must be HTTPS, same reason `--web` needs it.
-- `example/backend/service-account.json` — a GCP service account key for reCAPTCHA Enterprise verification. Unlike the cert, **nothing in this repo generates this file** — `docker-compose.yml` bind-mounts it unconditionally, so you must supply your own key (or remove that service's `volumes:` line if you don't need reCAPTCHA enforcement locally).
 
 ### Cloudflare / production (maintainers)
 
@@ -153,7 +159,6 @@ Run from the repo root, independent of the steps above:
 melos bs              # resolves the pub workspace, linking sibling packages — never `flutter pub get`/`dart pub get` in a subdirectory
 melos run format
 melos run analyze
-melos run lint
 melos run test
 melos run test:dart
 ```

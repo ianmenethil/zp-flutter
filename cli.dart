@@ -59,14 +59,8 @@ String _usage() {
     row('--stream', 'Mirror an Android device via scrcpy.'),
     row('--tunnel', 'Run the named cloudflared tunnel (saved token).'),
     row('--quick-tunnel', 'Run an ephemeral *.trycloudflare.com tunnel.'),
-    row(
-      '--docker-build',
-      'Build backend + frontend images (docker/local/docker-compose.yml).',
-    ),
-    row(
-      '--docker-run',
-      'Run both via Compose (:7000/:8080) + tunnel if .env has a token.',
-    ),
+    row('--docker-build', 'Build backend + frontend images (docker/local/docker-compose.yml).'),
+    row('--docker-run', 'Run both via Compose (:7000/:8080) + tunnel if .env has a token.'),
     row('--docker-rebuild', 'Stop, remove images, rebuild fresh, and run.'),
     row('--cf-deploy', 'Deploy the Cloudflare Workers backend and Containers.'),
     row(
@@ -74,29 +68,14 @@ String _usage() {
       'Regenerate zenpay_dart/example and zenpay_flutter/example from '
           'example/backend + example/app.',
     ),
-    row(
-      '--release:dart:minor',
-      'Bump zenpay_dart to the next minor version, prep for pub.dev.',
-    ),
-    row(
-      '--release:dart:major',
-      'Bump zenpay_dart to the next major version, prep for pub.dev.',
-    ),
-    row(
-      '--release:flutter:minor',
-      'Bump zenpay_flutter to the next minor version, prep for pub.dev.',
-    ),
-    row(
-      '--release:flutter:major',
-      'Bump zenpay_flutter to the next major version, prep for pub.dev.',
-    ),
+    row('--release:dart:minor', 'Bump zenpay_dart to the next minor version, prep for pub.dev.'),
+    row('--release:dart:major', 'Bump zenpay_dart to the next major version, prep for pub.dev.'),
+    row('--release:flutter:minor', 'Bump zenpay_flutter to the next minor version, prep for pub.dev.'),
+    row('--release:flutter:major', 'Bump zenpay_flutter to the next major version, prep for pub.dev.'),
     '',
     _bold('Options:'),
     row('--device=<id>', 'Device id for --android / --ios / --stream.'),
-    row(
-      '--public-base-url=<url>',
-      'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.',
-    ),
+    row('--public-base-url=<url>', 'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.'),
     row('--keep-url', 'Skip the PUBLIC_BASE_URL prompt/update (--server).'),
     row('--skip-certs', 'Skip the local TLS cert step (--bootstrap).'),
     row(
@@ -109,9 +88,7 @@ String _usage() {
     _bold('Examples:'),
     _dim('  dart run $_scriptName --bootstrap'),
     _dim('  dart run $_scriptName --server'),
-    _dim(
-      '  dart run $_scriptName --server --public-base-url=https://abc.trycloudflare.com',
-    ),
+    _dim('  dart run $_scriptName --server --public-base-url=https://abc.trycloudflare.com'),
     _dim('  dart run $_scriptName --android --device=emulator-5554'),
     _dim('  dart run $_scriptName --android-webview'),
     _dim('  dart run $_scriptName --web'),
@@ -131,98 +108,31 @@ Future<void> main(List<String> arguments) async {
     ..addFlag('bootstrap', negatable: false, help: 'First-run setup.')
     ..addFlag('server', negatable: false, help: 'Run example/backend.')
     ..addFlag('android', negatable: false, help: 'Run example/app on Android.')
-    ..addFlag(
-      'android-webview',
-      negatable: false,
-      help: 'Run the zenpay_embedded WebView checkout demo on Android.',
-    )
-    ..addFlag(
-      'ios',
-      negatable: false,
-      help: 'Run example/app on iOS (macOS only).',
-    )
+    ..addFlag('android-webview', negatable: false, help: 'Run the zenpay_embedded WebView checkout demo on Android.')
+    ..addFlag('ios', negatable: false, help: 'Run example/app on iOS (macOS only).')
     ..addFlag('web', negatable: false, help: 'Run example/app on Chrome.')
-    ..addFlag(
-      'stream',
-      negatable: false,
-      help: 'Mirror an Android device via scrcpy.',
-    )
-    ..addFlag(
-      'tunnel',
-      negatable: false,
-      help: 'Run the named cloudflared tunnel (saved token).',
-    )
-    ..addFlag(
-      'quick-tunnel',
-      negatable: false,
-      help: 'Run an ephemeral *.trycloudflare.com tunnel.',
-    )
-    ..addFlag(
-      'docker-build',
-      negatable: false,
-      help: 'Build the combined backend + Flutter Web image (zenpay-backend).',
-    )
-    ..addFlag(
-      'docker-run',
-      negatable: false,
-      help: 'Run the combined image (API + Flutter Web) on port 7000.',
-    )
-    ..addFlag(
-      'docker-rebuild',
-      negatable: false,
-      help: 'Delete existing image, build fresh, and run.',
-    )
-    ..addFlag(
-      'cf-deploy',
-      negatable: false,
-      help: 'Deploy the Cloudflare Workers backend and Containers.',
-    )
-    ..addFlag(
-      'sync-examples',
-      negatable: false,
-      help: 'Regenerate zenpay_dart/example and zenpay_flutter/example from example/backend + example/app.',
-    )
-    ..addFlag(
-      'release:dart:minor',
-      negatable: false,
-      help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.',
-    )
-    ..addFlag(
-      'release:dart:major',
-      negatable: false,
-      help: 'Bump zenpay_dart to the next major version, prep for pub.dev.',
-    )
-    ..addFlag(
-      'release:flutter:minor',
-      negatable: false,
-      help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.',
-    )
-    ..addFlag(
-      'release:flutter:major',
-      negatable: false,
-      help: 'Bump zenpay_flutter to the next major version, prep for pub.dev.',
-    )
+    ..addFlag('stream', negatable: false, help: 'Mirror an Android device via scrcpy.')
+    ..addFlag('tunnel', negatable: false, help: 'Run the named cloudflared tunnel (saved token).')
+    ..addFlag('quick-tunnel', negatable: false, help: 'Run an ephemeral *.trycloudflare.com tunnel.')
+    ..addFlag('docker-build', negatable: false, help: 'Build the combined backend + Flutter Web image (zenpay-backend).')
+    ..addFlag('docker-run', negatable: false, help: 'Run the combined image (API + Flutter Web) on port 7000.')
+    ..addFlag('docker-rebuild', negatable: false, help: 'Delete existing image, build fresh, and run.')
+    ..addFlag('cf-deploy', negatable: false, help: 'Deploy the Cloudflare Workers backend and Containers.')
+    ..addFlag('sync-examples', negatable: false, help: 'Regenerate zenpay_dart/example and zenpay_flutter/example from example/backend + example/app.')
+    ..addFlag('release:dart:minor', negatable: false, help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.')
+    ..addFlag('release:dart:major', negatable: false, help: 'Bump zenpay_dart to the next major version, prep for pub.dev.')
+    ..addFlag('release:flutter:minor', negatable: false, help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.')
+    ..addFlag('release:flutter:major', negatable: false, help: 'Bump zenpay_flutter to the next major version, prep for pub.dev.')
     ..addOption('device', help: 'Device id for --android / --ios / --stream.')
-    ..addOption(
-      'public-base-url',
-      help: 'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.',
-    )
+    ..addOption('public-base-url', help: 'Value for PUBLIC_BASE_URL (--server). Prompts if omitted.')
     ..addOption(
       'url',
       help:
           'Local URL to expose (--quick-tunnel). Defaults to PORT from '
           'example/backend/.env, else :7000.',
     )
-    ..addFlag(
-      'keep-url',
-      negatable: false,
-      help: 'Skip the PUBLIC_BASE_URL prompt/update (--server).',
-    )
-    ..addFlag(
-      'skip-certs',
-      negatable: false,
-      help: 'Skip the local TLS cert step (--bootstrap).',
-    )
+    ..addFlag('keep-url', negatable: false, help: 'Skip the PUBLIC_BASE_URL prompt/update (--server).')
+    ..addFlag('skip-certs', negatable: false, help: 'Skip the local TLS cert step (--bootstrap).')
     ..addFlag('help', abbr: 'h', negatable: false);
 
   final ArgResults args;
@@ -290,11 +200,7 @@ Future<void> main(List<String> arguments) async {
   if (mode == 'bootstrap') {
     await _bootstrap(root, skipCerts: args['skip-certs'] as bool);
   } else if (mode == 'server') {
-    await _server(
-      root,
-      publicBaseUrl: args['public-base-url'] as String?,
-      keepUrl: args['keep-url'] as bool,
-    );
+    await _server(root, publicBaseUrl: args['public-base-url'] as String?, keepUrl: args['keep-url'] as bool);
   } else if (mode == 'android') {
     await _android(root, deviceId: args['device'] as String?);
   } else if (mode == 'android-webview') {
@@ -320,11 +226,7 @@ Future<void> main(List<String> arguments) async {
   } else if (mode.startsWith('release:')) {
     // release:<dart|flutter>:<minor|major>
     final parts = mode.split(':');
-    await _release(
-      root,
-      package: parts[1] == 'dart' ? 'zenpay_dart' : 'zenpay_flutter',
-      bump: parts[2],
-    );
+    await _release(root, package: parts[1] == 'dart' ? 'zenpay_dart' : 'zenpay_flutter', bump: parts[2]);
   }
 }
 
@@ -353,10 +255,7 @@ String _repoRoot() {
 
 bool _hasCommand(String name) {
   try {
-    return Process.runSync(Platform.isWindows ? 'where' : 'which', [
-          name,
-        ]).exitCode ==
-        0;
+    return Process.runSync(Platform.isWindows ? 'where' : 'which', [name]).exitCode == 0;
   } on Object {
     return false;
   }
@@ -434,12 +333,7 @@ Future<int> _runLive(
     await sigintSub?.cancel();
     return exitCode;
   } else {
-    final process = await Process.start(
-      _resolveExecutable(executable),
-      args,
-      workingDirectory: cwd,
-      environment: environment,
-    );
+    final process = await Process.start(_resolveExecutable(executable), args, workingDirectory: cwd, environment: environment);
     process.stdout.listen(stdout.add);
     process.stderr.listen(stderr.add);
 
@@ -453,11 +347,7 @@ Future<int> _runLive(
 
 /// Like [_runLive], but a non-zero exit aborts this script — for setup steps
 /// later steps depend on.
-Future<void> _runChecked(
-  String executable,
-  List<String> args, {
-  String? cwd,
-}) async {
+Future<void> _runChecked(String executable, List<String> args, {String? cwd}) async {
   final code = await _runLive(executable, args, cwd: cwd);
   if (code != 0) {
     exit(code);
@@ -702,13 +592,7 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
     _promptEnvValue(backendEnv, 'ZENPAY_API_KEY', label: 'API key        ');
     _promptEnvValue(backendEnv, 'ZENPAY_USERNAME', label: 'Username       ');
     _promptEnvValue(backendEnv, 'ZENPAY_PASSWORD', label: 'Password       ', secret: true);
-    _promptEnvValue(
-      backendEnv,
-      'TOKEN_SECRET',
-      label: 'Token secret   ',
-      secret: true,
-      generateWhenBlank: generateTokenSecret,
-    );
+    _promptEnvValue(backendEnv, 'TOKEN_SECRET', label: 'Token secret   ', secret: true, generateWhenBlank: generateTokenSecret);
   }
 
   // The SDK rejects any non-https return URI, so the web flow needs TLS even
@@ -720,11 +604,7 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
       stdout.writeln('TLS cert already present.');
     } else if (_hasCommand('mkcert')) {
       await _runChecked('mkcert', ['-install'], cwd: appDir);
-      await _runChecked('mkcert', [
-        'localhost',
-        '127.0.0.1',
-        '::1',
-      ], cwd: appDir);
+      await _runChecked('mkcert', ['localhost', '127.0.0.1', '::1'], cwd: appDir);
     } else {
       _warn(
         'mkcert not installed — skipping TLS cert. Web checkout returns '
@@ -755,11 +635,7 @@ Future<void> _bootstrap(String root, {required bool skipCerts}) async {
 /// is restarted and a stale value fails in two ways that are hard to spot:
 /// ZenPay posts callbacks to the dead URL, and the mobile return URI stops
 /// matching.
-Future<void> _server(
-  String root, {
-  required bool keepUrl,
-  String? publicBaseUrl,
-}) async {
+Future<void> _server(String root, {required bool keepUrl, String? publicBaseUrl}) async {
   final backendDir = '$root/example/backend';
   final envFile = File('$backendDir/.env');
   if (!envFile.existsSync()) {
@@ -772,12 +648,7 @@ Future<void> _server(
 
   if (!keepUrl) {
     var content = envFile.readAsStringSync();
-    final current =
-        RegExp(
-          r'^PUBLIC_BASE_URL\s*=\s*(.*)$',
-          multiLine: true,
-        ).firstMatch(content)?.group(1)?.trim() ??
-        '(not set)';
+    final current = RegExp(r'^PUBLIC_BASE_URL\s*=\s*(.*)$', multiLine: true).firstMatch(content)?.group(1)?.trim() ?? '(not set)';
 
     var newUrl = publicBaseUrl;
     if (newUrl == null) {
@@ -796,10 +667,7 @@ Future<void> _server(
     // silently — the SDK compares the return URI exactly — so update them
     // here rather than printing instructions and hoping.
     if (newUrl.isNotEmpty) {
-      content = content.replaceFirst(
-        RegExp(r'^PUBLIC_BASE_URL\s*=.*$', multiLine: true),
-        'PUBLIC_BASE_URL=$newUrl',
-      );
+      content = content.replaceFirst(RegExp(r'^PUBLIC_BASE_URL\s*=.*$', multiLine: true), 'PUBLIC_BASE_URL=$newUrl');
       envFile.writeAsStringSync(content);
       _info('PUBLIC_BASE_URL set to $newUrl');
 
@@ -807,10 +675,7 @@ Future<void> _server(
       final appEnv = File('$root/example/app/.env');
       if (appEnv.existsSync()) {
         appEnv.writeAsStringSync(
-          appEnv.readAsStringSync().replaceFirst(
-            RegExp(r'^APP_RETURN_URI_MOBILE\s*=.*$', multiLine: true),
-            'APP_RETURN_URI_MOBILE=$mobileReturn',
-          ),
+          appEnv.readAsStringSync().replaceFirst(RegExp(r'^APP_RETURN_URI_MOBILE\s*=.*$', multiLine: true), 'APP_RETURN_URI_MOBILE=$mobileReturn'),
         );
         _info('APP_RETURN_URI_MOBILE -> $mobileReturn');
       } else {
@@ -827,12 +692,7 @@ Future<void> _server(
   // "in sync with it", not "whatever it happened to already say".
   await _syncNativeAppLinkConfig(root);
 
-  await _execForeground(
-    'dart',
-    ['run', 'bin/server.dart'],
-    cwd: backendDir,
-    inheritStdio: false,
-  );
+  await _execForeground('dart', ['run', 'bin/server.dart'], cwd: backendDir, inheritStdio: false);
 }
 
 /// Points `AndroidManifest.xml`/`Runner.entitlements` at whatever host
@@ -847,18 +707,10 @@ Future<void> _syncNativeAppLinkConfig(String root) async {
     return;
   }
 
-  final host = RegExp(
-    r'^PUBLIC_BASE_URL\s*=\s*https?://([^/\s]+)',
-    multiLine: true,
-  ).firstMatch(envFile.readAsStringSync())?.group(1);
+  final host = RegExp(r'^PUBLIC_BASE_URL\s*=\s*https?://([^/\s]+)', multiLine: true).firstMatch(envFile.readAsStringSync())?.group(1);
   if (host == null || host.isEmpty) return;
 
-  await _runChecked('dart', [
-    'run',
-    'scripts/apply_platform_config.dart',
-    '--host',
-    host,
-  ], cwd: root);
+  await _runChecked('dart', ['run', 'scripts/apply_platform_config.dart', '--host', host], cwd: root);
 }
 
 /// Assumes the backend is already running.
@@ -970,11 +822,7 @@ Future<void> _web(String root) async {
 
   if (!(cert.existsSync() && key.existsSync()) && _hasCommand('mkcert')) {
     _info('No TLS cert — running mkcert in example/app.');
-    final code = await _runLive('mkcert', [
-      'localhost',
-      '127.0.0.1',
-      '::1',
-    ], cwd: appDir);
+    final code = await _runLive('mkcert', ['localhost', '127.0.0.1', '::1'], cwd: appDir);
     if (code != 0) {
       _warn('mkcert failed (exit $code) — continuing without cert.');
     }
@@ -1004,12 +852,7 @@ Future<void> _web(String root) async {
     // 32-bit IP and opens in a junk tab. For a phone viewport use Chrome's
     // device toolbar: F12, Ctrl+Shift+M.
     '--web-browser-flag=--auto-open-devtools-for-tabs',
-    if (hasTls) ...[
-      '--web-tls-cert-path',
-      'localhost+2.pem',
-      '--web-tls-cert-key-path',
-      'localhost+2-key.pem',
-    ],
+    if (hasTls) ...['--web-tls-cert-path', 'localhost+2.pem', '--web-tls-cert-key-path', 'localhost+2-key.pem'],
     '--dart-define-from-file=.env',
   ], cwd: appDir);
 }
@@ -1031,11 +874,7 @@ Future<void> _stream({String? deviceId}) async {
   final sdkAdb = _findAdb();
 
   final device = deviceId ?? _pickAdbDevice();
-  await _execForeground(
-    'scrcpy',
-    ['-s', device, '--no-clipboard-autosync', '--no-audio'],
-    environment: sdkAdb != 'adb' ? {'ADB': sdkAdb} : null,
-  );
+  await _execForeground('scrcpy', ['-s', device, '--no-clipboard-autosync', '--no-audio'], environment: sdkAdb != 'adb' ? {'ADB': sdkAdb} : null);
 }
 
 const _cloudflaredInstallHint =
@@ -1083,11 +922,7 @@ Future<void> _tunnel(String root) async {
   // (not the persistent Windows variable) closes that without touching
   // anything outside this one invocation — the token still reaches
   // cloudflared correctly via the explicit --token argument above.
-  await _execForeground(
-    'cloudflared',
-    ['tunnel', 'run', '--token', token],
-    environment: {'CF_TUNNEL_TOKEN': ''},
-  );
+  await _execForeground('cloudflared', ['tunnel', 'run', '--token', token], environment: {'CF_TUNNEL_TOKEN': ''});
 }
 
 /// Masks a secret the same partial way as `example/backend`'s
@@ -1120,10 +955,7 @@ Future<void> _quickTunnel(String root, {String? url}) async {
 String _defaultQuickTunnelUrl(String root) {
   final envFile = File('$root/example/backend/.env');
   if (envFile.existsSync()) {
-    final port = RegExp(
-      r'^PORT\s*=\s*(.*)$',
-      multiLine: true,
-    ).firstMatch(envFile.readAsStringSync())?.group(1)?.trim();
+    final port = RegExp(r'^PORT\s*=\s*(.*)$', multiLine: true).firstMatch(envFile.readAsStringSync())?.group(1)?.trim();
     if (port != null && port.isNotEmpty) return 'http://localhost:$port';
   }
   return 'http://localhost:7000';
@@ -1137,10 +969,7 @@ String _defaultQuickTunnelUrl(String root) {
 /// its `--dry-run` validation, so the published archive's example can never
 /// go stale silently; also runnable standalone via `--sync-examples`.
 Future<void> _syncExamples(String root) async {
-  await _runChecked('dart', [
-    'run',
-    'scripts/sync_package_examples.dart',
-  ], cwd: root);
+  await _runChecked('dart', ['run', 'scripts/sync_package_examples.dart'], cwd: root);
 }
 
 /// Bumps [package]'s version and preps it for a pub.dev publish, via Melos.
@@ -1161,21 +990,14 @@ Future<void> _syncExamples(String root) async {
 /// to do, not this script's), and the actual `dart pub publish` is never run
 /// here — only validated with `--dry-run`. A pub.dev publish cannot be
 /// undone, so the real publish is always a separate, manual, deliberate step.
-Future<void> _release(
-  String root, {
-  required String package,
-  required String bump,
-}) async {
+Future<void> _release(String root, {required String package, required String bump}) async {
   final pubspecFile = File('$root/$package/pubspec.yaml');
   if (!pubspecFile.existsSync()) {
     _error('No pubspec.yaml at ${pubspecFile.path}.');
     exit(1);
   }
 
-  final current = RegExp(
-    r'^version:\s*(\S+)$',
-    multiLine: true,
-  ).firstMatch(pubspecFile.readAsStringSync())?.group(1);
+  final current = RegExp(r'^version:\s*(\S+)$', multiLine: true).firstMatch(pubspecFile.readAsStringSync())?.group(1);
   if (current == null) {
     _error('No "version:" line found in ${pubspecFile.path}.');
     exit(1);
@@ -1194,35 +1016,19 @@ Future<void> _release(
   final target = bump == 'major' ? '${major + 1}.0.0' : '$major.${minor + 1}.0';
 
   _info('$package: $current -> $target');
-  await _runChecked('dart', [
-    'run',
-    'melos',
-    'version',
-    package,
-    target,
-    '--no-git-tag-version',
-    '--no-git-commit-version',
-  ], cwd: root);
+  await _runChecked('dart', ['run', 'melos', 'version', package, target, '--no-git-tag-version', '--no-git-commit-version'], cwd: root);
 
   _info('Regenerating package example from example/backend + example/app...');
   await _syncExamples(root);
 
   _info('Validating with dart pub publish --dry-run...');
-  await _runChecked('dart', [
-    'pub',
-    'publish',
-    '--dry-run',
-  ], cwd: '$root/$package');
+  await _runChecked('dart', ['pub', 'publish', '--dry-run'], cwd: '$root/$package');
 
   stdout.writeln();
   _success('$package is at $target and ready to publish.');
   stdout
-    ..writeln(
-      'Nothing was committed, tagged, or published — that is all left to you:',
-    )
-    ..writeln(
-      '  1. Review the diff (pubspec.yaml, CHANGELOG.md), commit it.',
-    )
+    ..writeln('Nothing was committed, tagged, or published — that is all left to you:')
+    ..writeln('  1. Review the diff (pubspec.yaml, CHANGELOG.md), commit it.')
     ..writeln('  2. cd $package && dart pub publish');
 }
 
@@ -1253,29 +1059,16 @@ Future<void> _requireDockerCompose() async {
   }
 }
 
-/// Backend container needs `example/backend/service-account.json` to exist
-/// unconditionally — `docker/local/docker-compose.yml` bind-mounts it by a fixed
-/// path, so a missing file fails the whole `docker compose up`, not just
-/// reCAPTCHA enforcement (unlike the old single-image flow, which only
-/// mounted it when `.env` pointed at one).
-void _requireServiceAccountFile(String root) {
+/// `docker/local/docker-compose.yml`'s backend service loads
+/// `example/backend/.env` via `env_file:`, which Compose refuses to start
+/// without — same failure shape as the old service-account bind-mount, so
+/// still worth catching here rather than in Compose's own error output.
+void _requireDockerEnvFile(String root) {
   final envFile = File('$root/example/backend/.env');
   if (!envFile.existsSync()) {
     _error(
       'No example/backend/.env — copy .env.example and fill in your ZenPay '
       'credentials before running Docker.',
-    );
-    exit(1);
-  }
-  final serviceAccountFile = File('$root/example/backend/service-account.json');
-  if (!serviceAccountFile.existsSync()) {
-    _error(
-      'docker/local/docker-compose.yml bind-mounts example/backend/service-account.json '
-      'into the backend container — that file does not exist, so `docker compose up` '
-      'will fail. Place your GCP service account key there (used for reCAPTCHA '
-      'Enterprise verification), or remove the `volumes:` line for the backend '
-      "service in docker/local/docker-compose.yml if you don't need reCAPTCHA "
-      'enforcement.',
     );
     exit(1);
   }
@@ -1295,11 +1088,7 @@ Future<void> _requireDockerTlsCert(String root) async {
 
   if (!(cert.existsSync() && key.existsSync()) && _hasCommand('mkcert')) {
     _info('No TLS cert — running mkcert in example/app.');
-    final code = await _runLive('mkcert', [
-      'localhost',
-      '127.0.0.1',
-      '::1',
-    ], cwd: appDir);
+    final code = await _runLive('mkcert', ['localhost', '127.0.0.1', '::1'], cwd: appDir);
     if (code != 0) {
       _error('mkcert failed (exit $code).');
       exit(1);
@@ -1321,12 +1110,7 @@ Future<void> _dockerBuild(String root) async {
   await _requireDockerCompose();
 
   _info('Building backend + frontend Docker images (docker compose)...');
-  await _runChecked('docker', [
-    'compose',
-    '-f',
-    _composeFile,
-    'build',
-  ], cwd: root);
+  await _runChecked('docker', ['compose', '-f', _composeFile, 'build'], cwd: root);
   _success('Docker images built successfully.');
 }
 
@@ -1353,16 +1137,12 @@ Future<bool> _isPortFree(int port) async {
 String _readTunnelToken(String root) {
   final envFile = File('$root/example/backend/.env');
   if (!envFile.existsSync()) return '';
-  return RegExp(
-        r'^CLOUDFLARE_TUNNEL_TOKEN\s*=\s*(.*)$',
-        multiLine: true,
-      ).firstMatch(envFile.readAsStringSync())?.group(1)?.trim() ??
-      '';
+  return RegExp(r'^CLOUDFLARE_TUNNEL_TOKEN\s*=\s*(.*)$', multiLine: true).firstMatch(envFile.readAsStringSync())?.group(1)?.trim() ?? '';
 }
 
 Future<void> _dockerRun(String root) async {
   await _requireDockerCompose();
-  _requireServiceAccountFile(root);
+  _requireDockerEnvFile(root);
   await _requireDockerTlsCert(root);
 
   for (final port in [_dockerBackendPort, _dockerFrontendPort]) {
@@ -1393,16 +1173,7 @@ Future<void> _dockerRun(String root) async {
     // See _tunnel's comment: blanks this machine's CF_TUNNEL_TOKEN user env
     // var for this child only, so cloudflared's own unmasked env-var log
     // line doesn't leak it (the --token argument above is unaffected).
-    tunnelProcess = await Process.start(
-      'cloudflared',
-      [
-        'tunnel',
-        'run',
-        '--token',
-        tunnelToken,
-      ],
-      environment: {'CF_TUNNEL_TOKEN': ''},
-    );
+    tunnelProcess = await Process.start('cloudflared', ['tunnel', 'run', '--token', tunnelToken], environment: {'CF_TUNNEL_TOKEN': ''});
     tunnelProcess.stdout.listen(stdout.add);
     tunnelProcess.stderr.listen(stderr.add);
   } else {
@@ -1413,12 +1184,7 @@ Future<void> _dockerRun(String root) async {
     'Running Docker Compose (zenpay-backend on http://localhost:$_dockerBackendPort, '
     'zenpay-frontend on http://localhost:$_dockerFrontendPort)...',
   );
-  final exitCode = await _runLive('docker', [
-    'compose',
-    '-f',
-    _composeFile,
-    'up',
-  ], cwd: root);
+  final exitCode = await _runLive('docker', ['compose', '-f', _composeFile, 'up'], cwd: root);
   tunnelProcess?.kill();
   exit(exitCode);
 }
@@ -1428,14 +1194,7 @@ Future<void> _dockerRebuild(String root) async {
 
   _info('Stopping containers and removing existing images (docker compose down)...');
   // Ignore failure if nothing is running yet.
-  await Process.run('docker', [
-    'compose',
-    '-f',
-    _composeFile,
-    'down',
-    '--rmi',
-    'local',
-  ], workingDirectory: root);
+  await Process.run('docker', ['compose', '-f', _composeFile, 'down', '--rmi', 'local'], workingDirectory: root);
 
   await _dockerBuild(root);
   await _dockerRun(root);

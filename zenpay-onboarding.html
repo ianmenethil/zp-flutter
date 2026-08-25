@@ -1,0 +1,1611 @@
+<title>ZenPay SDK Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* ── Tokens: Zenith brand, from example/app/lib/core/theme/theme.dart ── */
+:root {
+  --red: #D71F26;
+  --red-soft: #FCE8E9;
+  --ink: #1C1C1C;
+  --warn: #C97A12;
+  --warn-bg: #FDF3E2;
+  --done: #1F7A4C;
+  --done-bg: #EAF4EE;
+
+  --bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --surface-2: #F4F4F4;
+  --line: #D1D1D1;
+  --line-soft: #E7E7E7;
+  --fg: #1C1C1C;
+  --fg-muted: #6E6E6E;
+  --code-bg: #F4F4F4;
+
+  --display: 'Poppins', system-ui, sans-serif;
+  --body: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  --rail: 288px;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --red: #E83239; --red-soft: #2A1416; --warn-bg: #2A1F10;
+    --done: #3FA872; --done-bg: #14261C;
+    --bg: #0F0F0F; --surface: #161616; --surface-2: #1F1F1F;
+    --line: #353535; --line-soft: #262626;
+    --fg: #F4F4F4; --fg-muted: #9E9E9E; --code-bg: #1F1F1F;
+  }
+}
+:root[data-theme="dark"] {
+  --red: #E83239; --red-soft: #2A1416; --warn-bg: #2A1F10;
+  --done: #3FA872; --done-bg: #14261C;
+  --bg: #0F0F0F; --surface: #161616; --surface-2: #1F1F1F;
+  --line: #353535; --line-soft: #262626;
+  --fg: #F4F4F4; --fg-muted: #9E9E9E; --code-bg: #1F1F1F;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--body); font-size: 15.5px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+h1 { font-weight: 900; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; }
+h2 { font-weight: 900; font-size: 1.7rem; line-height: 1.12; }
+h3 { font-weight: 700; font-size: 1.12rem; letter-spacing: -0.01em; }
+h4 { font-weight: 600; font-size: .95rem; letter-spacing: 0; }
+p { margin: 0; }
+a { color: var(--red); }
+code, kbd { font-family: var(--mono); font-size: .875em; }
+:focus-visible { outline: 2px solid var(--red); outline-offset: 3px; border-radius: 4px; }
+
+.shell { display: grid; grid-template-columns: var(--rail) minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
+.rail {
+  position: sticky; top: 0; align-self: start; height: 100vh;
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 26px 18px 18px; border-right: 1px solid var(--line-soft); overflow-y: auto;
+}
+.main { min-width: 0; padding: 40px 44px 120px; }
+.wrap { max-width: 1000px; margin: 0 auto; }
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.mark { width: 26px; height: 26px; flex: none; }
+.brand-t { font-family: var(--display); font-weight: 900; font-size: .95rem; letter-spacing: -0.02em; line-height: 1.1; }
+.brand-s { font-size: .7rem; color: var(--fg-muted); letter-spacing: .05em; text-transform: uppercase; }
+
+nav.toc { display: flex; flex-direction: column; gap: 2px; }
+nav.toc a {
+  display: block; padding: 5px 10px; border-radius: 7px;
+  color: var(--fg-muted); text-decoration: none; font-size: .85rem; font-weight: 500;
+  border-left: 2px solid transparent;
+}
+nav.toc a.top { font-family: var(--mono); font-size: .8rem; font-weight: 500; color: var(--fg); margin-top: 9px; }
+nav.toc a.top:first-child { margin-top: 0; }
+nav.toc a.sub { padding-left: 22px; font-size: .8rem; }
+nav.toc a:hover { background: var(--surface-2); color: var(--fg); }
+nav.toc a.active { color: var(--fg); background: var(--surface-2); border-left-color: var(--red); font-weight: 600; }
+
+.meter { border: 1px solid var(--line-soft); border-radius: 10px; padding: 11px 12px; background: var(--surface); }
+.meter-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+.meter-l { font-size: .66rem; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); font-weight: 600; }
+.meter-c { font-family: var(--mono); font-size: .8rem; font-variant-numeric: tabular-nums; font-weight: 500; }
+.track { height: 5px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.fill { height: 100%; width: 0%; background: var(--red); border-radius: 3px; transition: width .45s cubic-bezier(.2,.7,.3,1), background-color .3s; }
+.fill.complete { background: var(--done); }
+.meter-reset { margin-top: 8px; font-size: .71rem; color: var(--fg-muted); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; font-family: var(--body); }
+.meter-reset:hover { color: var(--fg); }
+
+.theme-btn {
+  margin-top: auto; display: flex; align-items: center; gap: 7px;
+  background: none; border: 1px solid var(--line-soft); border-radius: 8px;
+  padding: 7px 11px; color: var(--fg-muted); cursor: pointer;
+  font-family: var(--body); font-size: .79rem; font-weight: 500;
+}
+.theme-btn:hover { color: var(--fg); border-color: var(--line); }
+
+.hero { padding-bottom: 32px; margin-bottom: 8px; border-bottom: 1px solid var(--line-soft); }
+.eyebrow { font-family: var(--mono); font-size: .73rem; letter-spacing: .1em; text-transform: uppercase; color: var(--red); font-weight: 500; margin-bottom: 14px; }
+.lede { font-size: 1.08rem; color: var(--fg-muted); margin-top: 16px; }
+
+/* ── Top-level package section ── */
+.pkg { padding-top: 60px; scroll-margin-top: 20px; }
+.pkg-head { border-top: 2px solid var(--fg); padding-top: 16px; margin-bottom: 6px; }
+.pkg-kicker { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+.pkg-n { font-family: var(--mono); font-size: .78rem; color: var(--red); font-weight: 500; font-variant-numeric: tabular-nums; }
+.pkg-role { font-size: .74rem; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-muted); font-weight: 600; }
+.pkg h2 code { font-size: .92em; font-weight: 700; }
+.pkg-sub { color: var(--fg-muted); margin-top: 10px; }
+.sub { padding-top: 38px; scroll-margin-top: 20px; }
+.sub > h3 { margin-bottom: 10px; }
+
+.cmd { position: relative; margin: 14px 0; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--code-bg); overflow: hidden; }
+.cmd-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 10px 7px 13px; border-bottom: 1px solid var(--line-soft); }
+.cmd-label { font-family: var(--mono); font-size: .69rem; letter-spacing: .06em; text-transform: uppercase; color: var(--fg-muted); }
+.cmd pre { margin: 0; padding: 13px; overflow-x: auto; font-family: var(--mono); font-size: .84rem; line-height: 1.7; }
+.cmd pre .p { color: var(--fg-muted); user-select: none; }
+.cmd pre .c { color: var(--fg-muted); font-style: italic; }
+.copy {
+  display: inline-flex; align-items: center; gap: 5px; flex: none;
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 6px;
+  padding: 3px 9px; cursor: pointer; color: var(--fg-muted);
+  font-family: var(--body); font-size: .73rem; font-weight: 600;
+  transition: color .18s, border-color .18s, background-color .18s;
+}
+.copy:hover { color: var(--fg); border-color: var(--line); }
+.copy.ok { color: var(--done); border-color: var(--done); background: var(--done-bg); }
+
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: step; }
+.step { border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--surface); overflow: hidden; transition: border-color .25s, opacity .25s; }
+.step-top { display: flex; gap: 14px; padding: 16px 18px; align-items: flex-start; }
+.step-box { flex: none; margin-top: 2px; }
+.step-box input { position: absolute; opacity: 0; width: 0; height: 0; }
+.step-box label { display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid var(--line); border-radius: 7px; cursor: pointer; transition: background-color .2s, border-color .2s, transform .12s; }
+.step-box label:hover { border-color: var(--red); }
+.step-box label:active { transform: scale(.92); }
+.step-box svg { width: 14px; height: 14px; opacity: 0; transform: scale(.5); transition: opacity .2s, transform .2s cubic-bezier(.3,1.5,.5,1); }
+.step-box input:checked + label { background: var(--done); border-color: var(--done); }
+.step-box input:checked + label svg { opacity: 1; transform: scale(1); }
+.step-box input:focus-visible + label { outline: 2px solid var(--red); outline-offset: 3px; }
+.step-body { min-width: 0; flex: 1; }
+.step-title { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.step-num { counter-increment: step; font-family: var(--mono); font-size: .73rem; color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.step-num::before { content: "STEP " counter(step, decimal-leading-zero); }
+.step-where { font-family: var(--mono); font-size: .69rem; padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--fg-muted); border: 1px solid var(--line-soft); }
+.step p { margin-top: 7px; color: var(--fg-muted); }
+.step.done { opacity: .62; }
+.step.done .step-title h3 { color: var(--fg-muted); text-decoration: line-through; text-decoration-thickness: 1.5px; text-decoration-color: var(--done); }
+.step-extra { padding: 0 18px 16px 56px; }
+
+.conseq { display: flex; gap: 9px; padding: 10px 12px; border-radius: 8px; font-size: .85rem; margin-top: 12px; border: 1px solid var(--line-soft); background: var(--surface-2); }
+.conseq.blocks { background: var(--red-soft); border-color: color-mix(in srgb, var(--red) 30%, transparent); }
+.conseq.partial { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
+.conseq .tag { font-family: var(--mono); font-size: .67rem; letter-spacing: .05em; text-transform: uppercase; font-weight: 500; flex: none; padding-top: 2px; }
+.conseq.blocks .tag { color: var(--red); }
+.conseq.partial .tag { color: var(--warn); }
+.conseq p { margin: 0; color: var(--fg); }
+
+.note { border: 1px solid var(--line-soft); border-left: 3px solid var(--red); border-radius: 8px; padding: 14px 16px; background: var(--surface); margin: 18px 0; }
+.note.warn { border-left-color: var(--warn); background: var(--warn-bg); }
+.note-t { font-family: var(--display); font-weight: 700; font-size: .96rem; letter-spacing: -0.01em; margin-bottom: 5px; }
+.note p { color: var(--fg-muted); font-size: .93rem; }
+.note.warn p { color: var(--fg); }
+
+.quote { border-left: 3px solid var(--line); padding: 4px 0 4px 18px; margin: 18px 0; font-size: .96rem; }
+.quote cite { display: block; margin-top: 8px; font-family: var(--mono); font-size: .73rem; font-style: normal; color: var(--fg-muted); }
+
+.tbl-wrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: .87rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+thead th { font-family: var(--display); font-weight: 600; font-size: .71rem; letter-spacing: .07em; text-transform: uppercase; color: var(--fg-muted); background: var(--surface-2); white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--surface-2); }
+td code { background: var(--code-bg); padding: 1.5px 5px; border-radius: 4px; white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: .81rem; white-space: nowrap; }
+.col-k { width: 24%; }
+.col-v { width: 17%; }
+.dep-tbl td:first-child, .dep-tbl td:nth-child(2), .dep-tbl td:nth-child(3) { white-space: nowrap; }
+
+figure { margin: 24px 0; }
+figure svg { display: block; width: 100%; height: auto; max-width: 100%; }
+figcaption { margin-top: 12px; font-size: .85rem; color: var(--fg-muted); }
+.fig-frame { border: 1px solid var(--line-soft); border-radius: var(--radius); background: var(--surface); padding: 22px; overflow-x: auto; }
+
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; margin: 18px 0; }
+.card { border: 1px solid var(--line-soft); border-radius: var(--radius); padding: 16px 18px; background: var(--surface); }
+.card h3 { font-size: .96rem; font-weight: 700; margin-bottom: 6px; }
+.card p { color: var(--fg-muted); font-size: .89rem; }
+.pill { display: inline-block; font-family: var(--mono); font-size: .69rem; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--line-soft); color: var(--fg-muted); background: var(--surface-2); }
+.pill.on { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); background: var(--red-soft); }
+ul.tight { margin: 12px 0; padding-left: 20px; }
+ul.tight li { margin-bottom: 7px; color: var(--fg-muted); }
+ul.tight li b { color: var(--fg); }
+footer { margin-top: 70px; padding-top: 24px; border-top: 1px solid var(--line-soft); color: var(--fg-muted); font-size: .83rem; }
+
+@media (max-width: 1000px) {
+  .shell { grid-template-columns: 1fr; }
+  .rail { position: sticky; top: 0; height: auto; flex-direction: row; align-items: center; gap: 14px;
+    border-right: 0; border-bottom: 1px solid var(--line-soft); background: var(--bg); z-index: 20;
+    padding: 12px 18px; overflow-x: auto; }
+  nav.toc { flex-direction: row; gap: 2px; }
+  nav.toc a.sub { display: none; }
+  nav.toc a.top { margin-top: 0; }
+  .meter { flex: none; min-width: 162px; padding: 7px 10px; }
+  .meter-reset { display: none; }
+  .theme-btn { margin-top: 0; }
+  .main { padding: 26px 18px 90px; }
+  .step-extra { padding-left: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+</style>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 32 32" role="img" aria-label="ZenPay mark">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="var(--red)" stroke-width="2"></rect>
+        <path d="M10 10 h12 l-12 12 h12" fill="none" stroke="var(--red)" stroke-width="2.6" stroke-linecap="square"></path>
+      </svg>
+      <div>
+        <div class="brand-t">ZenPay SDK</div>
+        <div class="brand-s">Field guide</div>
+      </div>
+    </div>
+
+    <nav class="toc" id="toc">
+      <a class="top" href="#overview">Overview</a>
+      <a class="top" href="#dart">1 · zenpay_dart</a>
+      <a class="sub" href="#dart-api">API surface</a>
+      <a class="sub" href="#dart-modes">Modes &amp; status</a>
+      <a class="sub" href="#dart-secrets">Secrets &amp; logging</a>
+      <a class="top" href="#flutter">2 · zenpay_flutter</a>
+      <a class="sub" href="#flutter-launch">Launching checkout</a>
+      <a class="sub" href="#flutter-return">Handling the return</a>
+      <a class="sub" href="#flutter-presenter">Presenter contract</a>
+      <a class="top" href="#embedded">3 · zenpay_embedded</a>
+      <a class="sub" href="#embedded-swap">What changes</a>
+      <a class="sub" href="#embedded-pci">PCI DSS SAQ A</a>
+      <a class="top" href="#example">4 · example</a>
+      <a class="sub" href="#example-prereq">Prerequisites</a>
+      <a class="sub" href="#example-setup">Setup checklist</a>
+      <a class="sub" href="#example-config">Configuration</a>
+      <a class="top" href="#cli">5 · cli.dart</a>
+      <a class="sub" href="#cli-modes">Every mode</a>
+      <a class="sub" href="#cli-verify">Verification</a>
+    </nav>
+
+    <div class="meter">
+      <div class="meter-top">
+        <span class="meter-l">Setup</span>
+        <span class="meter-c" id="count">0 / 8</span>
+      </div>
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <button class="meter-reset" id="reset" type="button">Reset checklist</button>
+    </div>
+
+    <button class="theme-btn" id="theme" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+      </svg>
+      <span id="theme-l">Theme</span>
+    </button>
+  </aside>
+
+  <main class="main">
+    <div class="wrap">
+
+      <header class="hero">
+        <div class="eyebrow">Hosted Checkout · Dart &amp; Flutter</div>
+        <h1>Three packages<br>and one reference.</h1>
+        <p class="lede">Two SDKs make a ZenPay integration, a third is an opt-in presentation swap, and a runnable example wires all of it together. This guide takes them in that order — what each package is for, then how to run the reference.</p>
+      </header>
+
+      <!-- ═══ OVERVIEW ═══ -->
+      <section class="pkg" id="overview">
+        <div class="pkg-head">
+          <div class="pkg-kicker"><span class="pkg-role">Overview</span></div>
+          <h2>How the four pieces fit</h2>
+          <p class="pkg-sub">A merchant integration is <code>zenpay_dart</code> on your server and <code>zenpay_flutter</code> in your app. Everything else is optional or illustrative.</p>
+        </div>
+
+        <figure>
+          <div class="fig-frame">
+            <svg viewBox="0 0 860 250" role="img" aria-label="Dependency graph: example backend depends on zenpay_dart on the server side of the credential boundary; example app depends on zenpay_flutter and optionally zenpay_embedded, which itself depends on zenpay_flutter, on the client side">
+              <defs>
+                <marker id="d1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                </marker>
+              </defs>
+
+              <g stroke="currentColor" stroke-width="1" opacity=".3" fill="none" stroke-dasharray="5 4">
+                <rect x="14" y="40" width="368" height="192" rx="10"></rect>
+                <rect x="470" y="40" width="376" height="192" rx="10"></rect>
+              </g>
+              <text x="198" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">SERVER SIDE — holds credentials</text>
+              <text x="658" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">CLIENT SIDE — ships to devices</text>
+
+              <line x1="426" y1="36" x2="426" y2="236" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="6 5"></line>
+              <text x="426" y="248" text-anchor="middle" font-size="10" fill="var(--red)" font-weight="600">credential boundary</text>
+
+              <g fill="none" stroke="currentColor" stroke-width="1.3">
+                <rect x="46" y="68" width="150" height="46" rx="7"></rect>
+                <rect x="46" y="160" width="150" height="46" rx="7"></rect>
+                <rect x="502" y="68" width="150" height="46" rx="7"></rect>
+                <rect x="502" y="160" width="150" height="46" rx="7"></rect>
+              </g>
+              <g fill="none" stroke="var(--fg-muted)" stroke-width="1.3" stroke-dasharray="4 3">
+                <rect x="686" y="160" width="142" height="46" rx="7"></rect>
+              </g>
+
+              <text x="121" y="88" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">example/backend</text>
+              <text x="121" y="104" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">reference only</text>
+              <text x="121" y="180" text-anchor="middle" font-family="var(--mono)" font-size="11.5" fill="var(--red)">zenpay_dart</text>
+              <text x="121" y="196" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">published SDK</text>
+
+              <text x="577" y="88" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">example/app</text>
+              <text x="577" y="104" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">reference only</text>
+              <text x="577" y="180" text-anchor="middle" font-family="var(--mono)" font-size="11.5" fill="var(--red)">zenpay_flutter</text>
+              <text x="577" y="196" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">published SDK</text>
+
+              <text x="757" y="180" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--fg-muted)">zenpay_embedded</text>
+              <text x="757" y="196" text-anchor="middle" font-size="10" fill="currentColor" opacity=".62">opt-in</text>
+
+              <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#d1)">
+                <path d="M121 114 L 121 156"></path>
+                <path d="M577 114 L 577 156"></path>
+                <path d="M640 100 L 757 100 L 757 156"></path>
+              </g>
+              <path d="M682 183 L 656 183" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#d1)"></path>
+              <text x="669" y="120" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">optional</text>
+            </svg>
+          </div>
+          <figcaption>Arrows point from a package to what it depends on, taken from each <code>pubspec.yaml</code>. Note <code>zenpay_embedded</code> depends on <code>zenpay_flutter</code> rather than replacing it, and nothing on the client side ever depends on <code>zenpay_dart</code> — that boundary is what keeps the merchant password off customer devices.</figcaption>
+        </figure>
+
+                <div class="grid2">
+          <div class="card"><h3><code>zenpay_dart</code> <span class="pill on">required</span></h3><p>Pure-Dart backend SDK. Fingerprints, launch URLs, callback verification, callback URL tokens. Server-side only.</p></div>
+          <div class="card"><h3><code>zenpay_flutter</code> <span class="pill on">required</span></h3><p>Flutter client SDK. Presents checkout, detects the return, settles one typed outcome. Complete on its own.</p></div>
+          <div class="card"><h3><code>zenpay_embedded</code> <span class="pill">opt-in</span></h3><p>An in-app WebView presenter implementing the same contract. Never the default; adds a <code>webview_flutter</code> dependency only if imported.</p></div>
+          <div class="card"><h3><code>example/</code> <span class="pill">reference</span></h3><p>A Shelf backend and Flutter app demonstrating the full flow. Merchants copy the pattern, not the package.</p></div>
+        </div>
+
+        <figure>
+          <div class="fig-frame">
+            <svg viewBox="0 0 900 400" role="img" aria-label="Six-step checkout flow across three process boundaries, showing the browser redirect as provisional and the signed server-to-server callback as the only authoritative status">
+              <defs>
+                <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                </marker>
+                <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                  <path d="M0 0 L10 5 L0 10 z" fill="var(--red)"></path>
+                </marker>
+              </defs>
+
+              <g stroke="currentColor" stroke-width="1" opacity=".28" fill="none" stroke-dasharray="5 4">
+                <rect x="12" y="40" width="250" height="330" rx="10"></rect>
+                <rect x="320" y="40" width="250" height="330" rx="10"></rect>
+                <rect x="628" y="40" width="258" height="330" rx="10"></rect>
+              </g>
+              <text x="137" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">CUSTOMER DEVICE</text>
+              <text x="445" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">MERCHANT BACKEND</text>
+              <text x="757" y="28" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">ZENPAY</text>
+
+              <g fill="none" stroke="currentColor" stroke-width="1.3">
+                <rect x="34" y="64" width="206" height="44" rx="7"></rect>
+                <rect x="342" y="64" width="206" height="44" rx="7"></rect>
+                <rect x="342" y="150" width="206" height="44" rx="7"></rect>
+                <rect x="650" y="150" width="214" height="44" rx="7"></rect>
+                <rect x="34" y="236" width="206" height="44" rx="7"></rect>
+                <rect x="342" y="310" width="206" height="46" rx="7"></rect>
+              </g>
+              <text x="137" y="83" text-anchor="middle" font-size="11.5" fill="currentColor">Your app</text>
+              <text x="137" y="99" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="currentColor" opacity=".7">zenpay_flutter</text>
+              <text x="445" y="83" text-anchor="middle" font-size="11.5" fill="currentColor">Your server</text>
+              <text x="445" y="99" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="currentColor" opacity=".7">holds credentials</text>
+              <text x="445" y="169" text-anchor="middle" font-size="11.5" fill="currentColor">Build launch URL</text>
+              <text x="445" y="185" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="currentColor" opacity=".7">zenpay_dart · SHA3-512</text>
+              <text x="757" y="169" text-anchor="middle" font-size="11.5" fill="currentColor">Hosted checkout page</text>
+              <text x="757" y="185" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">card entry happens here</text>
+              <text x="137" y="255" text-anchor="middle" font-size="11.5" fill="currentColor">Custom Tab / Safari</text>
+              <text x="137" y="271" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">OS browser process</text>
+              <text x="445" y="330" text-anchor="middle" font-size="11.5" fill="var(--red)">verifyZpCallback</text>
+              <text x="445" y="346" text-anchor="middle" font-size="10" fill="var(--red)">constant-time ValidationCode</text>
+
+              <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#b1)">
+                <path d="M240 79 L 338 79"></path>
+                <path d="M445 108 L 445 146"></path>
+                <path d="M342 178 L 300 178 L 300 92 L 240 92"></path>
+                <path d="M137 108 L 137 232"></path>
+                <path d="M240 258 L 646 258 L 646 198"></path>
+              </g>
+              <text x="289" y="72" text-anchor="middle" font-size="10" fill="currentColor">1 · token → exchange</text>
+              <text x="459" y="131" font-size="10" fill="currentColor">2 · fingerprint, local only</text>
+              <text x="286" y="112" text-anchor="middle" font-size="10" fill="currentColor">3 · checkoutUrl</text>
+              <text x="147" y="170" font-size="10" fill="currentColor">4 · present</text>
+              <text x="430" y="250" text-anchor="middle" font-size="10" fill="currentColor">customer pays</text>
+
+              <path d="M650 205 L 300 205 L 300 240 L 240 240" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#b1)" stroke-dasharray="5 4"></path>
+              <text x="470" y="199" text-anchor="middle" font-size="10" fill="currentColor" opacity=".8">5 · browser redirect — PROVISIONAL</text>
+
+              <path d="M757 198 L 757 333 L 552 333" stroke="var(--red)" stroke-width="1.8" fill="none" marker-end="url(#b2)"></path>
+              <text x="700" y="326" text-anchor="middle" font-size="10.5" fill="var(--red)">signed webhook</text>
+
+              <path d="M137 280 L 137 300 L 320 300 L 320 320 L 338 320" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#b1)"></path>
+              <text x="215" y="296" text-anchor="middle" font-size="10" fill="currentColor">6 · confirm status</text>
+            </svg>
+          </div>
+          <figcaption>The six-step flow, drawn across the three process boundaries. Two separate return paths matter: the dashed browser redirect (step 5) proves only that the customer came back, while the solid webhook is the sole authority on whether the payment succeeded. Step 6 is your app asking your server which of those two it holds.</figcaption>
+        </figure>
+      </section>
+
+      <!-- ═══ 1 · zenpay_dart ═══ -->
+      <section class="pkg" id="dart">
+        <div class="pkg-head">
+          <div class="pkg-kicker"><span class="pkg-n">01</span><span class="pkg-role">Backend SDK · server-side only</span></div>
+          <h2><code>zenpay_dart</code></h2>
+          <p class="pkg-sub">Pure Dart, no Flutter. It builds the signed URL that launches checkout and verifies the webhook that reports the result. It makes no outbound network calls — the launch URL is computed entirely offline.</p>
+        </div>
+
+        <div class="note warn">
+          <p class="note-t">Never import this from a Flutter app</p>
+          <p>It handles the merchant password and the HMAC secret. In a Flutter package those ship to every customer device. Your app talks to your backend over HTTP and never to ZenPay directly.</p>
+        </div>
+
+        <div class="sub" id="dart-api">
+          <h3>The five calls that carry an integration</h3>
+          <p>Everything else in the package supports these. The first two happen when you prepare an attempt, the middle two when you hand a URL to a client, the last when ZenPay reports back.</p>
+
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Call</th><th>What it does</th></tr></thead>
+              <tbody>
+                <tr><td><code>createZpMupid()</code><br><code>createZpTimestamp()</code></td><td>Mint the merchant-unique payment id (22-char base64url) and the UTC timestamp. Mint both <b>once</b> and carry them forward, so re-exchanging a capability rebuilds the same attempt rather than a new one.</td></tr>
+                <tr><td><code>createZpFingerprint(...)</code></td><td>SHA3-512 over a pipe-delimited string of credentials plus order fields. Returns <code>ZpFingerprintSuccess</code> or <code>ZpFingerprintFailure</code>. Pass the amount through as-is — the SDK's own per-mode rules already decide what gets hashed.</td></tr>
+                <tr><td><code>createZpCallbackUrlToken(...)</code></td><td>Mints the signed <code>t</code> token that travels on the return URL, carrying the MUPID as a signed claim. This is what lets a status lookup authorise itself without trusting a caller-supplied id.</td></tr>
+                <tr><td><code>createZpCheckoutUrl(...)</code></td><td>Assembles and validates the Authorise URL with single-pass percent-encoding. Returns <code>ZpUrlSuccess</code> or <code>ZpUrlFailure</code>.</td></tr>
+                <tr><td><code>verifyZpCallback(...)</code></td><td><b>The only call that establishes payment status.</b> Recomputes the expected <code>ValidationCode</code> and compares it in constant time. Returns <code>ZpCallbackVerified</code>, <code>ZpCallbackMalformed</code>, or <code>ZpCallbackRejected</code> — never throws on bad input, because callback bodies are attacker-reachable.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="note">
+            <p class="note-t"><code>ZpCallbackVerified</code> carries no data</p>
+            <p>It is pass/fail only, mirroring the TypeScript SDK. You already hold the body you passed in — read the fields you need off it once authenticity is proven, using <code>ZpPluginMode.callbackReferenceField</code> to find the right reference field for the mode.</p>
+          </div>
+
+          <figure>
+            <div class="fig-frame">
+<svg viewBox="0 0 860 340" role="img" aria-label="Which zenpay_dart calls run at each stage: two mint calls at prepare, three build calls at exchange, and one verify call on the separate inbound webhook">
+                <defs>
+                  <marker id="e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                  </marker>
+                  <marker id="e2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="var(--red)"></path>
+                  </marker>
+                </defs>
+
+                <text x="96" y="26" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">YOUR APP</text>
+                <text x="430" y="26" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">YOUR SERVER</text>
+                <text x="770" y="26" text-anchor="middle" font-size="11" font-weight="600" fill="currentColor" opacity=".72">ZENPAY</text>
+                <g stroke="currentColor" stroke-width="1" opacity=".22">
+                  <line x1="96" y1="36" x2="96" y2="322"></line>
+                  <line x1="430" y1="36" x2="430" y2="322"></line>
+                  <line x1="770" y1="36" x2="770" y2="322"></line>
+                </g>
+
+                <text x="14" y="62" font-family="var(--mono)" font-size="10" fill="var(--red)">1 · PREPARE</text>
+                <g fill="none" stroke="currentColor" stroke-width="1.3">
+                  <rect x="290" y="70" width="280" height="42" rx="7"></rect>
+                </g>
+                <text x="430" y="88" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">createZpMupid()</text>
+                <text x="430" y="103" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">createZpTimestamp()</text>
+                <path d="M100 62 L 286 62" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#e1)"></path>
+                <path d="M286 124 L 100 124" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#e1)" stroke-dasharray="5 4"></path>
+                <text x="193" y="56" text-anchor="middle" font-size="10" fill="currentColor">prepare an attempt</text>
+                <text x="193" y="140" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">short-lived capability</text>
+
+                <text x="14" y="176" font-family="var(--mono)" font-size="10" fill="var(--red)">2 · EXCHANGE</text>
+                <g fill="none" stroke="currentColor" stroke-width="1.3">
+                  <rect x="290" y="168" width="280" height="58" rx="7"></rect>
+                </g>
+                <text x="430" y="186" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">createZpFingerprint()</text>
+                <text x="430" y="201" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">createZpCallbackUrlToken()</text>
+                <text x="430" y="216" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">createZpCheckoutUrl()</text>
+                <path d="M100 176 L 286 176" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#e1)"></path>
+                <path d="M286 238 L 100 238" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#e1)" stroke-dasharray="5 4"></path>
+                <text x="193" y="170" text-anchor="middle" font-size="10" fill="currentColor">exchange it</text>
+                <text x="193" y="254" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">launch URL</text>
+                <text x="640" y="200" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">no outbound call —</text>
+                <text x="640" y="214" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">built entirely offline</text>
+
+                <text x="14" y="292" font-family="var(--mono)" font-size="10" fill="var(--red)">3 · CALLBACK</text>
+                <g fill="none" stroke="var(--red)" stroke-width="1.6">
+                  <rect x="290" y="278" width="280" height="42" rx="7"></rect>
+                </g>
+                <text x="430" y="296" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--red)">verifyZpCallback()</text>
+                <text x="430" y="311" text-anchor="middle" font-size="10" fill="var(--red)">constant-time ValidationCode</text>
+                <path d="M766 292 L 576 292" stroke="var(--red)" stroke-width="1.8" fill="none" marker-end="url(#e2)"></path>
+                <text x="672" y="286" text-anchor="middle" font-size="10" fill="var(--red)">signed webhook</text>
+              </svg>
+            </div>
+            <figcaption>Which call happens at which stage. The mint pair runs once at prepare time so a replayed exchange rebuilds the same attempt; the three build calls run at exchange; verification runs on a completely separate inbound request that may arrive at any time afterwards.</figcaption>
+          </figure>
+
+          <p>Also exported: <code>verifyZpCallbackUrlToken</code>, the pre-flight validators <code>validateZpCheckoutUrlRequest</code>, <code>validateZpFingerprintRequest</code> and <code>validateZpCallbackBody</code>, the typed wrappers <code>ZpCents</code>, <code>ZpMupid</code> and <code>ZpTimestamp</code>, plus <code>createSha3_512</code>, <code>isValidZpTimestamp</code>, <code>resolveZpHashAmountField</code> and <code>zpAmountToCents</code>. Internal defaults and constants are deliberately not exported.</p>
+        </div>
+
+        <div class="sub" id="dart-modes">
+          <h3>Transaction modes and status codes</h3>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-v">Wire</th><th class="col-v">Mode</th><th class="col-v">Charges?</th><th>Amount</th><th class="col-v">Callback field</th></tr></thead>
+              <tbody>
+                <tr><td class="num">0</td><td><code>makePayment</code></td><td>yes</td><td>required, positive</td><td><code>paymentReference</code></td></tr>
+                <tr><td class="num">1</td><td><code>tokenise</code></td><td>no</td><td>optional — displayed for pricing, never charged</td><td><code>token</code></td></tr>
+                <tr><td class="num">2</td><td><code>customPayment</code></td><td>yes</td><td>required; hashed as <code>"0"</code> in the fingerprint</td><td><code>paymentReference</code></td></tr>
+                <tr><td class="num">3</td><td><code>preauthorization</code></td><td>yes</td><td>required, positive</td><td><code>preauthReference</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Pick from the product: a set price is <code>0</code>, storing a card is <code>1</code>, a customer-entered amount is <code>2</code>, holding funds is <code>3</code>.</p>
+
+          <p style="margin-top:18px"><b>Payment status wire codes:</b> <code class="num">0</code> pending · <code class="num">1</code> error · <code class="num">3</code> successful · <code class="num">4</code> failed · <code class="num">5</code> cancelled · <code class="num">6</code> suppressed · <code class="num">7</code> in progress. <b>Only <code>3</code> is success</b> — both <code>isZpPaymentSuccessful(status)</code> and <code>ZpPaymentStatus.isSuccessful</code> mean exactly <code>== 3</code>. Never treat "not failed" as paid.</p>
+        </div>
+
+        <div class="sub" id="dart-secrets">
+          <h3>What is secret, and what only looks secret</h3>
+          <p>Masking public values adds no security — the customer's own browser receives the same URL — and makes logs impossible to correlate. These are safe to log in full, including inside a complete launch URL:</p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Value</th><th>Why it is public</th></tr></thead>
+              <tbody>
+                <tr><td><code>__ApiKey</code></td><td>Travels in the Authorise URL the customer's browser loads.</td></tr>
+                <tr><td><code>__Fingerprint</code></td><td>A per-transaction SHA3-512 digest, also in that URL. Useless without the password that produced it.</td></tr>
+                <tr><td><code>merchantCode</code></td><td>A merchant identifier in the URL path.</td></tr>
+                <tr><td><code>merchantUniquePaymentId</code></td><td>An ordinary opaque per-payment reference.</td></tr>
+                <tr><td><code>timestamp</code>, <code>customerReference</code>, <code>paymentAmount</code></td><td>Ordinary request fields in the URL.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="conseq blocks"><span class="tag">Never log</span><p>The <b>merchant password</b>, the <b>HMAC secret</b> passed to <code>createZpCallbackUrlToken</code>, and any <b>cardholder data</b>. The first two are hash inputs only and never appear in any URL this package builds.</p></div>
+        </div>
+
+        <div class="sub">
+          <h3>Dependencies</h3>
+          <div class="tbl-wrap">
+            <table class="dep-tbl">
+              <thead><tr><th class="col-v">Package</th><th class="col-v">Version</th><th class="col-v">Publisher</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td><code>pointycastle</code></td><td class="num">^4.0.0</td><td class="num">bouncycastle.org</td><td>SHA3-512 and HMAC-SHA3-512 — the cryptographic core. Secure random bytes (<code>createZpMupid</code>) use Dart's own <code>dart:math</code> <code>Random.secure()</code> instead — no package needed for that part.</td></tr>
+                <tr><td><code>coverage</code></td><td class="num">^1.15.1</td><td class="num">Dart team</td><td>Dev only. LCOV coverage for pure-Dart packages.</td></tr>
+                <tr><td><code>lints</code></td><td class="num">^6.1.0</td><td class="num">Dart team</td><td>Dev only. Base rule set — the no-<code>dynamic</code> strictness comes from <code>analysis_options.yaml</code>, not a separate lint package.</td></tr>
+                <tr><td><code>test</code></td><td class="num">^1.31.0</td><td class="num">Dart team</td><td>Dev only. Standard test runner.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>One runtime dependency. That is the whole point of a pure-Dart backend SDK.</p>
+        </div>
+      </section>
+
+      <!-- ═══ 2 · zenpay_flutter ═══ -->
+      <section class="pkg" id="flutter">
+        <div class="pkg-head">
+          <div class="pkg-kicker"><span class="pkg-n">02</span><span class="pkg-role">Client SDK · required</span></div>
+          <h2><code>zenpay_flutter</code></h2>
+          <p class="pkg-sub">Takes the checkout URL your backend built, presents it in a platform-native browser surface, watches the session, intercepts the return, and settles exactly one typed outcome. On its own this is a complete, production-ready integration.</p>
+        </div>
+
+        <p>The barrel exports <code>ZpCheckout</code>, <code>ZpCheckoutConfiguration</code>, <code>ZpCheckoutOutcome</code>, <code>ZpCheckoutException</code>, <code>ZpCheckoutEvent</code>, <code>ZpCheckoutObserver</code>, <code>isAllowedCheckoutUrl</code>, <code>CheckoutPresenter</code>, <code>ZpReturnUriSource</code> and the web return helpers. A separate <code>testing.dart</code> entrypoint exports <code>FakeReturnUriSource</code> for deterministic tests without OS platform channels.</p>
+
+        <div class="sub" id="flutter-launch">
+          <h3>Launching checkout</h3>
+          <p>Construct <code>ZpCheckout</code> once in <code>initState</code> and dispose it — one instance per screen, not one per tap. It enforces single-session concurrency and owns the return subscription.</p>
+
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">dart · construction</span><button class="copy" type="button" data-copy="_checkout = ZpCheckout(
+  configuration: ZpCheckoutConfiguration(
+    allowedCheckoutHosts: allowedCheckoutHosts,
+    expectedReturnUri: appReturnUri,
+    observer: ZpCheckoutObserver.from((e) =&gt; debugPrint('[ZpCheckout] $e')),
+  ),
+  returnUriSource: createDefaultReturnUriSource(),
+);">Copy</button></div>
+            <pre>_checkout = ZpCheckout(
+  configuration: ZpCheckoutConfiguration(
+    allowedCheckoutHosts: allowedCheckoutHosts,
+    expectedReturnUri: appReturnUri,
+    observer: ZpCheckoutObserver.from((e) =&gt; debugPrint('[ZpCheckout] $e')),
+  ),
+  returnUriSource: createDefaultReturnUriSource(),
+);</pre>
+          </div>
+
+          <div class="note">
+            <p class="note-t">That <code>debugPrint</code> is your code, not the SDK's</p>
+            <p><code>zenpay_dart</code>, <code>zenpay_flutter</code> and <code>zenpay_embedded</code> ship zero <code>print</code>, <code>debugPrint</code> or <code>log</code> calls in their <code>lib/</code> trees — <code>observer</code> is a plain callback you supply, and it only runs what you write. Emitted events already omit tokens, raw query parameters and full checkout URLs, so logging them is safe by default.</p>
+          </div>
+
+          <p><code>expectedReturnUri</code> is compared <b>exactly</b> — scheme, host, port and path. A mismatch is rejected rather than ignored, and surfaces as an unexplained timeout with nothing in the logs to explain it.</p>
+
+          <h4 style="margin-top:24px">The pay handler has a required ordering</h4>
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">dart · ordering is load-bearing</span><button class="copy" type="button" data-copy="Future&lt;void&gt; _pay() async {
+  if (!_valid()) return;                       // 1. validate synchronously
+
+  if (!_checkout.reserveLaunch()) {            // 2. BEFORE the first await
+    _show('Popup blocked'); return;
+  }
+
+  try {
+    final token = await prepareCheckout(...);  // 3. now async is safe
+    final ex = await exchangeCheckout(...);
+    await _resolve(await _checkout.open(checkoutUrl: Uri.parse(ex.checkoutUrl)));
+  } on Object catch (e) {
+    _checkout.releaseLaunchReservation();      // 4. or a blank tab leaks
+    _show('Checkout failed');
+  }
+}">Copy</button></div>
+            <pre>Future&lt;void&gt; _pay() async {
+  if (!_valid()) return;                       <span class="c">// 1. validate synchronously</span>
+
+  if (!_checkout.reserveLaunch()) {            <span class="c">// 2. BEFORE the first await</span>
+    _show('Popup blocked'); return;
+  }
+
+  try {
+    final token = await prepareCheckout(...);  <span class="c">// 3. now async is safe</span>
+    final ex = await exchangeCheckout(...);
+    await _resolve(await _checkout.open(checkoutUrl: Uri.parse(ex.checkoutUrl)));
+  } on Object catch (e) {
+    _checkout.releaseLaunchReservation();      <span class="c">// 4. or a blank tab leaks</span>
+    _show('Checkout failed');
+  }
+}</pre>
+          </div>
+
+          <div class="conseq blocks"><span class="tag">Why</span><p>On web, Chrome and Safari only let <code>window.open()</code> succeed when it runs synchronously, directly inside the click — not after an <code>await</code>. This flow has to <code>await</code> your backend before it even has a checkout URL to open, which would normally get the tab blocked as a pop-up. <code>reserveLaunch()</code> works around that by opening a blank tab immediately, before the first <code>await</code>; <code>open()</code> then just navigates that already-open tab once the URL is ready — no new pop-up, so nothing gets blocked. Mobile has no such restriction, so <code>reserveLaunch()</code> does nothing there — call it anyway so the same code runs unchanged on both platforms.</p></div>
+        </div>
+
+        <div class="sub" id="flutter-return">
+          <h3>Handling the return</h3>
+          <p>Four outcomes, and only one of them says anything about a payment — and even then only provisionally.</p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Outcome</th><th>Means</th></tr></thead>
+              <tbody>
+                <tr><td><code>ZpReturnReceived</code></td><td>The device came back to your app. Read <code>t</code> off the return URI and ask your backend for the real status. <b>Nothing more than that.</b></td></tr>
+                <tr><td><code>ZpPresentationDismissed</code></td><td>Closed before returning. Dismissal is <b>not</b> cancellation — it may still have completed server-side, so do not report it as cancelled.</td></tr>
+                <tr><td><code>ZpTimedOut</code></td><td>No return arrived within the configured timeout (20 minutes by default).</td></tr>
+                <tr><td><code>ZpLaunchFailed</code></td><td>Presentation never started; <code>ZpLaunchFailureCode</code> says why.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+                    <div class="grid2">
+            <div class="card">
+              <h3>Mobile</h3>
+              <p>The return arrives as an App Link / Universal Link via <code>app_links</code>. There is no native dismissal callback on Android, so dismissal is inferred from app-resume plus a 500&nbsp;ms grace period — letting an incoming deep link win the race. Seeing <code>ZpPresentationDismissed</code> just before a return is that mechanism working.</p>
+            </div>
+            <div class="card">
+              <h3>Web</h3>
+              <p>Checkout opens in a second tab, so that tab must relay the return back to the opener. Call <code>completeWebCheckoutReturnIfPopup(expectedReturnUri: ...)</code> as the <b>first line of <code>main()</code></b> and return immediately when it reports <code>true</code> — that window is the popup and has nothing to render.</p>
+            </div>
+          </div>
+
+          <div class="note warn">
+            <p class="note-t">A return is not a payment</p>
+            <p>Show a green tick on <code>ZpReturnReceived</code> alone and the app reports "paid" for a customer who abandoned checkout and pressed back. Success UI must come from a backend status lookup whose verified-callback flag is true.</p>
+          </div>
+
+          <p>Telemetry is opt-in through <code>ZpCheckoutObserver</code>: the SDK logs nothing by default, emitted events omit tokens and full checkout URLs, and exceptions thrown by an observer are caught and discarded so observability can never alter checkout.</p>
+        </div>
+
+        <div class="sub" id="flutter-presenter">
+          <h3>The <code>CheckoutPresenter</code> contract</h3>
+          <p>One abstract contract with one job: <code>openCheckout(url, ...) → PresentationLaunchResult</code>. <code>zenpay_flutter</code> ships the default implementation — Android Custom Tabs, iOS <code>SFSafariViewController</code>, a new browser tab on web. <code>zenpay_embedded</code> is a second implementation of the same contract, and section 3 is entirely about what that swap costs.</p>
+
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">dart · the entire swap</span><button class="copy" type="button" data-copy="final checkout = ZpCheckout(
+  configuration: configuration,
+  returnUriSource: presenter.returnUriSource, // only differs when embedding
+  presenter: presenter,                        // &lt;- this is the entire swap
+);">Copy</button></div>
+            <pre>final checkout = ZpCheckout(
+  configuration: configuration,
+  returnUriSource: presenter.returnUriSource, <span class="c">// only differs when embedding</span>
+  presenter: presenter,                        <span class="c">// &lt;- this is the entire swap</span>
+);</pre>
+          </div>
+          <p>Nothing about <code>ZpCheckoutConfiguration</code>, <code>ZpCheckoutOutcome</code>, launch URL validation or return URI validation changes.</p>
+        </div>
+
+        <div class="sub">
+          <h3>Dependencies</h3>
+          <div class="tbl-wrap">
+            <table class="dep-tbl">
+              <thead><tr><th class="col-v">Package</th><th class="col-v">Version</th><th class="col-v">Publisher</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td><code>app_links</code></td><td class="num">^7.2.1</td><td class="num">cow-level.ovh</td><td>Captures Android App Links and iOS Universal Links for the mobile return.</td></tr>
+                <tr><td><code>collection</code></td><td class="num">^1.19.0</td><td class="num">Dart team</td><td><code>SetEquality</code> for value equality on the configuration's host set.</td></tr>
+                <tr><td><code>meta</code></td><td class="num">^1.18.0</td><td class="num">Dart team</td><td><code>@visibleForTesting</code>, <code>@internal</code> annotations.</td></tr>
+                <tr><td><code>url_launcher</code></td><td class="num">^6.3.2</td><td class="num">Flutter team</td><td>Opens Custom Tabs, <code>SFSafariViewController</code>, and a new tab on web.</td></tr>
+                <tr><td><code>flutter_lints</code></td><td class="num">^6.0.0</td><td class="num">Flutter team</td><td>Dev only.</td></tr>
+                <tr><td><code>plugin_platform_interface</code></td><td class="num">^2.1.8</td><td class="num">Flutter team</td><td>Dev only. A transitive dependency of <code>url_launcher</code>, declared so tests can fake the platform instance. Never ships to consumers.</td></tr>
+                <tr><td><code>url_launcher_platform_interface</code></td><td class="num">^2.3.2</td><td class="num">Flutter team</td><td>Dev only. Same reason.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ 3 · zenpay_embedded ═══ -->
+      <section class="pkg" id="embedded">
+        <div class="pkg-head">
+          <div class="pkg-kicker"><span class="pkg-n">03</span><span class="pkg-role">Optional presenter · never the default</span></div>
+          <h2><code>zenpay_embedded</code></h2>
+          <p class="pkg-sub">An in-app modal WebView presenter for merchants who need checkout to stay inside the app. It adds one implementation of <code>CheckoutPresenter</code> and changes nothing else. Its barrel exports only <code>EmbeddedCheckoutPresenter</code> — the WebView widget, the navigation policy and the return source all stay internal, so there is no widget for a merchant to place in their own tree.</p>
+        </div>
+
+        <div class="sub" id="embedded-swap">
+          <h3>What actually changes</h3>
+          <figure>
+            <div class="fig-frame">
+              <svg viewBox="0 0 820 300" role="img" aria-label="Comparison of the default and embedded presenters: the default renders the hosted page in the OS browser process where the app holds no handle, while the embedded presenter places a WebView object inside the app process">
+                <defs>
+                  <marker id="c1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                  </marker>
+                  <marker id="c2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="var(--warn)"></path>
+                  </marker>
+                </defs>
+
+                <text x="200" y="20" text-anchor="middle" font-size="11.5" font-weight="600" fill="currentColor">DEFAULT — Custom Tabs / SFSafariViewController</text>
+                <text x="620" y="20" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--warn)">OPT-IN — embedded WebView</text>
+
+                <g fill="none" stroke="currentColor" stroke-width="1" opacity=".3" stroke-dasharray="5 4">
+                  <rect x="20" y="38" width="180" height="230" rx="9"></rect>
+                  <rect x="222" y="38" width="158" height="230" rx="9"></rect>
+                </g>
+                <text x="110" y="56" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">app process</text>
+                <text x="301" y="56" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">OS browser process</text>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.3">
+                  <rect x="40" y="76" width="140" height="40" rx="7"></rect>
+                  <rect x="40" y="150" width="140" height="40" rx="7"></rect>
+                  <rect x="242" y="150" width="118" height="60" rx="7"></rect>
+                </g>
+                <text x="110" y="101" text-anchor="middle" font-size="11" fill="currentColor">ZpCheckout</text>
+                <text x="110" y="167" text-anchor="middle" font-size="10.5" fill="currentColor">Default</text>
+                <text x="110" y="181" text-anchor="middle" font-size="10.5" fill="currentColor">presenter</text>
+                <text x="301" y="176" text-anchor="middle" font-size="10.5" fill="currentColor">Hosted page</text>
+                <text x="301" y="192" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">no handle held</text>
+
+                <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#c1)">
+                  <path d="M110 116 L 110 146"></path>
+                  <path d="M180 170 L 238 175"></path>
+                </g>
+                <text x="196" y="163" text-anchor="middle" font-size="9.5" fill="currentColor">launch URL</text>
+                <text x="110" y="238" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">no WebView object exists</text>
+                <text x="110" y="253" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">for the app to attack</text>
+
+                <g fill="none" stroke="var(--warn)" stroke-width="1" opacity=".55" stroke-dasharray="5 4">
+                  <rect x="440" y="38" width="360" height="230" rx="9"></rect>
+                </g>
+                <text x="620" y="56" text-anchor="middle" font-size="10" fill="var(--warn)">app process — everything inside</text>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.3">
+                  <rect x="466" y="76" width="140" height="40" rx="7"></rect>
+                  <rect x="466" y="150" width="140" height="40" rx="7"></rect>
+                </g>
+                <g fill="none" stroke="var(--warn)" stroke-width="1.8">
+                  <rect x="642" y="140" width="134" height="62" rx="7"></rect>
+                </g>
+                <text x="536" y="101" text-anchor="middle" font-size="11" fill="currentColor">ZpCheckout</text>
+                <text x="536" y="167" text-anchor="middle" font-size="10.5" fill="currentColor">Embedded</text>
+                <text x="536" y="181" text-anchor="middle" font-size="10.5" fill="currentColor">presenter</text>
+                <text x="709" y="166" text-anchor="middle" font-size="10.5" fill="var(--warn)">WebView object</text>
+                <text x="709" y="182" text-anchor="middle" font-size="10" fill="var(--warn)">hosted page inside</text>
+
+                <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#c1)">
+                  <path d="M536 116 L 536 146"></path>
+                </g>
+                <path d="M606 170 L 638 170" stroke="var(--warn)" stroke-width="1.8" fill="none" marker-end="url(#c2)"></path>
+                <text x="620" y="238" text-anchor="middle" font-size="10" fill="var(--warn)">the app now holds a handle —</text>
+                <text x="620" y="253" text-anchor="middle" font-size="10" fill="var(--warn)">five controls exist to never use it</text>
+
+                <line x1="410" y1="38" x2="410" y2="268" stroke="currentColor" stroke-width="1" opacity=".2"></line>
+              </svg>
+            </div>
+            <figcaption>Both render the same ZenPay page over the same HTTPS URL with the same server-side verification behind it. What changes is whether a WebView object exists inside the app's own process at all.</figcaption>
+          </figure>
+        </div>
+
+        <div class="sub" id="embedded-pci">
+          <h3>PCI DSS SAQ A</h3>
+          <div class="note warn">
+            <p class="note-t">Eligibility disclaimer, verbatim</p>
+            <p><b>This document does not determine SAQ eligibility for anyone.</b> It describes what each presentation surface does and enforces. Actual SAQ eligibility depends on the merchant's complete environment, payment integration, provider status, and acquirer/payment-brand rules, and must be confirmed with the merchant's own acquirer and/or QSA (Qualified Security Assessor).</p>
+          </div>
+
+          <div class="quote">
+            <p><b>There is no WebView object for the app to hold.</b> Android Custom Tabs and iOS <code>SFSafariViewController</code> render the hosted page inside the operating system's own browser process (Chrome / Safari) — a fully separate process from the app's. The app never has a handle to that page's document, its JavaScript context, or its navigation. Every risk in § 3 below (a JavaScript bridge, a caller-controlled navigation delegate, a sub-frame sharing a document with merchant script) requires a WebView object to exist in the first place. Here, none does — the risk isn't mitigated, it's structurally absent.</p>
+            <cite>PCI_SAQ_A.md § 1</cite>
+          </div>
+          <p>That is why the system browser is the default rather than merely the first surface shipped. The entire payment journey — card entry, any 3DS challenge, wallet buttons — happens <b>inside ZenPay's hosted page</b>; your app never renders a step of it and never sees the data. A full browser runs that page with no capability restrictions, so the default surface needs no manifest entries or feature flags to support any of it. An embedded WebView is a reduced-capability environment by comparison, which is where the extra requirements below come from.</p>
+
+                    <h4 style="margin-top:26px">The five controls this package enforces</h4>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-v">§</th><th class="col-k">Mistake it prevents</th><th>What the package does instead</th></tr></thead>
+              <tbody>
+                <tr><td class="num">3.1</td><td>Adding a JavaScript bridge</td><td>Never calls <code>addJavaScriptChannel</code> or <code>setOnConsoleMessage</code>. On iOS the handler registers at the <code>WKWebViewConfiguration</code> level regardless of frame-scoping — reachable from every frame, including third-party 3DS/ACS frames. There is no safe way to add one.</td></tr>
+                <tr><td class="num">3.2</td><td>Accepting a caller-supplied <code>WebViewController</code></td><td>The widget builds its own and accepts none — structurally, not by convention. A supplied controller could carry a bridge the grep gate cannot see.</td></tr>
+                <tr><td class="num">3.3</td><td>Allowlisting navigation by host</td><td>Restricts navigation to <code>https</code> only, never a host allowlist. A 3DS challenge sends the customer to their own issuer's ACS host, which cannot be enumerated in advance.</td></tr>
+                <tr><td class="num">3.4</td><td>Embedding checkout as a sub-frame</td><td>Only ever performs full top-level navigation. Merchant script sharing one document with the PSP's frame is the pattern that typically moves an integration from SAQ A to the heavier SAQ A-EP.</td></tr>
+                <tr><td class="num">3.5</td><td>Leaving browsing state behind</td><td>On dismiss, navigates to <code>about:blank</code>, then clears cache, local storage and cookies in that order. <code>webview_flutter</code> exposes no per-instance store, so leftovers are reachable by any other WebView in the app.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="note warn">
+            <p class="note-t">Google Pay is a host-app requirement, not a control — verified by a live device test</p>
+            <p><code>PCI_SAQ_A.md</code> § 3.6 is explicit that this is a platform restriction rather than a PCI control. The package opts in to the WebView's Payment Request API via <code>AndroidWebViewController</code>'s native <code>WebViewFeatureType.paymentRequest</code> flag — a <code>WebSettings</code>-level toggle, not a JavaScript channel, so it carries none of the § 3.1 bridge risk. Tested on a real device (Pixel 9 Pro XL, embedded-WebView demo, 2026-08-25): commenting out <code>_enableGooglePayPaymentRequest()</code> and rebuilding reproduces Google's own in-page failure verbatim — <em>"Something went wrong. Google Pay couldn't load properly because this App uses a WebView. App developers must follow the instructions to enable Google Pay to work within Android WebView: https://goo.gle/gpay-android-webview-help [OR_BIBED_15] OR_BIBED_15"</em>. With the flag restored, Google Pay has worked across every checkout mode in extensive real-device testing.</p>
+            <p style="margin-top:8px">You do <b>not</b> need to add <code>&lt;queries&gt;</code> entries (<code>org.chromium.intent.action.PAY</code>, <code>IS_READY_TO_PAY</code>, <code>UPDATE_PAYMENT_DETAILS</code>) to <code>AndroidManifest.xml</code> for this to work — the example app declares only the <code>PROCESS_TEXT</code> query <code>flutter create</code> generates, and Google Pay still works reliably as-is. This package ships no native <code>android/</code> folder of its own, so if your own target devices ever do need manifest changes, that's a per-merchant integration step, not something this package can auto-merge.</p>
+          </div>
+
+          <h4 style="margin-top:26px">Three controls have commit-time regression guards</h4>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Guard</th><th>Fails the commit when</th></tr></thead>
+              <tbody>
+                <tr><td><code>no-js-bridge</code></td><td><code>addJavaScriptChannel</code> or <code>setOnConsoleMessage</code> appears anywhere in <code>zenpay_embedded/lib</code>.</td></tr>
+                <tr><td><code>webview-teardown</code></td><td>The WebView widget stops calling <code>clearCache</code>, <code>clearLocalStorage</code>, or <code>WebViewCookieManager</code>.</td></tr>
+                <tr><td><code>webview-no-host-allowlist</code></td><td>The navigation policy ever references <code>isAllowedCheckoutUrl</code> or <code>allowedCheckoutHosts</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>§ 3.2 and § 3.4 are structural rather than forbidden-pattern checks — there is no parameter to pass a controller through, and full-navigation-only is a single call site — so a reviewer reading the diff is the check there.</p>
+
+          <div class="note">
+            <p class="note-t">Outstanding gates are process, not code</p>
+            <p>Still required before embedded mode can be advertised as SAQ-A-compatible: ZenPay product approval, 3DS certification, a tested wallet matrix, external-app switching tests, cookie and storage tests on physical devices, accessibility testing, and QSA review. No code change closes any of these. SAQ A merchants may also still carry ASV scanning responsibilities for their own web pages.</p>
+          </div>
+        </div>
+
+        <div class="sub">
+          <h3>Dependencies</h3>
+          <div class="tbl-wrap">
+            <table class="dep-tbl">
+              <thead><tr><th class="col-v">Package</th><th class="col-v">Version</th><th class="col-v">Publisher</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td><code>zenpay_flutter</code></td><td class="num">^0.1.0</td><td class="num">this repo</td><td>The contract it implements. It extends the client SDK rather than replacing it.</td></tr>
+                <tr><td><code>webview_flutter</code></td><td class="num">^4.14.1</td><td class="num">Flutter team</td><td>The WebView widget the hosted page renders in.</td></tr>
+                <tr><td><code>webview_flutter_android</code></td><td class="num">^4.13.0</td><td class="num">Flutter team</td><td>Android controller params and the Payment Request toggle.</td></tr>
+                <tr><td><code>meta</code></td><td class="num">^1.18.0</td><td class="num">Dart team</td><td>Annotations.</td></tr>
+                <tr><td><code>flutter_lints</code></td><td class="num">^6.0.0</td><td class="num">Flutter team</td><td>Dev only.</td></tr>
+                <tr><td><code>webview_flutter_platform_interface</code></td><td class="num">^2.15.0</td><td class="num">Flutter team</td><td>Dev only. Transitive via <code>webview_flutter</code>; declared directly so <code>test/support/fake_webview_platform.dart</code> can fake <code>WebViewPlatform.instance</code>. Never ships to consumers.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>A merchant who never imports this package never resolves <code>webview_flutter</code> at all — that is what "genuinely optional" means here.</p>
+        </div>
+      </section>
+
+      <!-- ═══ 4 · example ═══ -->
+      <section class="pkg" id="example">
+        <div class="pkg-head">
+          <div class="pkg-kicker"><span class="pkg-n">04</span><span class="pkg-role">Reference integration · not a library</span></div>
+          <h2><code>example/</code></h2>
+          <p class="pkg-sub">A Shelf backend consuming <code>zenpay_dart</code> and a Flutter app consuming <code>zenpay_flutter</code> and <code>zenpay_embedded</code>, wired end to end. Merchants copy the pattern, not the package. The rest of this section is how to get it running.</p>
+        </div>
+
+        <div class="sub" id="example-prereq">
+          <h3>Prerequisites</h3>
+          <p>Dart, Flutter and Melos get the server and app running. Add the rest when you reach the step that needs them.</p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Needed for</th><th>What and why</th></tr></thead>
+              <tbody>
+                <tr><td><b>Everything</b></td><td>Dart SDK <code>^3.13.0</code> and Flutter (stable). Flutter bundles a compatible Dart.</td></tr>
+                <tr><td><b>Everything</b></td><td>Melos <code>^8.3.0</code> — this repo is a Dart pub workspace and Melos drives the multi-package scripts.</td></tr>
+                <tr><td><code>--web</code>, Docker</td><td>mkcert. The SDK rejects any non-HTTPS return URI, so the web flow needs TLS even on localhost.</td></tr>
+                <tr><td><code>--android</code></td><td>Android Studio + SDK, <code>adb</code>, and a device or emulator.</td></tr>
+                <tr><td><code>--ios</code></td><td>Xcode + CocoaPods, macOS only — the CLI hard-errors elsewhere.</td></tr>
+                <tr><td><code>--tunnel</code>, <code>--quick-tunnel</code></td><td><code>cloudflared</code>. Needed for anything past launching checkout: ZenPay's callback is server-to-server and cannot reach localhost.</td></tr>
+                <tr><td><code>--docker-run</code></td><td>Docker + Compose, plus <code>.env</code>, the mkcert cert, and a GCP <code>service-account.json</code> you supply yourself.</td></tr>
+                <tr><td><code>--cf-deploy</code></td><td>Node/npm and Cloudflare access — maintainers only.</td></tr>
+                <tr><td><code>--stream</code></td><td><code>scrcpy</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="margin-top:26px">Installing what's missing</h4>
+          <p>Two gaps to know before you start: <b>winget has no Flutter SDK package</b> — use Chocolatey or the official installer from flutter.dev — and <b>Flutter is not in apt</b> on Ubuntu, so reach for snap there.</p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-v">Tool</th><th>Windows</th><th>WSL / Ubuntu</th></tr></thead>
+              <tbody>
+                <tr><td><b>Flutter + Dart</b></td><td><code>choco install flutter</code></td><td><code>sudo snap install flutter --classic</code></td></tr>
+                <tr><td><b>Melos</b></td><td colspan="2"><code>dart pub global activate melos</code> — identical on both, once Dart exists.</td></tr>
+                <tr><td><b>mkcert</b></td><td><code>winget install FiloSottile.mkcert</code></td><td><code>sudo apt install mkcert</code></td></tr>
+                <tr><td><b>cloudflared</b></td><td><code>winget install Cloudflare.cloudflared</code></td><td><code>sudo apt install cloudflared</code></td></tr>
+                <tr><td><b>Android Studio</b></td><td><code>winget install Google.AndroidStudio</code></td><td>A GUI tool — install on the host OS, not inside WSL.</td></tr>
+                <tr><td><b>adb</b> alone</td><td>Ships inside Android Studio's SDK.</td><td><code>sudo apt install adb</code></td></tr>
+                <tr><td><b>scrcpy</b></td><td><code>winget install Genymobile.scrcpy</code></td><td><code>sudo apt install scrcpy</code></td></tr>
+                <tr><td><b>Docker</b></td><td><code>winget install Docker.DockerDesktop</code></td><td><code>sudo apt install docker.io</code></td></tr>
+                <tr><td><b>Node / npm</b></td><td><code>winget install OpenJS.NodeJS</code></td><td><code>sudo apt install nodejs npm</code></td></tr>
+                <tr><td><b>JDK</b> — for <code>keytool</code></td><td>Bundled with Android Studio.</td><td><code>sudo apt install openjdk-17-jdk-headless</code></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">windows — everything at once</span><button class="copy" type="button" data-copy="winget install FiloSottile.mkcert Cloudflare.cloudflared Genymobile.scrcpy Google.AndroidStudio OpenJS.NodeJS
+choco install flutter -y
+dart pub global activate melos">Copy</button></div>
+            <pre><span class="p">&gt;</span> winget install FiloSottile.mkcert Cloudflare.cloudflared Genymobile.scrcpy Google.AndroidStudio OpenJS.NodeJS
+<span class="p">&gt;</span> choco install flutter -y   <span class="c"># no winget package for the Flutter SDK</span>
+<span class="p">&gt;</span> dart pub global activate melos</pre>
+          </div>
+
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">wsl / ubuntu — everything at once</span><button class="copy" type="button" data-copy="sudo apt update
+sudo apt install -y mkcert cloudflared scrcpy adb nodejs npm docker.io openjdk-17-jdk-headless
+sudo snap install flutter --classic
+dart pub global activate melos">Copy</button></div>
+            <pre><span class="p">$</span> sudo apt update
+<span class="p">$</span> sudo apt install -y mkcert cloudflared scrcpy adb nodejs npm docker.io openjdk-17-jdk-headless
+<span class="p">$</span> sudo snap install flutter --classic   <span class="c"># not in apt</span>
+<span class="p">$</span> dart pub global activate melos</pre>
+          </div>
+
+          <div class="note">
+            <p class="note-t"><code>keytool</code> comes with Android Studio</p>
+            <p><code>--bootstrap</code> uses it to read your Android debug signing certificate and write <code>assetlinks.json</code>. It checks <code>JAVA_HOME/bin</code>, then Android Studio's bundled JBR, then your <code>PATH</code> — so an Android Studio install covers it. If none resolve, bootstrap warns and carries on, and the mobile return opens a browser instead of the app until a JDK is installed and you re-run.</p>
+          </div>
+
+        </div>
+
+        <div class="sub" id="example-setup">
+          <h3>Setup checklist</h3>
+          <p>Ordered by what each step <em>writes</em> and the next step <em>reads</em>. Your progress is saved in this browser.</p>
+
+          <figure>
+            <div class="fig-frame">
+              <svg viewBox="0 0 760 280" role="img" aria-label="PUBLIC_BASE_URL set by the server command propagates into three derived artifacts, and Android fetches assetlinks.json from that same public host to verify the App Link">
+                <defs>
+                  <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                  </marker>
+                  <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="var(--red)"></path>
+                  </marker>
+                </defs>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".9">
+                  <rect x="14" y="96" width="150" height="52" rx="8"></rect>
+                </g>
+                <text x="89" y="116" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">--quick-tunnel</text>
+                <text x="89" y="133" text-anchor="middle" font-size="11" fill="currentColor" opacity=".65">prints public URL</text>
+
+                <g fill="none" stroke="var(--red)" stroke-width="1.6">
+                  <rect x="232" y="90" width="164" height="64" rx="8"></rect>
+                </g>
+                <text x="314" y="112" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--red)">--server</text>
+                <text x="314" y="129" text-anchor="middle" font-size="11" fill="currentColor">writes</text>
+                <text x="314" y="144" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="currentColor" opacity=".75">PUBLIC_BASE_URL</text>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".9">
+                  <rect x="470" y="14" width="276" height="46" rx="8"></rect>
+                  <rect x="470" y="76" width="276" height="46" rx="8"></rect>
+                  <rect x="470" y="138" width="276" height="46" rx="8"></rect>
+                </g>
+                <text x="484" y="33" font-family="var(--mono)" font-size="10.5" fill="currentColor">backend/.env</text>
+                <text x="484" y="49" font-size="10.5" fill="currentColor" opacity=".7">redirectUrl + callbackUrl origin</text>
+                <text x="484" y="95" font-family="var(--mono)" font-size="10.5" fill="currentColor">app/.env</text>
+                <text x="484" y="111" font-size="10.5" fill="currentColor" opacity=".7">APP_RETURN_URI_MOBILE</text>
+                <text x="484" y="157" font-family="var(--mono)" font-size="10.5" fill="currentColor">AndroidManifest.xml</text>
+                <text x="484" y="173" font-size="10.5" fill="currentColor" opacity=".7">host + autoVerify="true"</text>
+
+                <g stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#a1)">
+                  <path d="M164 122 L 226 122"></path>
+                  <path d="M396 116 L 430 116 L 430 37 L 464 37"></path>
+                  <path d="M396 122 L 448 122 L 448 99 L 464 99"></path>
+                  <path d="M396 128 L 430 128 L 430 161 L 464 161"></path>
+                </g>
+                <text x="195" y="115" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">paste</text>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".9">
+                  <rect x="232" y="212" width="164" height="50" rx="8"></rect>
+                </g>
+                <text x="314" y="232" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">--android</text>
+                <text x="314" y="249" text-anchor="middle" font-size="11" fill="currentColor" opacity=".65">installs the APK</text>
+
+                <path d="M314 184 L 314 208" stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#a1)" stroke-dasharray="4 3"></path>
+                <text x="322" y="200" font-size="10" fill="currentColor" opacity=".7">manifest baked in</text>
+
+                <path d="M396 237 L 600 237 L 600 190" stroke="var(--red)" stroke-width="1.6" fill="none" marker-end="url(#a2)"></path>
+                <text x="500" y="230" text-anchor="middle" font-size="10.5" fill="var(--red)">at install, Android GETs</text>
+                <text x="500" y="256" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--red)">https://&lt;host&gt;/.well-known/assetlinks.json</text>
+              </svg>
+            </div>
+            <figcaption>Why the tunnel comes before the server, and the server before the app. <code>--server</code> writes <code>PUBLIC_BASE_URL</code> and derives three things from it, including the Android manifest host. Android then fetches <code>assetlinks.json</code> from that host over the public internet — which a <code>localhost</code> value can never satisfy.</figcaption>
+          </figure>
+
+          <figure>
+            <div class="fig-frame">
+<svg viewBox="0 0 820 320" role="img" aria-label="Three-terminal layout: cloudflared in terminal one carries ZenPay's webhook inward, the native backend in terminal two listens on port 7000, and the Flutter app in terminal three reaches it through adb reverse">
+                  <defs>
+                    <marker id="f1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                      <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                    </marker>
+                    <marker id="f2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                      <path d="M0 0 L10 5 L0 10 z" fill="var(--red)"></path>
+                    </marker>
+                  </defs>
+
+                  <g stroke="currentColor" stroke-width="1" opacity=".28" fill="none" stroke-dasharray="5 4">
+                    <rect x="14" y="92" width="212" height="86" rx="9"></rect>
+                    <rect x="300" y="80" width="220" height="110" rx="9"></rect>
+                    <rect x="594" y="92" width="212" height="86" rx="9"></rect>
+                  </g>
+                  <text x="120" y="84" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".72">terminal 1</text>
+                  <text x="410" y="72" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".72">terminal 2</text>
+                  <text x="700" y="84" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".72">terminal 3</text>
+
+                  <g fill="none" stroke="currentColor" stroke-width="1.3">
+                    <rect x="34" y="110" width="172" height="50" rx="7"></rect>
+                    <rect x="320" y="98" width="180" height="74" rx="7"></rect>
+                    <rect x="614" y="110" width="172" height="50" rx="7"></rect>
+                  </g>
+                  <text x="120" y="131" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">cloudflared</text>
+                  <text x="120" y="147" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">public https URL</text>
+                  <text x="410" y="125" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">dart run cli.dart --server</text>
+                  <text x="410" y="144" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">backend :7000</text>
+                  <text x="700" y="131" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">flutter run</text>
+                  <text x="700" y="147" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">on a device</text>
+
+                  <g fill="none" stroke="currentColor" stroke-width="1.3">
+                    <rect x="34" y="16" width="172" height="40" rx="7"></rect>
+                  </g>
+                  <text x="120" y="41" text-anchor="middle" font-size="11" fill="currentColor">ZenPay</text>
+                  <path d="M120 60 L 120 106" stroke="var(--red)" stroke-width="1.8" fill="none" marker-end="url(#f2)"></path>
+                  <text x="130" y="86" font-size="10" fill="var(--red)">signed webhook</text>
+
+                  <path d="M210 135 L 316 135" stroke="var(--red)" stroke-width="1.8" fill="none" marker-end="url(#f2)"></path>
+                  <text x="263" y="128" text-anchor="middle" font-size="10" fill="var(--red)">forwards</text>
+
+                  <path d="M610 135 L 504 135" stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#f1)"></path>
+                  <text x="557" y="128" text-anchor="middle" font-size="9.5" fill="currentColor">adb reverse</text>
+                  <text x="557" y="152" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">tcp:7000</text>
+
+                  <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".85">
+                    <rect x="300" y="238" width="220" height="46" rx="7"></rect>
+                  </g>
+                  <text x="410" y="258" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">example/backend/.env</text>
+                  <text x="410" y="273" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="currentColor" opacity=".7">PUBLIC_BASE_URL</text>
+                  <path d="M120 164 L 120 261 L 296 261" stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#f1)" stroke-dasharray="4 3"></path>
+                  <text x="200" y="255" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".75">you paste the URL</text>
+                  <path d="M410 234 L 410 178" stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#f1)" stroke-dasharray="4 3"></path>
+                  <text x="420" y="212" font-size="9.5" fill="currentColor" opacity=".75">read at startup</text>
+                </svg>
+            </div>
+            <figcaption>The three-terminal layout the steps below produce. The tunnel is what lets ZenPay's server-to-server webhook reach a backend running on your machine; <code>adb reverse</code> is what lets the phone reach it on your host's localhost. Both are one-way plumbing problems, and each is solved in exactly one place.</figcaption>
+          </figure>
+
+          <ol class="steps" id="steps">
+
+            <li class="step" data-step="1">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s1" aria-label="Step 1: clone and bootstrap"><label for="s1"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">any terminal</span></div>
+                  <h3>Clone and bootstrap</h3>
+                  <p>One command does the whole first-run setup. It refuses to continue without <code>flutter</code> and <code>dart</code> on PATH.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="cmd">
+                  <div class="cmd-head"><span class="cmd-label">shell</span><button class="copy" type="button" data-copy="git clone https://github.com/zenith-payments/zp-flutter-sdk
+cd zp-flutter-sdk
+dart run cli.dart --bootstrap">Copy</button></div>
+                  <pre><span class="p">$</span> git clone https://github.com/zenith-payments/zp-flutter-sdk
+<span class="p">$</span> cd zp-flutter-sdk
+<span class="p">$</span> dart run cli.dart --bootstrap</pre>
+                </div>
+                <p style="margin-top:14px">In order, <code>--bootstrap</code> resolves the pub workspace with <code>dart pub get</code>; copies both <code>.env</code> files from their <code>.example</code> templates <em>only if they do not already exist</em>; prompts for the values the backend refuses to start without; generates the mkcert TLS cert; and writes <code>assetlinks.json</code> for your machine.</p>
+                <div class="conseq blocks"><span class="tag">Blocks</span><p>Nothing downstream works without it — the workspace is unresolved, so <code>dart run</code> fails in every package.</p></div>
+              </div>
+            </li>
+
+            <li class="step" data-step="2">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s2" aria-label="Step 2: answer the credential prompts"><label for="s2"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">same prompt</span></div>
+                  <h3>Answer the prompts</h3>
+                  <p>Four ZenPay credentials plus one local secret, asked one at a time. Enter keeps whatever is already set.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="tbl-wrap">
+                  <table>
+                    <thead><tr><th class="col-k">Prompt</th><th class="col-v">Kind</th><th>What to enter</th></tr></thead>
+                    <tbody>
+                      <tr><td><code>ZENPAY_MERCHANT_CODE</code></td><td>public</td><td rowspan="2">From your ZenPay sandbox or production merchant account. Not included in this repo.</td></tr>
+                      <tr><td><code>ZENPAY_API_KEY</code></td><td>public</td></tr>
+                      <tr><td><code>ZENPAY_USERNAME</code></td><td>private</td><td rowspan="2">Never leaves the backend — both are hash inputs for the fingerprint and the callback ValidationCode.</td></tr>
+                      <tr><td><code>ZENPAY_PASSWORD</code></td><td>private</td></tr>
+                      <tr><td><code>TOKEN_SECRET</code></td><td>local</td><td>Not a ZenPay credential — it is this backend's own root signing secret. <b>Leave blank and one is generated for you</b>, 32 secure random bytes as hex.</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="conseq blocks"><span class="tag">Blocks</span><p>Missing any of these and <code>bin/server.dart</code>'s <code>main()</code> refuses to start at all — it <code>exit(1)</code>s immediately with the exact missing keys listed on stderr, rather than serving and failing deeper in. (The 503 <code>SESSION_CONFIGURATION_REQUIRED</code> response in <code>server_app.dart</code> is a second, defense-in-depth check on the same values — in practice you see the startup refusal first.)</p></div>
+              </div>
+            </li>
+
+            <li class="step" data-step="3">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s3" aria-label="Step 3: start a public tunnel"><label for="s3"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">terminal 1 — leave running</span></div>
+                  <h3>Start a public tunnel</h3>
+                  <p>Before the server, because the server prompt asks for the URL this prints.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="cmd">
+                  <div class="cmd-head"><span class="cmd-label">terminal 1</span><button class="copy" type="button" data-copy="dart run cli.dart --quick-tunnel">Copy</button></div>
+                  <pre><span class="p">$</span> dart run cli.dart --quick-tunnel</pre>
+                </div>
+                <p style="margin-top:14px">Runs <code>cloudflared tunnel --url http://localhost:&lt;PORT&gt;</code>, reading <code>PORT</code> from the backend <code>.env</code> and falling back to <code>:7000</code>. No Cloudflare account needed. For a stable URL across restarts use <code>--tunnel</code>, which prompts for a durable token and saves it.</p>
+                <div class="conseq partial"><span class="tag">Partly optional</span><p>Skip it and checkout still <em>launches</em> — you reach ZenPay's hosted page. What breaks is everything after: the callback is server-to-server and cannot reach <code>localhost</code>, so no payment is ever confirmed. On Android it also breaks the return trip, because App Link verification needs a publicly fetchable host.</p></div>
+              </div>
+            </li>
+
+            <li class="step" data-step="4">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s4" aria-label="Step 4: start the backend with that URL"><label for="s4"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">terminal 2 — leave running</span></div>
+                  <h3>Start the backend</h3>
+                  <p>The only step that prompts for the tunnel URL and re-syncs native Android/iOS config from it — must run before step 5, not after.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="cmd">
+                  <div class="cmd-head"><span class="cmd-label">terminal 2</span><button class="copy" type="button" data-copy="dart run cli.dart --server">Copy</button></div>
+                  <pre><span class="p">$</span> dart run cli.dart --server</pre>
+                </div>
+                <p style="margin-top:14px">Runs on <code>:7000</code>. Prompts for <code>PUBLIC_BASE_URL</code> — paste the tunnel URL step 3 printed — and, on any value (including keeping the existing one), derives <code>APP_RETURN_URI_MOBILE</code> into <code>example/app/.env</code> and re-syncs <code>AndroidManifest.xml</code>/<code>Runner.entitlements</code> to match. Needs no <code>service-account.json</code>: reCAPTCHA is optional here, disabled when the three <code>RECAPTCHA_*</code> variables are empty.</p>
+
+                <div class="conseq blocks"><span class="tag">Blocks</span><p>Keep <code>PUBLIC_BASE_URL</code> at <code>localhost</code> (Enter through the prompt with no tunnel running, or <code>--keep-url</code> before one exists) and checkout still <em>launches</em>, but ZenPay's callback can never reach you and the Android App Link never verifies against a host nothing can fetch <code>/.well-known/</code> from.</p></div>
+
+                <div class="note">
+                  <p class="note-t">Running it in Docker instead</p>
+                  <p><code>dart run cli.dart --docker-run</code> runs the backend <b>and</b> the web frontend in containers on <code>:7000</code>/<code>:8080</code> from <code>docker/local/docker-compose.yml</code>, plus the tunnel when a token is configured — always through <code>cli.dart</code>, never <code>docker compose</code> directly, since the Compose build context only resolves the way <code>cli.dart</code> invokes it. It does not prompt for <code>PUBLIC_BASE_URL</code> (set it in <code>example/backend/.env</code> yourself first) and does not re-sync native Android/iOS config — only <code>--server</code> and <code>--android</code> do that. It refuses to start unless <b>all three</b> exist: <code>example/backend/.env</code>, the mkcert cert pair in <code>example/app/</code>, and <code>example/backend/service-account.json</code> — a GCP key for reCAPTCHA that <b>nothing in this repo generates</b> (supply your own, or remove the backend service's <code>volumes:</code> line in the Compose file). It cannot run the Android/iOS app itself, so step 5 still runs on your host either way. Use <code>--docker-rebuild</code> when the image looks stale, <code>--docker-build</code> alone to build without running.</p>
+                </div>
+              </div>
+            </li>
+
+            <li class="step" data-step="5">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s5" aria-label="Step 5: run the app"><label for="s5"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">terminal 3</span></div>
+                  <h3>Run the app</h3>
+                  <p>Each mode re-syncs native config first, then hands off to <code>flutter run</code>.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="cmd">
+                  <div class="cmd-head"><span class="cmd-label">terminal 3</span><button class="copy" type="button" data-copy="dart run cli.dart --android">Copy</button></div>
+                  <pre><span class="p">$</span> dart run cli.dart --android          <span class="c"># adb reverse tcp:7000, then flutter run</span>
+<span class="p">$</span> dart run cli.dart --android-webview  <span class="c"># the zenpay_embedded WebView demo</span>
+<span class="p">$</span> dart run cli.dart --ios              <span class="c"># macOS only</span>
+<span class="p">$</span> dart run cli.dart --web              <span class="c"># Chrome on https://localhost:3000</span></pre>
+                </div>
+                <ul class="tight">
+                  <li><b>Android</b> sets up <code>adb reverse tcp:7000 tcp:7000</code> so the device reaches the backend on your host's localhost, auto-picking the device (or pass <code>--device=&lt;id&gt;</code>). <code>--android</code> re-syncs the native manifest itself before every run (<code>cli.dart</code>'s <code>_android</code> calls the same <code>_syncNativeAppLinkConfig</code> step 4 did), so the install always re-verifies against whatever host is currently in <code>example/backend/.env</code> — never a stale one from an earlier run.</li>
+                  <li><b>Web</b> serves on <code>localhost:3000</code> over TLS with the mkcert cert, matching <code>APP_RETURN_URI_WEB</code>. Without the cert it runs over plain HTTP and warns — but the HTTPS return URI will not match.</li>
+                  <li><b>iOS</b> has no <code>adb reverse</code> equivalent: the simulator shares the host's localhost, and a physical device needs the backend on the LAN or behind the tunnel.</li>
+                </ul>
+                <div class="conseq blocks"><span class="tag">Blocks</span><p>Run this before step 4 and the app is built against whatever host the manifest last held. On Android the return then opens a browser tab instead of your app, and checkout appears to hang until it times out.</p></div>
+              </div>
+            </li>
+
+            <li class="step" data-step="6">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s6" aria-label="Step 6: confirm the launch works"><label for="s6"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">on device</span></div>
+                  <h3>Confirm the launch works</h3>
+                  <p>The app opens on a transaction-mode picker: Make Payment, Tokenise, Custom Payment, Preauthorization.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <p>Fill in the form and tap Pay. Landing on ZenPay's hosted sandbox checkout page confirms steps 1–5 are wired correctly. To see the full round trip — checkout completing and the app receiving a <em>verified</em> result — the tunnel from step 3 must be live.</p>
+                <div class="conseq partial"><span class="tag">Diagnostic</span><p>If checkout launches but the app never hears back on Android, the App Link did not verify. Confirm <code>PUBLIC_BASE_URL</code> is the tunnel host, that <code>assetlinks.json</code> exists, and reinstall so Android re-runs verification.</p></div>
+              </div>
+            </li>
+
+            <li class="step" data-step="7">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s7" aria-label="Step 7: run the verification suite"><label for="s7"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">any terminal</span></div>
+                  <h3>Run the verification suite</h3>
+                  <p>Confirm the checkout is green on a clean tree before you change anything.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="cmd">
+                  <div class="cmd-head"><span class="cmd-label">repository root</span><button class="copy" type="button" data-copy="melos bs
+melos run format
+melos run analyze
+melos run test
+melos run test:dart
+dart run scripts/check_claude_md.dart">Copy</button></div>
+                  <pre><span class="p">$</span> melos bs
+<span class="p">$</span> melos run format
+<span class="p">$</span> melos run analyze
+<span class="p">$</span> melos run test
+<span class="p">$</span> melos run test:dart
+<span class="p">$</span> dart run scripts/check_claude_md.dart</pre>
+                </div>
+                <div class="conseq partial"><span class="tag">Enforced anyway</span><p>The <code>lefthook</code> pre-commit gate runs format, analyze, analyze-root, test, and the three WebView regression guards (<code>no-js-bridge</code>, <code>webview-teardown</code>, <code>webview-no-host-allowlist</code>) — seven checks, no lint step; this repo declares no lint package. CI is currently disabled, so that hook is the only enforcement — running these first just saves a rejected commit.</p></div>
+              </div>
+            </li>
+
+            <li class="step" data-step="8">
+              <div class="step-top">
+                <div class="step-box"><input type="checkbox" id="s8" aria-label="Step 8: read the trust model"><label for="s8"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 L9 17 L4 12"></path></svg></label></div>
+                <div class="step-body">
+                  <div class="step-title"><span class="step-num"></span><span class="step-where">reading</span></div>
+                  <h3>Internalise the trust model</h3>
+                  <p>One rule outranks everything else, and getting it wrong looks completely correct.</p>
+                </div>
+              </div>
+              <div class="step-extra">
+                <div class="note warn">
+                  <p class="note-t">Only the signed callback decides</p>
+                  <p>Every <code>ZpCheckoutOutcome</code> is provisional — it means the customer's device came back. Only <code>verifyZpCallback</code>'s constant-time <code>ValidationCode</code> check establishes that money moved. See section 1 for the call and section 2 for the outcomes.</p>
+                </div>
+              </div>
+            </li>
+
+          </ol>
+        </div>
+
+        <div class="sub" id="example-config">
+          <h3>Configuration</h3>
+          <p>Two <code>.env</code> files that must agree. The SDK compares the return URI exactly — scheme, host, port and path — and a mismatch is rejected rather than ignored.</p>
+
+          <h4 style="margin-top:22px"><code>example/backend/.env</code></h4>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Variable</th><th class="col-v">Default</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>PORT</code></td><td class="num">7000</td><td>Where the backend listens.</td></tr>
+                <tr><td><code>PUBLIC_BASE_URL</code></td><td class="num">http://localhost:7000</td><td>Public HTTPS address of this server. <code>redirectUrl</code> and <code>callbackUrl</code> both derive from it. Managed by <code>--server</code>.</td></tr>
+                <tr><td><code>CLOUDFLARE_TUNNEL_TOKEN</code></td><td class="num">—</td><td>Named tunnel token for <code>--tunnel</code>. Not used by <code>--quick-tunnel</code>.</td></tr>
+                <tr><td><code>ALLOWED_APP_ORIGIN</code></td><td class="num">http://localhost:3000</td><td>Compared literally against the browser's Origin header for CORS.</td></tr>
+                <tr><td><code>APP_RETURN_URI_WEB</code></td><td class="num">https://localhost:3000/</td><td>Must be HTTPS. The backend never accepts a return URL from the client, so it cannot become an open redirect.</td></tr>
+                <tr><td><code>ZENPAY_HPP_ENDPOINT_URL</code></td><td class="num">…/Online/v5</td><td>The full Authorise endpoint, path included. Sandbox default is <code>https://pay.sandbox.travelpay.com.au/Online/v5</code>.</td></tr>
+                <tr><td><code>ZENPAY_MERCHANT_CODE</code></td><td class="num">—</td><td rowspan="4">The four ZenPay credentials. Prompted by <code>--bootstrap</code>; see step 2 for which are public and which never leave the backend.</td></tr>
+                <tr><td><code>ZENPAY_API_KEY</code></td><td class="num">—</td></tr>
+                <tr><td><code>ZENPAY_USERNAME</code></td><td class="num">—</td></tr>
+                <tr><td><code>ZENPAY_PASSWORD</code></td><td class="num">—</td></tr>
+                <tr><td><code>ZENPAY_ALLOWED_CHECKOUT_HOSTS</code></td><td class="num">pay.sandbox.travelpay.com.au</td><td>Host allowlist a generated launch URL is validated against before reaching a client.</td></tr>
+                <tr><td><code>CHECKOUT_STATUS_TTL_MINUTES</code></td><td class="num">60</td><td>How long an attempt survives the in-memory store's purge.</td></tr>
+                <tr><td><code>TOKEN_SECRET</code></td><td class="num">—</td><td>Root secret every token type derives its signing key from. ≥ 32 bytes, separate from the ZenPay password. Rotating it invalidates every outstanding token immediately — by design.</td></tr>
+                <tr><td><code>CHECKOUT_TOKEN_TTL_SECONDS</code></td><td class="num">300</td><td>Lifetime of a <code>/checkout/token</code> capability — it only needs to survive the gap before the exchange.</td></tr>
+                <tr><td><code>CHECKOUT_RATE_LIMIT_PER_MINUTE</code></td><td class="num">20</td><td>Per-IP limit on the anonymous checkout admission boundary.</td></tr>
+                <tr><td><code>RECAPTCHA_PROJECT_NUMBER</code></td><td class="num">—</td><td rowspan="3">reCAPTCHA Enterprise for the token endpoint, <b>web clients only</b> — mobile skips it entirely. <b>Optional: leave all three empty to disable it for local dev.</b> All three are required together once any is set.</td></tr>
+                <tr><td><code>RECAPTCHA_SERVICE_ACCOUNT_JSON</code></td><td class="num">—</td></tr>
+                <tr><td><code>RECAPTCHA_SITE_KEY_WEB</code></td><td class="num">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="margin-top:26px"><code>example/app/.env</code></h4>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Variable</th><th class="col-v">Default</th><th>Notes</th></tr></thead>
+              <tbody>
+                <tr><td><code>BACKEND_BASE_URL</code></td><td class="num">http://localhost:7000</td><td>Android reaches it via <code>adb reverse tcp:7000</code>, which <code>--android</code> sets up.</td></tr>
+                <tr><td><code>ALLOWED_CHECKOUT_HOSTS</code></td><td class="num">pay.sandbox.travelpay.com.au</td><td>Must match the backend's <code>ZENPAY_ALLOWED_CHECKOUT_HOSTS</code>.</td></tr>
+                <tr><td><code>APP_RETURN_URI_WEB</code></td><td class="num">https://localhost:3000/</td><td>HTTPS is mandatory. The app picks by platform, mirroring the backend.</td></tr>
+                <tr><td><code>APP_RETURN_URI_MOBILE</code></td><td class="num">https://payments.example.com/zenpay/app-return</td><td><b>Must be the public HTTPS host serving <code>/.well-known/</code>, not localhost</b> — the OS fetches those files from the internet. Rewritten by <code>--server</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="sub">
+          <h3>Dependencies</h3>
+          <p>The reference apps pull in more than the SDKs do, because they demonstrate a full merchant deployment rather than a library.</p>
+          <div class="tbl-wrap">
+            <table class="dep-tbl">
+              <thead><tr><th class="col-v">Package</th><th class="col-v">Version</th><th class="col-v">Publisher</th><th>Why</th></tr></thead>
+              <tbody>
+                <tr><td><code>zenpay_dart</code></td><td class="num">^0.1.0</td><td class="num">this repo</td><td><b>backend</b> — the SDK under demonstration.</td></tr>
+                <tr><td><code>shelf</code></td><td class="num">^1.4.2</td><td class="num">Dart team</td><td><b>backend</b> — the HTTP server framework.</td></tr>
+                <tr><td><code>shelf_router</code></td><td class="num">^1.1.4</td><td class="num">Dart team</td><td><b>backend</b> — route dispatch.</td></tr>
+                <tr><td><code>shelf_static</code></td><td class="num">^1.1.3</td><td class="num">Dart team</td><td><b>backend</b> — serves a built web directory in the Docker/Cloudflare path.</td></tr>
+                <tr><td><code>dotenv</code></td><td class="num">^4.2.0</td><td class="num">practicalflutter.com</td><td><b>backend</b> — loads <code>.env</code> into the config object.</td></tr>
+                <tr><td><code>pointycastle</code></td><td class="num">^4.0.0</td><td class="num">bouncycastle.org</td><td><b>backend</b> — its own signed-token codec, alongside the SDK's.</td></tr>
+                <tr><td><code>logging</code></td><td class="num">^1.3.0</td><td class="num">Dart team</td><td><b>backend</b> — structured logging.</td></tr>
+                <tr><td><code>meta</code></td><td class="num">^1.16.0</td><td class="num">Dart team</td><td><b>backend</b> — annotations.</td></tr>
+                <tr><td><code>googleapis</code></td><td class="num">^16.0.0</td><td class="num">Google</td><td><b>backend</b> — the reCAPTCHA Enterprise assessment client.</td></tr>
+                <tr><td><code>googleapis_auth</code></td><td class="num">^2.0.0</td><td class="num">Google</td><td><b>backend</b> — service-account auth for those calls.</td></tr>
+                <tr><td><code>googleapis_beta</code></td><td class="num">^9.0.0</td><td class="num">Google</td><td><b>backend</b> — declared but not imported anywhere in the repo's source. Likely an unused leftover; confirm before removing.</td></tr>
+                <tr><td><code>zenpay_flutter</code></td><td class="num">^0.1.0</td><td class="num">this repo</td><td><b>app</b> — the client SDK under demonstration.</td></tr>
+                <tr><td><code>zenpay_embedded</code></td><td class="num">^0.1.0</td><td class="num">this repo</td><td><b>app</b> — so the WebView demo entrypoint can swap the presenter.</td></tr>
+                <tr><td><code>http</code></td><td class="num">^1.6.0</td><td class="num">Dart team</td><td><b>app</b> (dependency) and <b>backend</b> (dev) — the app's calls to the backend, and the backend's own tests.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Plus dev-only lint and test packages in both: <code>lints</code> and <code>test</code> in the backend, <code>flutter_lints</code>, <code>flutter_test</code> and <code>integration_test</code> in the app. Repo-level tooling — <code>args</code>, <code>lints</code>, <code>melos</code> and <code>test</code> — is declared in the root <code>pubspec.yaml</code>, and <code>lefthook</code> installs the pre-commit hooks via <code>npx</code>.</p>
+        </div>
+      </section>
+
+      <section class="pkg" id="cli">
+        <div class="pkg-head">
+          <div class="pkg-kicker"><span class="pkg-n">05</span><span class="pkg-role">Dev launcher</span></div>
+          <h2><code>cli.dart</code></h2>
+          <p class="pkg-sub">One cross-platform launcher at the repo root, replacing what would otherwise be a per-platform pile of shell scripts. Every mode runs as a live, attached process &mdash; <kbd>Ctrl+C</kbd> stops it, logs stream to your terminal, nothing runs detached. Exactly one mode flag per invocation.</p>
+        </div>
+
+        <figure>
+          <div class="fig-frame">
+<svg viewBox="0 0 880 330" role="img" aria-label="How cli.dart modes feed each other: bootstrap and the tunnel modes write the env files, which the server or docker modes read to serve the API, which the platform runners then target; the release modes touch none of it">
+                <defs>
+                  <marker id="g1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+                    <path d="M0 0 L10 5 L0 10 z" fill="currentColor"></path>
+                  </marker>
+                </defs>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.3">
+                  <rect x="14" y="30" width="150" height="42" rx="7"></rect>
+                  <rect x="14" y="118" width="150" height="52" rx="7"></rect>
+                  <rect x="452" y="24" width="164" height="46" rx="7"></rect>
+                  <rect x="452" y="94" width="164" height="46" rx="7"></rect>
+                  <rect x="686" y="59" width="180" height="46" rx="7"></rect>
+                  <rect x="686" y="168" width="180" height="46" rx="7"></rect>
+                </g>
+                <g fill="none" stroke="var(--red)" stroke-width="1.6">
+                  <rect x="236" y="66" width="176" height="64" rx="7"></rect>
+                </g>
+
+                <text x="89" y="56" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">--bootstrap</text>
+                <text x="89" y="140" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">--quick-tunnel</text>
+                <text x="89" y="156" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">--tunnel</text>
+
+                <text x="324" y="88" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--red)">.env files</text>
+                <text x="324" y="104" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">TLS cert · assetlinks.json</text>
+                <text x="324" y="120" text-anchor="middle" font-size="10" fill="currentColor" opacity=".75">PUBLIC_BASE_URL</text>
+
+                <text x="534" y="52" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">--docker-run</text>
+                <text x="534" y="122" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="currentColor">--server</text>
+
+                <text x="776" y="78" text-anchor="middle" font-size="10.5" fill="currentColor">backend :7000</text>
+                <text x="776" y="94" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">+ frontend :8080, docker-run only</text>
+                <text x="776" y="188" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">--android · --ios</text>
+                <text x="776" y="204" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor">--web</text>
+
+                <g stroke="currentColor" stroke-width="1.3" fill="none" marker-end="url(#g1)">
+                  <path d="M164 54 L 200 54 L 200 84 L 232 84"></path>
+                  <path d="M164 144 L 200 144 L 200 112 L 232 112"></path>
+                  <path d="M412 88 L 432 88 L 432 47 L 448 47"></path>
+                  <path d="M412 110 L 432 110 L 432 117 L 448 117"></path>
+                  <path d="M616 47 L 650 47 L 650 76 L 682 76"></path>
+                  <path d="M616 117 L 650 117 L 650 88 L 682 88"></path>
+                  <path d="M776 109 L 776 164"></path>
+                  <path d="M324 134 L 324 191 L 682 191"></path>
+                </g>
+                <text x="198" y="46" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">writes</text>
+                <text x="198" y="168" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">URL</text>
+                <text x="430" y="82" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">read</text>
+                <text x="500" y="185" text-anchor="middle" font-size="9.5" fill="currentColor" opacity=".7">native App Link config re-synced from PUBLIC_BASE_URL</text>
+                <text x="790" y="140" font-size="9.5" fill="currentColor" opacity=".7">targets</text>
+
+                <g fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55" stroke-dasharray="4 3">
+                  <rect x="14" y="252" width="240" height="52" rx="7"></rect>
+                  <rect x="320" y="252" width="200" height="52" rx="7"></rect>
+                </g>
+                <text x="134" y="274" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".8">--sync-examples</text>
+                <text x="134" y="290" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="currentColor" opacity=".8">--release:*</text>
+                <text x="420" y="282" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".8">pub.dev dry-run</text>
+                <path d="M258 278 L 316 278" stroke="currentColor" stroke-width="1.2" fill="none" marker-end="url(#g1)" opacity=".55"></path>
+                <text x="600" y="282" font-size="10" fill="currentColor" opacity=".65">— release path, touches none of the above</text>
+              </svg>
+          </div>
+          <figcaption>Which modes feed which. Everything routes through the two <code>.env</code> files: the tunnel supplies the public URL, the runners read it back, and the release modes sit off to one side touching neither.</figcaption>
+        </figure>
+
+        <div class="sub" id="cli-modes">
+          <h3>Every mode</h3>
+          <p>Exactly one mode flag per invocation. Run <code>dart run cli.dart --help</code> for the authoritative list; the table below adds the practical context a bare <code>--help</code> omits.</p>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Mode</th><th>What it does</th></tr></thead>
+              <tbody>
+                <tr><td><code>--bootstrap</code></td><td>First-run setup: workspace, <code>.env</code> files, credential prompts, TLS cert, <code>assetlinks.json</code>.</td></tr>
+                <tr><td><code>--server</code></td><td>Runs the backend on <code>:7000</code>. Prompts for and propagates <code>PUBLIC_BASE_URL</code>.</td></tr>
+                <tr><td><code>--android</code></td><td><code>adb reverse tcp:7000</code>, then <code>flutter run</code> on the picked device.</td></tr>
+                <tr><td><code>--android-webview</code></td><td>Same, but targets the <code>zenpay_embedded</code> WebView demo entrypoint.</td></tr>
+                <tr><td><code>--ios</code></td><td>Runs on iOS. macOS only.</td></tr>
+                <tr><td><code>--web</code></td><td>Chrome on <code>localhost:3000</code>, over TLS when the mkcert cert exists.</td></tr>
+                <tr><td><code>--stream</code></td><td>Mirrors an Android device via <code>scrcpy</code>. Independent of everything else.</td></tr>
+                <tr><td><code>--tunnel</code></td><td>Named <code>cloudflared</code> tunnel using a durable saved token. Stable URL across restarts.</td></tr>
+                <tr><td><code>--quick-tunnel</code></td><td>Ephemeral <code>*.trycloudflare.com</code> tunnel. No account needed.</td></tr>
+                <tr><td><code>--docker-build</code></td><td>Builds the backend + frontend images. Only needs Docker Compose v2.</td></tr>
+                <tr><td><code>--docker-run</code></td><td>Runs both on <code>:7000</code>/<code>:8080</code>, plus the tunnel when a token is configured.</td></tr>
+                <tr><td><code>--docker-rebuild</code></td><td>Stop, remove images, rebuild fresh, and run.</td></tr>
+                <tr><td><code>--cf-deploy</code></td><td>Deploys the Cloudflare Workers backend and Containers. Maintainers only.</td></tr>
+                <tr><td><code>--sync-examples</code></td><td>Regenerates <code>zenpay_dart/example</code> and <code>zenpay_flutter/example</code> from the real sources. Never hand-edit those.</td></tr>
+                <tr><td><code>--release:dart:minor</code><br><code>--release:dart:major</code></td><td>Bumps <code>zenpay_dart</code>, re-syncs its example, validates with <code>dart pub publish --dry-run</code>. Never commits, tags, or publishes.</td></tr>
+                <tr><td><code>--release:flutter:minor</code><br><code>--release:flutter:major</code></td><td>The same, for <code>zenpay_flutter</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 style="margin-top:24px">Shared options</h4>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th class="col-k">Option</th><th>Applies to</th></tr></thead>
+              <tbody>
+                <tr><td><code>--device=&lt;id&gt;</code></td><td><code>--android</code>, <code>--ios</code>, <code>--stream</code>. Needed when adb reports the same phone twice.</td></tr>
+                <tr><td><code>--public-base-url=&lt;url&gt;</code></td><td><code>--server</code>. Skips the prompt and sets the value directly.</td></tr>
+                <tr><td><code>--keep-url</code></td><td><code>--server</code>. Skips the prompt and the update; native config still re-syncs.</td></tr>
+                <tr><td><code>--skip-certs</code></td><td><code>--bootstrap</code>. Skips the mkcert step.</td></tr>
+                <tr><td><code>--url=&lt;url&gt;</code></td><td><code>--quick-tunnel</code>. Defaults to <code>PORT</code> from <code>.env</code>, else <code>:7000</code>.</td></tr>
+                <tr><td><code>-h</code>, <code>--help</code></td><td>Full usage.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+
+        <div class="sub" id="cli-verify">
+          <h3>Verification</h3>
+          <p>Run from the repository root. These are the same gates the pre-commit hook enforces &mdash; CI is currently disabled, so that hook is the only enforcement.</p>
+          <div class="cmd">
+            <div class="cmd-head"><span class="cmd-label">repository root</span><button class="copy" type="button" data-copy="melos bs
+melos run format
+melos run analyze
+melos run test
+melos run test:dart
+dart run scripts/check_claude_md.dart">Copy</button></div>
+            <pre><span class="p">$</span> melos bs           <span class="c"># resolve the workspace &mdash; never `pub get` in a subdirectory</span>
+<span class="p">$</span> melos run format
+<span class="p">$</span> melos run analyze
+<span class="p">$</span> melos run test      <span class="c"># flutter test, Flutter packages with a test/ dir</span>
+<span class="p">$</span> melos run test:dart <span class="c"># dart test, pure-Dart packages with a test/ dir</span>
+<span class="p">$</span> dart run scripts/check_claude_md.dart</pre>
+          </div>
+          <p>No <code>melos run lint</code> — this repo declares no separate lint package (<code>dart_code_linter</code>, <code>very_good_analysis</code>) anywhere; strictness comes entirely from <code>analyze</code> plus each package's <code>analysis_options.yaml</code>. The last command checks every <code>CLAUDE.md</code> against <code>scripts/claude_md_template.md</code> &mdash; required sections in order, plus a dedicated entry for every source file. There are nine, one per package plus the root.</p>
+        </div>
+      </section>
+
+      <footer>
+        <p>Sources: README.md, ARCHITECTURE.md, GETTING_STARTED.md, PACKAGES.md, PCI_SAQ_A.md, cli.dart, each package's pubspec.yaml, the two .env.example templates, and the per-package CLAUDE.md guides. For anything this guide does not cover, those files are the source of truth.</p>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'zenpay-onboarding-steps-v1';
+
+  function readState() {
+    try { var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : {}; }
+    catch (e) { return {}; }
+  }
+  function writeState(state) {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* private mode */ }
+  }
+
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.step-box input'));
+  var countEl = document.getElementById('count');
+  var fillEl = document.getElementById('fill');
+
+  function paint() {
+    var done = 0;
+    boxes.forEach(function (box) {
+      var step = box.closest('.step');
+      if (box.checked) { done++; step.classList.add('done'); }
+      else { step.classList.remove('done'); }
+    });
+    var pct = boxes.length ? Math.round((done / boxes.length) * 100) : 0;
+    countEl.textContent = done + ' / ' + boxes.length;
+    fillEl.style.width = pct + '%';
+    fillEl.classList.toggle('complete', done === boxes.length && done > 0);
+  }
+
+  var state = readState();
+  boxes.forEach(function (box) {
+    if (state[box.id]) box.checked = true;
+    box.addEventListener('change', function () {
+      var next = readState();
+      if (box.checked) next[box.id] = 1; else delete next[box.id];
+      writeState(next);
+      paint();
+    });
+  });
+  paint();
+
+  var resetBtn = document.getElementById('reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      boxes.forEach(function (b) { b.checked = false; });
+      writeState({});
+      paint();
+    });
+  }
+
+  function fallbackCopy(text, done) {
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    } catch (e) { /* nothing sensible left to do */ }
+  }
+
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy') || '';
+      var done = function () {
+        var original = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.classList.add('ok');
+        setTimeout(function () { btn.textContent = original; btn.classList.remove('ok'); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+      } else {
+        fallbackCopy(text, done);
+      }
+    });
+  });
+
+  var themeBtn = document.getElementById('theme');
+  var themeLabel = document.getElementById('theme-l');
+  var TKEY = 'zenpay-onboarding-theme';
+  var order = ['system', 'light', 'dark'];
+  var current = 'system';
+  try { current = localStorage.getItem(TKEY) || 'system'; } catch (e) { current = 'system'; }
+
+  function applyTheme(mode) {
+    if (mode === 'system') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', mode);
+    themeLabel.textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+    try { localStorage.setItem(TKEY, mode); } catch (e) { /* private mode */ }
+  }
+  applyTheme(current);
+  themeBtn.addEventListener('click', function () {
+    current = order[(order.indexOf(current) + 1) % order.length];
+    applyTheme(current);
+  });
+
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav.toc a'));
+  var targets = links
+    .map(function (a) { return document.querySelector(a.getAttribute('href')); })
+    .filter(Boolean);
+
+  if ('IntersectionObserver' in window && targets.length) {
+    var visible = new Map();
+    var obs = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        visible.set(entry.target.id, entry.isIntersecting ? entry.intersectionRatio : 0);
+      });
+      var bestId = null, best = 0;
+      visible.forEach(function (ratio, id) { if (ratio > best) { best = ratio; bestId = id; } });
+      if (bestId) {
+        links.forEach(function (a) { a.classList.toggle('active', a.getAttribute('href') === '#' + bestId); });
+      }
+    }, { rootMargin: '-8% 0px -72% 0px', threshold: [0, 0.25, 0.5, 1] });
+    targets.forEach(function (t) { obs.observe(t); });
+  }
+})();
+</script>

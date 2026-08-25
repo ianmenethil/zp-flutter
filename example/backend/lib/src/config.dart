@@ -13,12 +13,7 @@ import 'package:dotenv/dotenv.dart';
 /// Must never be logged or serialized to client responses.
 class ZenPayCredentials {
   /// Creates a [ZenPayCredentials].
-  const ZenPayCredentials({
-    required this.merchantCode,
-    required this.apiKey,
-    required this.username,
-    required this.password,
-  });
+  const ZenPayCredentials({required this.merchantCode, required this.apiKey, required this.username, required this.password});
 
   /// ZenPay merchant identifier.
   final String merchantCode;
@@ -36,11 +31,7 @@ class ZenPayCredentials {
 /// ZenPay Hosted Payment Page (HCP) endpoint configuration and allowlist.
 class ZenPayConfig {
   /// Creates a [ZenPayConfig].
-  const ZenPayConfig({
-    required this.hppEndpointUrl,
-    required this.allowedCheckoutHosts,
-    required this.credentials,
-  });
+  const ZenPayConfig({required this.hppEndpointUrl, required this.allowedCheckoutHosts, required this.credentials});
 
   /// The full HCP Authorise endpoint URL, including its `/Online/vN` path.
   final Uri hppEndpointUrl;
@@ -149,32 +140,16 @@ AppConfig loadConfig() {
     port: _numberOr(_read(file, 'PORT'), 7000),
     publicBaseUrl: Uri.parse(value('PUBLIC_BASE_URL', 'http://localhost:7000')),
     allowedAppOrigin: value('ALLOWED_APP_ORIGIN', 'http://localhost:3000'),
-    appReturnUriWeb: Uri.parse(
-      value('APP_RETURN_URI_WEB', 'https://localhost:3000/'),
-    ),
-    checkoutStatusTtlMinutes: _numberOr(
-      _read(file, 'CHECKOUT_STATUS_TTL_MINUTES'),
-      60,
-    ),
+    appReturnUriWeb: Uri.parse(value('APP_RETURN_URI_WEB', 'https://localhost:3000/')),
+    checkoutStatusTtlMinutes: _numberOr(_read(file, 'CHECKOUT_STATUS_TTL_MINUTES'), 60),
     tokenSecret: value('TOKEN_SECRET', ''),
-    checkoutTokenTtlSeconds: _numberOr(
-      _read(file, 'CHECKOUT_TOKEN_TTL_SECONDS'),
-      300,
-    ),
-    checkoutRateLimitPerMinute: _numberOr(
-      _read(file, 'CHECKOUT_RATE_LIMIT_PER_MINUTE'),
-      20,
-    ),
+    checkoutTokenTtlSeconds: _numberOr(_read(file, 'CHECKOUT_TOKEN_TTL_SECONDS'), 300),
+    checkoutRateLimitPerMinute: _numberOr(_read(file, 'CHECKOUT_RATE_LIMIT_PER_MINUTE'), 20),
     recaptchaProjectNumber: value('RECAPTCHA_PROJECT_NUMBER', ''),
     recaptchaServiceAccountJson: value('RECAPTCHA_SERVICE_ACCOUNT_JSON', ''),
-    recaptchaSiteKeyWeb: value('RECAPTCHA_SITE_KEY_WEB', 'YOUR_SITE_KEY_WEB'),
+    recaptchaSiteKeyWeb: value('RECAPTCHA_SITE_KEY_WEB', ''),
     zenPay: ZenPayConfig(
-      hppEndpointUrl: Uri.parse(
-        value(
-          'ZENPAY_HPP_ENDPOINT_URL',
-          'https://pay.sandbox.travelpay.com.au/Online/v5',
-        ),
-      ),
+      hppEndpointUrl: Uri.parse(value('ZENPAY_HPP_ENDPOINT_URL', 'https://pay.sandbox.travelpay.com.au/Online/v5')),
       allowedCheckoutHosts: hosts,
       credentials: ZenPayCredentials(
         merchantCode: value('ZENPAY_MERCHANT_CODE', ''),
@@ -201,3 +176,28 @@ List<String> callbackConfigurationErrors(AppConfig config) => [
   if (config.zenPay.credentials.username.isEmpty) 'ZENPAY_USERNAME',
   if (config.zenPay.credentials.password.isEmpty) 'ZENPAY_PASSWORD',
 ];
+
+/// reCAPTCHA env vars left in a partially-configured state — some but not
+/// all of [AppConfig.recaptchaProjectNumber], [AppConfig.recaptchaServiceAccountJson]
+/// and [AppConfig.recaptchaSiteKeyWeb] set.
+///
+/// reCAPTCHA is optional (all three empty is a valid, fully-disabled state),
+/// but never partial: a lone site key renders the client widget while
+/// `buildHandler` leaves `recaptchaVerifier` null, so `POST /checkout/token`
+/// 201s every request without ever calling Google — a silently-disabled
+/// check that looks enabled. Empty list means either fully configured or
+/// fully disabled; both are fine. Non-empty means exactly the vars still
+/// missing to complete the set.
+List<String> recaptchaConfigurationErrors(AppConfig config) {
+  final setCount = [
+    config.recaptchaProjectNumber.isNotEmpty,
+    config.recaptchaServiceAccountJson.isNotEmpty,
+    config.recaptchaSiteKeyWeb.isNotEmpty,
+  ].where((isSet) => isSet).length;
+  if (setCount == 0 || setCount == 3) return [];
+  return [
+    if (config.recaptchaProjectNumber.isEmpty) 'RECAPTCHA_PROJECT_NUMBER',
+    if (config.recaptchaServiceAccountJson.isEmpty) 'RECAPTCHA_SERVICE_ACCOUNT_JSON',
+    if (config.recaptchaSiteKeyWeb.isEmpty) 'RECAPTCHA_SITE_KEY_WEB',
+  ];
+}

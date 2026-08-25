@@ -45,10 +45,7 @@ Future<void> main() async {
   // Refuse to start rather than serve a backend that 503s every session and
   // silently rejects every callback. Reporting readiness only on /health means
   // the failure surfaces later, in the app, as an error about the backend.
-  final missing = {
-    ...sessionConfigurationErrors(config),
-    ...callbackConfigurationErrors(config),
-  };
+  final missing = {...sessionConfigurationErrors(config), ...callbackConfigurationErrors(config)};
   if (missing.isNotEmpty) {
     stderr.writeln('Refusing to start — .env is missing required values:');
     for (final key in missing) {
@@ -58,23 +55,27 @@ Future<void> main() async {
     exit(1);
   }
 
+  // reCAPTCHA is optional (all three vars empty is fine) but never partial:
+  // one or two set would leave the client widget rendering while the server
+  // silently never enforces it — see recaptchaConfigurationErrors' doc.
+  final recaptchaMissing = recaptchaConfigurationErrors(config);
+  if (recaptchaMissing.isNotEmpty) {
+    stderr.writeln('Refusing to start — reCAPTCHA is partially configured. Set all three, or leave all three empty to disable it:');
+    for (final key in recaptchaMissing) {
+      stderr.writeln('  $key');
+    }
+    stderr.writeln('See example/backend/.env.example.');
+    exit(1);
+  }
+
   final store = AttemptStore();
 
   Timer.periodic(const Duration(minutes: 1), (_) {
-    store.purgeCreatedBefore(
-      DateTime.now().toUtc().subtract(
-        Duration(minutes: config.checkoutStatusTtlMinutes),
-      ),
-    );
+    store.purgeCreatedBefore(DateTime.now().toUtc().subtract(Duration(minutes: config.checkoutStatusTtlMinutes)));
   });
 
   final handler = buildHandler(config, store);
-  final server = await shelf_io.serve(
-    handler,
-    InternetAddress.anyIPv4,
-    config.port,
-    poweredByHeader: null,
-  );
+  final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, config.port, poweredByHeader: null);
 
   logEvent(
     'server_started',
@@ -82,9 +83,7 @@ Future<void> main() async {
       'port': server.port,
       'sessionReady': sessionConfigurationErrors(config).isEmpty,
       'callbackReady': callbackConfigurationErrors(config).isEmpty,
-      'routes': [
-        for (final route in describeRoutes()) '${route.method} ${route.path}',
-      ],
+      'routes': [for (final route in describeRoutes()) '${route.method} ${route.path}'],
     },
   );
 

@@ -13,7 +13,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 **Overview:** Process entrypoint. Sets up colored structured logging, loads config, refuses to start when required env vars are missing, starts the periodic `AttemptStore` purge timer, and serves the Shelf handler until `SIGINT`.
 
 - **`_levelColor(Level level)`**: maps a `logging` `Level` to an ANSI color code (red for severe/shout, yellow for warning, cyan for info, gray otherwise); used by the root logger's `onRecord` listener.
-- **`main()`**: entrypoint — configures `Logger.root`, calls `loadConfig()`, refuses to start if `sessionConfigurationErrors`/`callbackConfigurationErrors` report missing env vars, starts a `Timer.periodic` purge of `AttemptStore` keyed by `checkoutStatusTtlMinutes`, serves `buildHandler` via `shelf_io.serve`, and awaits `ProcessSignal.sigint` to shut down cleanly.
+- **`main()`**: entrypoint — configures `Logger.root`, calls `loadConfig()`, refuses to start if `sessionConfigurationErrors`/`callbackConfigurationErrors` report missing env vars or `recaptchaConfigurationErrors` reports a partially-configured reCAPTCHA, starts a `Timer.periodic` purge of `AttemptStore` keyed by `checkoutStatusTtlMinutes`, serves `buildHandler` via `shelf_io.serve`, and awaits `ProcessSignal.sigint` to shut down cleanly.
 
 ### `lib/src/attempt_store.dart`
 
@@ -44,6 +44,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 - **`loadConfig()`**: loads `AppConfig` from `.env` overlaid by real process environment variables; called once by `bin/server.dart`.
 - **`sessionConfigurationErrors(AppConfig config)`**: lists environment variables missing for session creation (ZenPay credentials, `TOKEN_SECRET`); used by `bin/server.dart` to refuse startup and by `server_app.dart` to 503 checkout requests.
 - **`callbackConfigurationErrors(AppConfig config)`**: lists environment variables missing for callback verification; same startup/503 usage as above.
+- **`recaptchaConfigurationErrors(AppConfig config)`**: reCAPTCHA is optional but atomic — returns `[]` when `RECAPTCHA_PROJECT_NUMBER`/`RECAPTCHA_SERVICE_ACCOUNT_JSON`/`RECAPTCHA_SITE_KEY_WEB` are all empty (disabled) or all set (enabled), otherwise the names of whichever are still empty; used by `bin/server.dart` to refuse startup rather than silently render the client widget with server-side enforcement off.
 
 ### `lib/src/models.dart`
 
@@ -75,7 +76,7 @@ Overview of every source file, detailing each file's purpose along with a concis
 
 **Overview:** Callback signature verification and timing-safe comparison — derives the merchant-facing fields this backend needs out of a ZenPay webhook once `zenpay_dart` has verified authenticity.
 
-- **`constantTimeEqual(String a, String b)`**: compares two strings in constant time via SHA-256 digest equality; used for reference/cookie/header comparisons outside the SDK's own hash checks.
+- **`constantTimeEqual(String a, String b)`**: compares two strings in constant time; used for reference/cookie/header comparisons outside the SDK's own hash checks.
 - **`class CallbackFields`**: callback fields this backend derives from ZenPay's raw response — `reference`, `statusCode`, optional `failureCode`/`failureReason`, and the unfiltered `rawPayload`.
 - **`class CallbackVerification`**: result of authenticating an incoming ZenPay webhook body — `.ok(fields)` for success, `.rejected(reason)` for failure (`'malformed'` or `'rejected'`).
 - **`verifyCallback(Map<String, Object?> payload, CheckoutAttempt attempt, ZenPayCredentials credentials)`**: verifies an incoming webhook via `zenpay_dart`'s `verifyZpCallback` and derives `CallbackFields` from the payload on success; called by `server_app.dart`'s callback handler.
