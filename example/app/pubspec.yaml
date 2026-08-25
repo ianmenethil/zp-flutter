@@ -18,7 +18,7 @@ dependencies:
   # Once published, external consumers get the pub.dev version from this same
   # constraint — nothing here changes at release.
   zenpay_embedded: ^0.1.0
-  zenpay_flutter: ^0.1.1
+  zenpay_flutter: ^0.1.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0
