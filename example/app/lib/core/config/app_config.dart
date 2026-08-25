@@ -29,12 +29,7 @@ const _allowedCheckoutHostsEnvKey = 'ALLOWED_CHECKOUT_HOSTS';
 const _defaultAllowedCheckoutHosts = 'pay.sandbox.travelpay.com.au';
 
 /// Example backend base URL.
-final Uri backendBaseUrl = Uri.parse(
-  const String.fromEnvironment(
-    _backendBaseUrlEnvKey,
-    defaultValue: _defaultBackendBaseUrl,
-  ),
-);
+final Uri backendBaseUrl = Uri.parse(const String.fromEnvironment(_backendBaseUrlEnvKey, defaultValue: _defaultBackendBaseUrl));
 
 /// Return URI the SDK expects. Must be `https` and match the backend's exactly.
 ///
@@ -42,14 +37,8 @@ final Uri backendBaseUrl = Uri.parse(
 /// own origin, mobile ones to the App Link on the public host.
 final Uri appReturnUri = Uri.parse(
   kIsWeb
-      ? const String.fromEnvironment(
-          _appReturnUriWebEnvKey,
-          defaultValue: _defaultAppReturnUriWeb,
-        )
-      : const String.fromEnvironment(
-          _appReturnUriMobileEnvKey,
-          defaultValue: _defaultAppReturnUriMobile,
-        ),
+      ? const String.fromEnvironment(_appReturnUriWebEnvKey, defaultValue: _defaultAppReturnUriWeb)
+      : const String.fromEnvironment(_appReturnUriMobileEnvKey, defaultValue: _defaultAppReturnUriMobile),
 );
 
 /// Hosts a checkout URL may point at.

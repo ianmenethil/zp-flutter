@@ -2,16 +2,22 @@
 library;
 
 import 'dart:convert';
-import 'dart:typed_data';
 
-import 'package:hashlib/hashlib.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
 
 import 'package:zenpay_example_backend/src/config.dart' show ZenPayCredentials;
 import 'package:zenpay_example_backend/src/models.dart' show CheckoutAttempt;
 
-/// Compares [a] and [b] in constant time via SHA-256 digest equality.
-bool constantTimeEqual(String a, String b) => HashDigest(Uint8List.fromList(utf8.encode(a))).isEqual(utf8.encode(b));
+/// Compares [a] and [b] in constant time.
+bool constantTimeEqual(String a, String b) {
+  final aBytes = utf8.encode(a);
+  final bBytes = utf8.encode(b);
+  var mismatch = aBytes.length ^ bBytes.length;
+  for (var i = 0; i < aBytes.length; i++) {
+    mismatch |= aBytes[i] ^ (i < bBytes.length ? bBytes[i] : 0);
+  }
+  return mismatch == 0;
+}
 
 /// Callback fields this backend derives from ZenPay's raw response once
 /// `zenpay_dart` has verified authenticity.
@@ -21,13 +27,7 @@ bool constantTimeEqual(String a, String b) => HashDigest(Uint8List.fromList(utf8
 /// backend included; [rawPayload] carries the whole thing, unfiltered.
 class CallbackFields {
   /// Creates a [CallbackFields].
-  const CallbackFields({
-    required this.reference,
-    required this.statusCode,
-    required this.rawPayload,
-    this.failureCode,
-    this.failureReason,
-  });
+  const CallbackFields({required this.reference, required this.statusCode, required this.rawPayload, this.failureCode, this.failureReason});
 
   /// Mode-specific payment, preauthorization, or token reference.
   final String reference;
@@ -85,11 +85,7 @@ int _statusCodeFrom(int mode, Map<String, Object?> response) {
 /// `verifyZpCallback` proves authenticity only and returns no data; this
 /// function derives the fields this backend needs directly from [payload],
 /// which it already holds in full.
-CallbackVerification verifyCallback(
-  Map<String, Object?> payload,
-  CheckoutAttempt attempt,
-  ZenPayCredentials credentials,
-) {
+CallbackVerification verifyCallback(Map<String, Object?> payload, CheckoutAttempt attempt, ZenPayCredentials credentials) {
   final mode = ZpPluginMode.fromWireValue(attempt.mode);
   final result = verifyZpCallback(
     mode,

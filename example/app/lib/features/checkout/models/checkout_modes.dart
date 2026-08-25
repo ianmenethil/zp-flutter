@@ -13,12 +13,7 @@ import 'package:flutter/material.dart';
 /// ZenPay `/v2/sessions` mode; [wireValue] is what the API expects.
 enum TransactionMode {
   /// Standard one-off payment (ZenPay mode 0).
-  makePayment(
-    0,
-    'Make Payment',
-    'Standard one-off transaction',
-    Icons.credit_card,
-  ),
+  makePayment(0, 'Make Payment', 'Standard one-off transaction', Icons.credit_card),
 
   /// Store card details for later use, no charge (ZenPay mode 1).
   tokenise(1, 'Tokenise', 'Securely store card details', Icons.key),

@@ -14,9 +14,7 @@ import 'package:meta/meta.dart';
 /// never change its outcome.
 abstract interface class ZpCheckoutObserver {
   /// Creates a [ZpCheckoutObserver] from an [onEvent] callback function.
-  factory ZpCheckoutObserver.from(
-    void Function(ZpCheckoutEvent event) onEvent,
-  ) = _CallbackCheckoutObserver;
+  factory ZpCheckoutObserver.from(void Function(ZpCheckoutEvent event) onEvent) = _CallbackCheckoutObserver;
 
   /// Called once per event, in the order the events occur.
   void onEvent(ZpCheckoutEvent event);
@@ -67,9 +65,7 @@ sealed class ZpCheckoutEvent {
 /// A launch failed validation and no browser was opened.
 final class ZpLaunchRejectedEvent extends ZpCheckoutEvent {
   /// Creates a [ZpLaunchRejectedEvent] with the given rejection [reason].
-  const ZpLaunchRejectedEvent({
-    required this.reason,
-  });
+  const ZpLaunchRejectedEvent({required this.reason});
 
   /// A short, non-sensitive description of the failed precondition.
   final String reason;
@@ -84,10 +80,7 @@ final class ZpLaunchRejectedEvent extends ZpCheckoutEvent {
 /// The browser presentation was requested for a validated launch.
 final class ZpPresentedEvent extends ZpCheckoutEvent {
   /// Creates a [ZpPresentedEvent] with the [checkoutHost] and launch status.
-  const ZpPresentedEvent({
-    required this.checkoutHost,
-    required this.launched,
-  });
+  const ZpPresentedEvent({required this.checkoutHost, required this.launched});
 
   /// The checkout host, which the merchant already allowlisted. Never the full
   /// URL, which carries the credentials.
@@ -106,9 +99,7 @@ final class ZpPresentedEvent extends ZpCheckoutEvent {
 /// A candidate return URI was refused. The checkout remains active.
 final class ZpReturnRejectedEvent extends ZpCheckoutEvent {
   /// Creates a [ZpReturnRejectedEvent] with the rejection [reason].
-  const ZpReturnRejectedEvent({
-    required this.reason,
-  });
+  const ZpReturnRejectedEvent({required this.reason});
 
   /// Why the URI was refused. The URI itself is never included.
   final ZpReturnRejectionReason reason;
@@ -135,11 +126,7 @@ final class ZpReturnAcceptedEvent extends ZpCheckoutEvent {
 /// The checkout finished, for any reason.
 final class ZpFinishedEvent extends ZpCheckoutEvent {
   /// Creates a [ZpFinishedEvent] with the outcome, duration, and optional cause.
-  const ZpFinishedEvent({
-    required this.outcome,
-    required this.duration,
-    this.cause,
-  });
+  const ZpFinishedEvent({required this.outcome, required this.duration, this.cause});
 
   /// The stable outcome name, for example `returnReceived`. See
   /// `ZpCheckoutOutcome.outcomeName`.

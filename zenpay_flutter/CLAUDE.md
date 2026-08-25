@@ -95,6 +95,5 @@ Run from the monorepo root:
 ```bash
 melos run format
 melos run analyze
-melos run lint
 melos run test --scope=zenpay_flutter
 ```

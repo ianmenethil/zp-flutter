@@ -9,9 +9,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
 
-Map<String, Object?> _loadVectors() => jsonDecode(
-  File('test/fixtures/zp_hcp_v0_1_30_vectors.json').readAsStringSync(),
-) as Map<String, Object?>;
+Map<String, Object?> _loadVectors() => jsonDecode(File('test/fixtures/zp_hcp_v0_1_30_vectors.json').readAsStringSync()) as Map<String, Object?>;
 
 void main() {
   final vectors = _loadVectors();
@@ -21,29 +19,24 @@ void main() {
     expect(createSha3_512(vector['input']! as String), vector['hex']);
   });
 
-  test(
-    'createZpFingerprint matches an independently computed hash-pipe vector',
-    () {
-      final vector = vectors['fingerprint']! as Map<String, Object?>;
-      final result = createZpFingerprint(
-        ZpFingerprintInput(
-          apiKey: vector['apiKey']! as String,
-          username: vector['username']! as String,
-          password: vector['password']! as String,
-          mode: ZpPluginMode.fromWireValue(vector['mode']! as int),
-          paymentAmount: vector['paymentAmount']! as String,
-          merchantUniquePaymentId: ZpMupid(
-            vector['merchantUniquePaymentId']! as String,
-          ),
-          timestamp: ZpTimestamp(vector['timestamp']! as String),
-        ),
-      );
-      expect(result, isA<ZpFingerprintSuccess>());
-      if (result is ZpFingerprintSuccess) {
-        expect(result.fingerprint, vector['fingerprintHex']);
-      }
-    },
-  );
+  test('createZpFingerprint matches an independently computed hash-pipe vector', () {
+    final vector = vectors['fingerprint']! as Map<String, Object?>;
+    final result = createZpFingerprint(
+      ZpFingerprintInput(
+        apiKey: vector['apiKey']! as String,
+        username: vector['username']! as String,
+        password: vector['password']! as String,
+        mode: ZpPluginMode.fromWireValue(vector['mode']! as int),
+        paymentAmount: vector['paymentAmount']! as String,
+        merchantUniquePaymentId: ZpMupid(vector['merchantUniquePaymentId']! as String),
+        timestamp: ZpTimestamp(vector['timestamp']! as String),
+      ),
+    );
+    expect(result, isA<ZpFingerprintSuccess>());
+    if (result is ZpFingerprintSuccess) {
+      expect(result.fingerprint, vector['fingerprintHex']);
+    }
+  });
 
   ZpFingerprintInput baseInput({
     String apiKey = 'golden-api-key',
@@ -64,10 +57,7 @@ void main() {
   );
 
   test('rejects an apiKey shorter than 5 characters', () {
-    expect(
-      createZpFingerprint(baseInput(apiKey: 'ab')),
-      isA<ZpFingerprintFailure>(),
-    );
+    expect(createZpFingerprint(baseInput(apiKey: 'ab')), isA<ZpFingerprintFailure>());
   });
 
   test('validateZpFingerprintRequest returns null for a valid request', () {
@@ -75,79 +65,43 @@ void main() {
   });
 
   test('validateZpFingerprintRequest rejects the same input createZpFingerprint does', () {
-    expect(
-      validateZpFingerprintRequest(baseInput(apiKey: 'ab')),
-      isA<ZpFingerprintFailure>(),
-    );
+    expect(validateZpFingerprintRequest(baseInput(apiKey: 'ab')), isA<ZpFingerprintFailure>());
   });
 
   test('rejects a malformed timestamp', () {
-    expect(
-      createZpFingerprint(baseInput(timestamp: '2026-01-15')),
-      isA<ZpFingerprintFailure>(),
-    );
+    expect(createZpFingerprint(baseInput(timestamp: '2026-01-15')), isA<ZpFingerprintFailure>());
   });
 
   test('rejects a non-positive amount for mode 0 (Make Payment)', () {
-    expect(
-      createZpFingerprint(
-        baseInput(paymentAmount: '0'),
-      ),
-      isA<ZpFingerprintFailure>(),
-    );
+    expect(createZpFingerprint(baseInput(paymentAmount: '0')), isA<ZpFingerprintFailure>());
   });
 
   test('mode 2 (Custom Payment) accepts any amount and always hashes "0"', () {
-    final positive = createZpFingerprint(
-      baseInput(mode: ZpPluginMode.customPayment, paymentAmount: '99.99'),
-    );
-    final zero = createZpFingerprint(
-      baseInput(mode: ZpPluginMode.customPayment, paymentAmount: '0'),
-    );
-    final nonNumeric = createZpFingerprint(
-      baseInput(mode: ZpPluginMode.customPayment, paymentAmount: 'not-a-number'),
-    );
+    final positive = createZpFingerprint(baseInput(mode: ZpPluginMode.customPayment, paymentAmount: '99.99'));
+    final zero = createZpFingerprint(baseInput(mode: ZpPluginMode.customPayment, paymentAmount: '0'));
+    final nonNumeric = createZpFingerprint(baseInput(mode: ZpPluginMode.customPayment, paymentAmount: 'not-a-number'));
 
     expect(positive, isA<ZpFingerprintSuccess>());
     expect(zero, isA<ZpFingerprintSuccess>());
     expect(nonNumeric, isA<ZpFingerprintSuccess>());
 
-    final fingerprints = [
-      positive,
-      zero,
-      nonNumeric,
-    ].cast<ZpFingerprintSuccess>().map((r) => r.fingerprint).toSet();
-    expect(
-      fingerprints,
-      hasLength(1),
-      reason: 'mode 2 must always hash "0" for the amount, regardless of the supplied value',
-    );
+    final fingerprints = [positive, zero, nonNumeric].cast<ZpFingerprintSuccess>().map((r) => r.fingerprint).toSet();
+    expect(fingerprints, hasLength(1), reason: 'mode 2 must always hash "0" for the amount, regardless of the supplied value');
   });
 
   test('mode 1 (Tokenise) allows a zero amount', () {
-    expect(
-      createZpFingerprint(
-        baseInput(mode: ZpPluginMode.tokenise, paymentAmount: '0'),
-      ),
-      isA<ZpFingerprintSuccess>(),
-    );
+    expect(createZpFingerprint(baseInput(mode: ZpPluginMode.tokenise, paymentAmount: '0')), isA<ZpFingerprintSuccess>());
   });
 
   test('the same inputs always produce the same fingerprint', () {
     final a = createZpFingerprint(baseInput());
     final b = createZpFingerprint(baseInput());
-    expect(
-      (a as ZpFingerprintSuccess).fingerprint,
-      (b as ZpFingerprintSuccess).fingerprint,
-    );
+    expect((a as ZpFingerprintSuccess).fingerprint, (b as ZpFingerprintSuccess).fingerprint);
   });
 
   test('changing the timestamp changes the fingerprint', () {
     final a = createZpFingerprint(baseInput());
     final b = createZpFingerprint(baseInput(timestamp: '2026-01-15T10:30:01'));
-    expect(
-      (a as ZpFingerprintSuccess).fingerprint,
-      isNot((b as ZpFingerprintSuccess).fingerprint),
-    );
+    expect((a as ZpFingerprintSuccess).fingerprint, isNot((b as ZpFingerprintSuccess).fingerprint));
   });
 }

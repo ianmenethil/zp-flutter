@@ -22,9 +22,7 @@ String _maskSecret(String value) => value.length <= 6 ? '...' : '${value.substri
 /// Map — `Assessment.toJson()` doesn't recursively convert it, relying on
 /// `jsonEncode`'s own `toJson()` recursion at serialize time — so masking
 /// has to go through `assessment.event.token` directly.
-Map<String, Object?> _redactAssessmentJson(
-  recaptcha.GoogleCloudRecaptchaenterpriseV1Assessment assessment,
-) {
+Map<String, Object?> _redactAssessmentJson(recaptcha.GoogleCloudRecaptchaenterpriseV1Assessment assessment) {
   final json = assessment.toJson();
   final token = assessment.event?.token;
   if (token == null || token.isEmpty) return json;
@@ -78,9 +76,7 @@ final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
   static auth.ServiceAccountCredentials _parseCredentials(String raw) {
     final trimmed = raw.trim();
     final jsonStr = (trimmed.startsWith('{') && trimmed.endsWith('}')) ? trimmed : File(trimmed).readAsStringSync();
-    return auth.ServiceAccountCredentials.fromJson(
-      jsonDecode(jsonStr) as Map<String, Object?>,
-    );
+    return auth.ServiceAccountCredentials.fromJson(jsonDecode(jsonStr) as Map<String, Object?>);
   }
 
   Future<recaptcha.RecaptchaEnterpriseApi> _api() async {
@@ -111,11 +107,7 @@ final class GoogleCloudRecaptchaVerifier implements RecaptchaVerifier {
           expectedAction: expectedAction,
           transactionData: (email != null || phone != null || accountId != null || paymentAmount != null)
               ? recaptcha.GoogleCloudRecaptchaenterpriseV1TransactionData(
-                  user: recaptcha.GoogleCloudRecaptchaenterpriseV1TransactionDataUser(
-                    email: email,
-                    phoneNumber: phone,
-                    accountId: accountId,
-                  ),
+                  user: recaptcha.GoogleCloudRecaptchaenterpriseV1TransactionDataUser(email: email, phoneNumber: phone, accountId: accountId),
                   value: paymentAmount,
                 )
               : null,

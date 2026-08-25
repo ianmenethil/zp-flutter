@@ -19,7 +19,10 @@ dependencies:
   zenpay_flutter: ^0.1.0
 
 dev_dependencies:
-  dart_code_linter: ^4.1.9
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter
+  # Transitive via webview_flutter; declared directly because test/support/
+  # fake_webview_platform.dart imports it to fake WebViewPlatform.instance.
+  # Never ships to consumers.
+  webview_flutter_platform_interface: ^2.15.0

@@ -129,12 +129,7 @@ String _requestId() => 'req-${DateTime.now().microsecondsSinceEpoch}-${Random().
 /// [client] overrides the HTTP client, so tests can inject a
 /// `package:http/testing.dart` [MockClient]; a null client owns and closes its
 /// own, like the top-level `http.post` helper.
-Future<String> prepareCheckout(
-  Uri baseUrl,
-  Map<String, Object?> fields, {
-  http.Client? client,
-  String? recaptchaToken,
-}) async {
+Future<String> prepareCheckout(Uri baseUrl, Map<String, Object?> fields, {http.Client? client, String? recaptchaToken}) async {
   final json = _body(
     await _request(
       client,
@@ -147,10 +142,7 @@ Future<String> prepareCheckout(
           // Transport metadata, not order data — see the backend's
           // `_parsePrepareCheckoutBody`. Only 'web' and 'mobile' are
           // accepted; iframe checkout is disabled project-wide.
-          if (recaptchaToken != null) ...{
-            _headerRecaptcha: recaptchaToken,
-            'x-recaptcha-site-key': recaptchaSiteKey,
-          },
+          if (recaptchaToken != null) ...{_headerRecaptcha: recaptchaToken, 'x-recaptcha-site-key': recaptchaSiteKey},
           _headerXClient: kIsWeb ? _clientWeb : _clientMobile,
           _headerXRequestId: _requestId(),
         },
@@ -165,21 +157,13 @@ Future<String> prepareCheckout(
 /// Step 2 — exchanges [checkoutToken] for a checkout URL. Safe to call more
 /// than once with the same token: it always resolves to the same attempt,
 /// never a new one.
-Future<ExchangeResponse> exchangeCheckout(
-  Uri baseUrl,
-  String checkoutToken, {
-  http.Client? client,
-}) async => ExchangeResponse.fromJson(
+Future<ExchangeResponse> exchangeCheckout(Uri baseUrl, String checkoutToken, {http.Client? client}) async => ExchangeResponse.fromJson(
   _body(
     await _request(
       client,
       (c) => c.post(
         baseUrl.resolve(_checkoutExchangeEndpoint),
-        headers: <String, String>{
-          _headerAuthorization: 'Bearer $checkoutToken',
-
-          _headerXRequestId: _requestId(),
-        },
+        headers: <String, String>{_headerAuthorization: 'Bearer $checkoutToken', _headerXRequestId: _requestId()},
       ),
     ),
     200,
@@ -190,18 +174,11 @@ Future<ExchangeResponse> exchangeCheckout(
 /// payment. [token] is the signed `t` value the return URI carried.
 ///
 /// [client] overrides the HTTP client for tests, as in [prepareCheckout].
-Future<StatusResponse> fetchStatus(
-  Uri baseUrl,
-  String token, {
-  http.Client? client,
-}) async => StatusResponse.fromJson(
+Future<StatusResponse> fetchStatus(Uri baseUrl, String token, {http.Client? client}) async => StatusResponse.fromJson(
   _body(
     await _request(
       client,
-      (c) => c.get(
-        baseUrl.resolve(_sessionsEndpoint).replace(queryParameters: {'t': token}),
-        headers: <String, String>{_headerXRequestId: _requestId()},
-      ),
+      (c) => c.get(baseUrl.resolve(_sessionsEndpoint).replace(queryParameters: {'t': token}), headers: <String, String>{_headerXRequestId: _requestId()}),
     ),
     200,
   ),
@@ -209,10 +186,7 @@ Future<StatusResponse> fetchStatus(
 
 /// Runs [call] through [client], or through a client owned and closed here
 /// when [client] is null — mirroring the top-level `http` helpers' lifecycle.
-Future<http.Response> _request(
-  http.Client? client,
-  Future<http.Response> Function(http.Client) call,
-) async {
+Future<http.Response> _request(http.Client? client, Future<http.Response> Function(http.Client) call) async {
   if (client != null) {
     return call(client);
   }

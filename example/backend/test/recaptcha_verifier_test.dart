@@ -14,9 +14,7 @@ import 'package:zenpay_example_backend/src/recaptcha_verifier.dart';
 /// Builds a [GoogleCloudRecaptchaVerifier] whose requests are answered by
 /// [handler] instead of hitting the real reCAPTCHA Enterprise API. [handler]
 /// receives the decoded request body.
-GoogleCloudRecaptchaVerifier _fakeVerifier(
-  Map<String, Object?> Function(Map<String, Object?> requestJson) handler,
-) {
+GoogleCloudRecaptchaVerifier _fakeVerifier(Map<String, Object?> Function(Map<String, Object?> requestJson) handler) {
   final client = MockClient((request) async {
     final requestJson = jsonDecode(request.body) as Map<String, Object?>;
     return http.Response(jsonEncode(handler(requestJson)), 200, headers: {'content-type': 'application/json; charset=utf-8'});

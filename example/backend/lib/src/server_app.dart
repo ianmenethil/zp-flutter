@@ -116,10 +116,7 @@ final _emailPattern = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 ///
 /// The client type travels in the `X-Client` header, not the body: it is
 /// transport metadata (routing/attestation shape), not order data.
-PrepareCheckoutBody _parsePrepareCheckoutBody(
-  shelf.Request request,
-  Map<String, Object?> value,
-) {
+PrepareCheckoutBody _parsePrepareCheckoutBody(shelf.Request request, Map<String, Object?> value) {
   final customerName = value['customerName'];
   if (customerName is! String || customerName.trim().isEmpty || customerName.trim().length > 250) {
     throw HttpError(400, 'INVALID_CHECKOUT_NAME');
@@ -184,22 +181,12 @@ shelf.Response _json(int status, Object? body, {String? allowedOrigin}) {
 
 /// Builds a `303 See Other` redirect to [location], used for the browser
 /// return flow.
-shelf.Response _redirect(Uri location) => shelf.Response(
-  303,
-  headers: {
-    'location': location.toString(),
-    'cache-control': 'no-store',
-    'referrer-policy': 'no-referrer',
-  },
-);
+shelf.Response _redirect(Uri location) =>
+    shelf.Response(303, headers: {'location': location.toString(), 'cache-control': 'no-store', 'referrer-policy': 'no-referrer'});
 
 /// Throws [HttpError] `429` and logs `checkout.rate_limited` if [limiter]
 /// rejects [request]'s client IP.
-void _requireRateLimit(
-  shelf.Request request,
-  FixedWindowRateLimiter limiter,
-  String route,
-) {
+void _requireRateLimit(shelf.Request request, FixedWindowRateLimiter limiter, String route) {
   if (limiter.allow(_clientIp(request))) return;
   _recordEvent(request, 'checkout.rate_limited', {'route': route});
   throw HttpError(429, 'RATE_LIMITED');
@@ -264,9 +251,7 @@ Future<shelf.Response> _handleCreateCheckoutToken(
     _recordEvent(request, 'checkout.attempt_created', {'mode': body.mode ?? 0});
   }
 
-  return _json(201, {
-    'checkoutToken': checkoutToken,
-  }, allowedOrigin: config.allowedAppOrigin);
+  return _json(201, {'checkoutToken': checkoutToken}, allowedOrigin: config.allowedAppOrigin);
 }
 
 /// Handles `POST /api/v1/checkout/exchange` — Step 2 of checkout creation.
@@ -310,11 +295,7 @@ ZpCallbackUrlTokenPayload _requireToken(Uri requestedUri, AppConfig config) {
 /// status for the checkout attempt named by the verified `t` token. No
 /// identifier is echoed back — the caller already knows which attempt it
 /// asked about via the token it presented.
-shelf.Response _handleGetSession(
-  Uri requestedUri,
-  AppConfig config,
-  AttemptStore store,
-) {
+shelf.Response _handleGetSession(Uri requestedUri, AppConfig config, AttemptStore store) {
   final payload = _requireToken(requestedUri, config);
   final attempt = store.getByMerchantPaymentId(payload.merchantUniquePaymentId.value);
   if (attempt == null) throw HttpError(404, 'CHECKOUT_NOT_FOUND');
@@ -346,10 +327,7 @@ Future<shelf.Response> _handleCallback(
 
   final missing = callbackConfigurationErrors(config);
   if (missing.isNotEmpty) {
-    throw HttpError(
-      503,
-      'CALLBACK_CONFIGURATION_REQUIRED:${missing.join(',')}',
-    );
+    throw HttpError(503, 'CALLBACK_CONFIGURATION_REQUIRED:${missing.join(',')}');
   }
 
   final payload = await _readJson(request);
@@ -364,11 +342,7 @@ Future<shelf.Response> _handleCallback(
   final attempt = store.getByMerchantPaymentId(merchantUniquePaymentId);
   if (attempt == null) throw HttpError(404, 'CALLBACK_ATTEMPT_NOT_FOUND');
 
-  final verification = verifyCallback(
-    payload,
-    attempt,
-    config.zenPay.credentials,
-  );
+  final verification = verifyCallback(payload, attempt, config.zenPay.credentials);
   if (!verification.ok) {
     _recordEvent(request, 'callback_rejected', {
       'merchantUniquePaymentId': merchantUniquePaymentId,
@@ -376,10 +350,7 @@ Future<shelf.Response> _handleCallback(
       'validationCode': payload['validationCode'],
     });
     final malformed = verification.reason == 'malformed';
-    throw HttpError(
-      malformed ? 400 : 401,
-      malformed ? 'CALLBACK_BODY_INVALID' : 'CALLBACK_VALIDATION_FAILED',
-    );
+    throw HttpError(malformed ? 400 : 401, malformed ? 'CALLBACK_BODY_INVALID' : 'CALLBACK_VALIDATION_FAILED');
   }
   final fields = verification.fields!;
   final mappedStatus = mapZenPayStatus(fields.statusCode);
@@ -393,11 +364,7 @@ Future<shelf.Response> _handleCallback(
   });
 
   if (attempt.verifiedCallbackReference != null &&
-      (!constantTimeEqual(
-            attempt.verifiedCallbackReference!,
-            fields.reference,
-          ) ||
-          attempt.verifiedCallbackStatusCode != fields.statusCode)) {
+      (!constantTimeEqual(attempt.verifiedCallbackReference!, fields.reference) || attempt.verifiedCallbackStatusCode != fields.statusCode)) {
     throw HttpError(409, 'CALLBACK_CONFLICT');
   }
 
@@ -417,10 +384,7 @@ Future<shelf.Response> _handleCallback(
   );
 
   if (mappedStatus == MerchantPaymentStatus.successful) {
-    _recordEvent(request, 'checkout.attempt_succeeded', {
-      'merchantUniquePaymentId': merchantUniquePaymentId,
-      'paymentReference': fields.reference,
-    });
+    _recordEvent(request, 'checkout.attempt_succeeded', {'merchantUniquePaymentId': merchantUniquePaymentId, 'paymentReference': fields.reference});
   } else if (mappedStatus == MerchantPaymentStatus.failed || mappedStatus == MerchantPaymentStatus.cancelled || mappedStatus == MerchantPaymentStatus.error) {
     _recordEvent(request, 'checkout.attempt_failed', {
       'merchantUniquePaymentId': merchantUniquePaymentId,
@@ -444,11 +408,7 @@ const Set<MerchantPaymentStatus> _terminalStatuses = {
 /// Handles `GET /return` — the browser landing page after ZenPay redirects
 /// back. Marks the attempt as browser-returned (provisional, not
 /// callback-verified) and forwards to the app/web return destination.
-shelf.Response _handleReturn(
-  Uri requestedUri,
-  AppConfig config,
-  AttemptStore store,
-) {
+shelf.Response _handleReturn(Uri requestedUri, AppConfig config, AttemptStore store) {
   final payload = _requireToken(requestedUri, config);
 
   final attempt = store.getByMerchantPaymentId(payload.merchantUniquePaymentId.value);
@@ -458,15 +418,10 @@ shelf.Response _handleReturn(
 
   store.replace(
     payload.merchantUniquePaymentId.value,
-    attempt.copyWith(
-      status: _terminalStatuses.contains(attempt.status) ? attempt.status : MerchantPaymentStatus.browserReturned,
-    ),
+    attempt.copyWith(status: _terminalStatuses.contains(attempt.status) ? attempt.status : MerchantPaymentStatus.browserReturned),
   );
 
-  final appReturn = appReturnUriFor(
-    attempt,
-    config,
-  ).replace(queryParameters: {'t': requestedUri.queryParameters['t']});
+  final appReturn = appReturnUriFor(attempt, config).replace(queryParameters: {'t': requestedUri.queryParameters['t']});
   return _redirect(appReturn);
 }
 
@@ -481,10 +436,7 @@ Future<shelf.Response> _handleWellKnown(String name) async {
   final file = File('well_known/$name');
   if (!file.existsSync()) throw HttpError(404, 'NOT_FOUND');
 
-  return shelf.Response.ok(
-    await file.readAsString(),
-    headers: {_HeaderNames.contentType: 'application/json'},
-  );
+  return shelf.Response.ok(await file.readAsString(), headers: {_HeaderNames.contentType: 'application/json'});
 }
 
 /// Populated by [_buildRouter] as routes are registered — the single source
@@ -501,25 +453,13 @@ List<({String method, String path})> describeRoutes() => List.unmodifiable(_regi
 /// Unmatched requests throw [HttpError] `404` rather than shelf_router's
 /// default plain-text 404, so `buildHandler`'s catch clause still produces
 /// the same JSON error shape as every other failure.
-shelf_router.Router _buildRouter(
-  AppConfig config,
-  AttemptStore store,
-  RecaptchaVerifier? recaptchaVerifier,
-) {
-  final checkoutLimiter = FixedWindowRateLimiter(
-    config.checkoutRateLimitPerMinute,
-    const Duration(seconds: 60),
-  );
+shelf_router.Router _buildRouter(AppConfig config, AttemptStore store, RecaptchaVerifier? recaptchaVerifier) {
+  final checkoutLimiter = FixedWindowRateLimiter(config.checkoutRateLimitPerMinute, const Duration(seconds: 60));
   // Higher ceiling than checkoutLimiter, deliberately: ZenPay retries
   // callbacks, so this must not reject a legitimate retry.
-  final callbackLimiter = FixedWindowRateLimiter(
-    240,
-    const Duration(seconds: 60),
-  );
+  final callbackLimiter = FixedWindowRateLimiter(240, const Duration(seconds: 60));
 
-  final router = shelf_router.Router(
-    notFoundHandler: (request) => throw HttpError(404, 'NOT_FOUND'),
-  );
+  final router = shelf_router.Router(notFoundHandler: (request) => throw HttpError(404, 'NOT_FOUND'));
 
   void get(String path, Function handler) {
     router.get(path, handler);
@@ -531,40 +471,13 @@ shelf_router.Router _buildRouter(
     _registeredRoutes.add((method: 'POST', path: path));
   }
 
-  get(
-    '/.well-known/assetlinks.json',
-    (shelf.Request request) => _handleWellKnown('assetlinks.json'),
-  );
-  get(
-    '/.well-known/apple-app-site-association',
-    (shelf.Request request) => _handleWellKnown('apple-app-site-association'),
-  );
-  post(
-    '/api/v1/checkout/token',
-    (shelf.Request request) => _handleCreateCheckoutToken(
-      request,
-      config,
-      store,
-      checkoutLimiter,
-      recaptchaVerifier,
-    ),
-  );
-  post(
-    '/api/v1/checkout/exchange',
-    (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter, recaptchaVerifier),
-  );
-  get(
-    '/api/v1/sessions',
-    (shelf.Request request) => _handleGetSession(request.requestedUri, config, store),
-  );
-  post(
-    callbacksPath,
-    (shelf.Request request) => _handleCallback(request, config, store, callbackLimiter, recaptchaVerifier),
-  );
-  get(
-    returnPath,
-    (shelf.Request request) => _handleReturn(request.requestedUri, config, store),
-  );
+  get('/.well-known/assetlinks.json', (shelf.Request request) => _handleWellKnown('assetlinks.json'));
+  get('/.well-known/apple-app-site-association', (shelf.Request request) => _handleWellKnown('apple-app-site-association'));
+  post('/api/v1/checkout/token', (shelf.Request request) => _handleCreateCheckoutToken(request, config, store, checkoutLimiter, recaptchaVerifier));
+  post('/api/v1/checkout/exchange', (shelf.Request request) => _handleExchangeCheckout(request, config, store, checkoutLimiter, recaptchaVerifier));
+  get('/api/v1/sessions', (shelf.Request request) => _handleGetSession(request.requestedUri, config, store));
+  post(callbacksPath, (shelf.Request request) => _handleCallback(request, config, store, callbackLimiter, recaptchaVerifier));
+  get(returnPath, (shelf.Request request) => _handleReturn(request.requestedUri, config, store));
 
   // Serves the Flutter Web build (see Dockerfile) when present; absent in
   // local non-Docker dev, where this stays an API-only backend.
@@ -581,11 +494,7 @@ shelf_router.Router _buildRouter(
 final _sanitizePattern = RegExp('[^A-Za-z0-9_:.-]');
 
 /// Builds the top-level Shelf handler serving all example backend routes.
-shelf.Handler buildHandler(
-  AppConfig config,
-  AttemptStore store, {
-  RecaptchaVerifier? recaptchaVerifier,
-}) {
+shelf.Handler buildHandler(AppConfig config, AttemptStore store, {RecaptchaVerifier? recaptchaVerifier}) {
   final verifier =
       recaptchaVerifier ?? (config.recaptchaServiceAccountJson.isNotEmpty ? GoogleCloudRecaptchaVerifier(config.recaptchaServiceAccountJson) : null);
   final router = _buildRouter(config, store, verifier);
@@ -594,9 +503,7 @@ shelf.Handler buildHandler(
     final startTime = DateTime.now();
     final clientIp = _clientIp(request);
     final requestId = _normalizeRequestId(request.headers[_HeaderNames.xRequestId]) ?? createZpMupid().value;
-    var withRequestId = request.change(
-      context: {'requestId': requestId, 'events': <Map<String, Object?>>[]},
-    );
+    var withRequestId = request.change(context: {'requestId': requestId, 'events': <Map<String, Object?>>[]});
     shelf.Response response;
     var requestBody = const <int>[];
 
@@ -674,27 +581,15 @@ shelf.Handler buildHandler(
 
     // Echoed on every response (preflight included) so the client can quote
     // it back and both sides' logs stay correlatable.
-    return response.change(
-      headers: {
-        _HeaderNames.xRequestId: requestId,
-        ...response.headers,
-      },
-    );
+    return response.change(headers: {_HeaderNames.xRequestId: requestId, ...response.headers});
   };
 }
 
 /// Appends [event] to the current request's accumulated event list, folded
 /// into the one `http_trace` line [buildHandler] emits for that request once
 /// it completes — see that function for why these aren't logged immediately.
-void _recordEvent(
-  shelf.Request request,
-  String event, [
-  Map<String, Object?> fields = const {},
-]) {
-  (request.context['events']! as List<Map<String, Object?>>).add({
-    'event': event,
-    ...fields,
-  });
+void _recordEvent(shelf.Request request, String event, [Map<String, Object?> fields = const {}]) {
+  (request.context['events']! as List<Map<String, Object?>>).add({'event': event, ...fields});
 }
 
 final _logger = Logger('zenpay_example_backend');
@@ -773,11 +668,7 @@ Object? _loggableBody(List<int> bytes, String? contentType) {
 }
 
 /// Logs a structured [event] payload with optional [fields] and [isError] flag.
-void logEvent(
-  String event, {
-  Map<String, Object?> fields = const {},
-  bool isError = false,
-}) {
+void logEvent(String event, {Map<String, Object?> fields = const {}, bool isError = false}) {
   final payload = _encoder.convert({'event': event, ...fields});
   if (isError) {
     _logger.warning(payload);

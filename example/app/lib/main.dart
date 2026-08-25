@@ -41,11 +41,6 @@ final class ZenPayExampleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: _appTitle,
-      theme: ZenithTheme.light(),
-      darkTheme: ZenithTheme.dark(),
-      home: const CheckoutPage(),
-    );
+    return MaterialApp(title: _appTitle, theme: ZenithTheme.light(), darkTheme: ZenithTheme.dark(), home: const CheckoutPage());
   }
 }

@@ -12,12 +12,7 @@ final class ActiveCheckout {
   ActiveCheckout({required this.onFinished});
 
   /// Called once, after the outcome settles and teardown has run.
-  final void Function(
-    ZpCheckoutOutcome outcome,
-    Duration duration,
-    Object? cause,
-  )
-  onFinished;
+  final void Function(ZpCheckoutOutcome outcome, Duration duration, Object? cause) onFinished;
 
   final Completer<ZpCheckoutOutcome> _completer = Completer<ZpCheckoutOutcome>();
   final Stopwatch _elapsed = Stopwatch()..start();

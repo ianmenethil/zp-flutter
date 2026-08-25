@@ -30,20 +30,12 @@ void main() {
     });
 
     test('rejects a null message', () {
-      final result = parseIncomingReturnMessage(
-        eventOrigin: expectedOrigin,
-        expectedOrigin: expectedOrigin,
-        messageData: null,
-      );
+      final result = parseIncomingReturnMessage(eventOrigin: expectedOrigin, expectedOrigin: expectedOrigin, messageData: null);
       expect(result, isNull);
     });
 
     test('rejects a message that is not a return handoff', () {
-      final result = parseIncomingReturnMessage(
-        eventOrigin: expectedOrigin,
-        expectedOrigin: expectedOrigin,
-        messageData: 'some-other-message',
-      );
+      final result = parseIncomingReturnMessage(eventOrigin: expectedOrigin, expectedOrigin: expectedOrigin, messageData: 'some-other-message');
       expect(result, isNull);
     });
 

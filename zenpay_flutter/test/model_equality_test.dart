@@ -14,12 +14,8 @@ import 'package:zenpay_flutter/zenpay_checkout.dart';
 void main() {
   group('ZpCheckoutOutcome equality', () {
     test('two ZpReturnReceived with the same returnUri are equal', () {
-      final a = ZpReturnReceived(
-        returnUri: Uri.parse('https://app.example.com/return?x=1'),
-      );
-      final b = ZpReturnReceived(
-        returnUri: Uri.parse('https://app.example.com/return?x=1'),
-      );
+      final a = ZpReturnReceived(returnUri: Uri.parse('https://app.example.com/return?x=1'));
+      final b = ZpReturnReceived(returnUri: Uri.parse('https://app.example.com/return?x=1'));
 
       expect(a, equals(b));
       expect(a.hashCode, equals(b.hashCode));

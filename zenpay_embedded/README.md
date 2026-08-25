@@ -34,6 +34,16 @@ end-to-end.
 
 Dispose the presenter alongside your `ZpCheckout` controller: `await presenter.dispose();`.
 
+## Testing
+
+`render_checkout_web_view_test.dart` and `open_checkout_in_web_view_test.dart` drive the
+in-app WebView through a fake `WebViewPlatform` (`test/support/fake_webview_platform.dart`)
+— the same swappable-static pattern `zenpay_flutter`'s tests use to fake
+`UrlLauncherPlatform.instance` for `url_launcher` — so no real platform channel or device is
+needed.
+
+**Coverage:** 91.0% line coverage. Regenerate with `melos run coverage --scope=zenpay_embedded` from the repository root — writes `zenpay_embedded/coverage/lcov.info`.
+
 ## WebView policy
 
 An embedded WebView does not, by itself, change PCI scope in either direction — the hosted

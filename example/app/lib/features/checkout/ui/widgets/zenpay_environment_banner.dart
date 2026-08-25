@@ -23,10 +23,7 @@ const _bannerText = 'Sandbox environment — test payments only';
 final class ZenPayEnvironmentBanner extends StatelessWidget {
   /// Creates a [ZenPayEnvironmentBanner] reading hosts from
   /// [allowedCheckoutHosts].
-  const ZenPayEnvironmentBanner({
-    required this.allowedCheckoutHosts,
-    super.key,
-  });
+  const ZenPayEnvironmentBanner({required this.allowedCheckoutHosts, super.key});
 
   /// The checkout host allowlist deciding whether the banner shows.
   final Set<String> allowedCheckoutHosts;
@@ -35,9 +32,7 @@ final class ZenPayEnvironmentBanner extends StatelessWidget {
   // or 'uat' and the allowlist is tiny, so the false-positive surface is
   // negligible. Swap for an explicit environment field if a host ever
   // collides.
-  bool get _isNonProduction => allowedCheckoutHosts.every(
-    (host) => host.contains(_sandboxKeyword) || host.contains(_uatKeyword),
-  );
+  bool get _isNonProduction => allowedCheckoutHosts.every((host) => host.contains(_sandboxKeyword) || host.contains(_uatKeyword));
 
   @override
   Widget build(BuildContext context) {
@@ -52,21 +47,13 @@ final class ZenPayEnvironmentBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: <Widget>[
-            Icon(
-              Icons.science_outlined,
-              size: 18,
-              color: colors.onTertiaryContainer,
-            ),
+            Icon(Icons.science_outlined, size: 18, color: colors.onTertiaryContainer),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 _bannerText,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onTertiaryContainer,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: colors.onTertiaryContainer, fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ),
           ],

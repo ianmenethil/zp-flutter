@@ -51,11 +51,7 @@ final class ZpReturnValidator {
   ///
   /// [onRejectionObserved], when supplied, is called with the reason immediately before `null` is returned.
   /// It is observational only and cannot affect the result.
-  Uri? validate({
-    required Uri candidate,
-    required ZpCheckoutConfiguration configuration,
-    void Function(ZpReturnRejectionReason reason)? onRejectionObserved,
-  }) {
+  Uri? validate({required Uri candidate, required ZpCheckoutConfiguration configuration, void Function(ZpReturnRejectionReason reason)? onRejectionObserved}) {
     if (candidate.toString().length > configuration.maxReturnUriLength) {
       onRejectionObserved?.call(ZpReturnRejectionReason.tooLong);
       return null;

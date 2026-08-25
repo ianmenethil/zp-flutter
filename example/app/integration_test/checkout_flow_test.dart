@@ -18,9 +18,7 @@ import 'package:zenpay_example_app/main.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('mode toggle, amount entry and customer input work end to end', (
-    tester,
-  ) async {
+  testWidgets('mode toggle, amount entry and customer input work end to end', (tester) async {
     await tester.pumpWidget(const ZenPayExampleApp());
     await tester.pumpAndSettle();
 
@@ -32,11 +30,7 @@ void main() {
 
     // The amount field renders in Make Payment mode (the default),
     // restricted to the backend's fixed-amount presets.
-    await tester.scrollUntilVisible(
-      find.text('PAYMENT AMOUNT'),
-      200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('PAYMENT AMOUNT'), 200, scrollable: list);
     expect(find.text('PAYMENT AMOUNT'), findsOneWidget);
 
     // Tapping a preset chip doesn't throw or change the transaction mode.
@@ -45,60 +39,33 @@ void main() {
     expect(find.text('Make Payment'), findsOneWidget);
 
     // Tokenise shows no amount field at all.
-    await tester.scrollUntilVisible(
-      find.text('Tokenise'),
-      -200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('Tokenise'), -200, scrollable: list);
     await tester.tap(find.text('Tokenise'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Transaction mode:'),
-      -200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('Transaction mode:'), -200, scrollable: list);
     expect(find.text('PAYMENT AMOUNT'), findsNothing);
 
     // Custom Payment keeps the free-typed amount field too.
     await tester.tap(find.text('Custom Payment'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('PAYMENT AMOUNT'),
-      200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('PAYMENT AMOUNT'), 200, scrollable: list);
     expect(find.text('PAYMENT AMOUNT'), findsOneWidget);
 
     // Back to Make Payment for the customer-field leg.
-    await tester.scrollUntilVisible(
-      find.text('Transaction mode:'),
-      -200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('Transaction mode:'), -200, scrollable: list);
     await tester.tap(find.text('Make Payment'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('PAYMENT AMOUNT'),
-      200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('PAYMENT AMOUNT'), 200, scrollable: list);
     expect(find.text('PAYMENT AMOUNT'), findsOneWidget);
 
     // Customer fields accept input.
-    final nameField = find.descendant(
-      of: find.widgetWithText(ZenPayLabeledField, 'Customer name'),
-      matching: find.byType(TextField),
-    );
+    final nameField = find.descendant(of: find.widgetWithText(ZenPayLabeledField, 'Customer name'), matching: find.byType(TextField));
     await tester.scrollUntilVisible(nameField, 200, scrollable: list);
     await tester.enterText(nameField, 'Ada Lovelace');
     expect(find.text('Ada Lovelace'), findsOneWidget);
 
     // The results placeholder sits below the fold.
-    await tester.scrollUntilVisible(
-      find.text('No payment attempt yet.'),
-      200,
-      scrollable: list,
-    );
+    await tester.scrollUntilVisible(find.text('No payment attempt yet.'), 200, scrollable: list);
     expect(find.text('No payment attempt yet.'), findsOneWidget);
   });
 }

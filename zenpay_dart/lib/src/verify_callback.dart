@@ -14,11 +14,7 @@ import 'package:zenpay_dart/src/crypto_utils.dart';
 import 'package:zenpay_dart/src/models/callback_input.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
 
-typedef _CallbackShape = ({
-  Map<String, Object?> response,
-  String reference,
-  String validationCode,
-});
+typedef _CallbackShape = ({Map<String, Object?> response, String reference, String validationCode});
 
 Map<String, Object?>? _asObjectMap(Object? value) {
   if (value is Map<String, Object?>) return value;
@@ -34,10 +30,7 @@ Map<String, Object?>? _asObjectMap(Object? value) {
   return result;
 }
 
-_CallbackShape _parseCallbackShape(
-  ZpPluginMode mode,
-  Map<String, Object?> body,
-) {
+_CallbackShape _parseCallbackShape(ZpPluginMode mode, Map<String, Object?> body) {
   final response = _asObjectMap(body['response']);
   final validationCode = body['validationCode'];
 
@@ -56,17 +49,10 @@ _CallbackShape _parseCallbackShape(
     throw const FormatException(ZpErrors.validationCodeHex);
   }
 
-  return (
-    response: response,
-    reference: reference,
-    validationCode: validationCode,
-  );
+  return (response: response, reference: reference, validationCode: validationCode);
 }
 
-(ZpCents?, ZpCallbackRejected?) _validateCallbackContext(
-  ZpPluginMode mode,
-  ZpVerifyCallbackContext context,
-) {
+(ZpCents?, ZpCallbackRejected?) _validateCallbackContext(ZpPluginMode mode, ZpVerifyCallbackContext context) {
   if (context.apiKey.length < ZpCore.minCredentialLength ||
       context.username.length < ZpCore.minCredentialLength ||
       context.password.length < ZpCore.minCredentialLength ||
@@ -74,10 +60,7 @@ _CallbackShape _parseCallbackShape(
     return (null, const ZpCallbackRejected(ZpErrors.credentialLength));
   }
 
-  final (amount, failureReason) = resolveZpHashAmountChecked(
-    mode,
-    context.paymentAmount,
-  );
+  final (amount, failureReason) = resolveZpHashAmountChecked(mode, context.paymentAmount);
 
   if (failureReason == null) {
     return (amount, null);
@@ -86,15 +69,9 @@ _CallbackShape _parseCallbackShape(
   return (
     null,
     switch (failureReason) {
-      ZpAmountFailureReason.notANumber => const ZpCallbackRejected(
-        ZpErrors.paymentAmountNumber,
-      ),
-      ZpAmountFailureReason.notPositive => const ZpCallbackRejected(
-        ZpErrors.paymentAmountPositive,
-      ),
-      ZpAmountFailureReason.unresolvable => ZpCallbackRejected(
-        ZpErrors.paymentAmountUnresolvable(context.paymentAmount),
-      ),
+      ZpAmountFailureReason.notANumber => const ZpCallbackRejected(ZpErrors.paymentAmountNumber),
+      ZpAmountFailureReason.notPositive => const ZpCallbackRejected(ZpErrors.paymentAmountPositive),
+      ZpAmountFailureReason.unresolvable => ZpCallbackRejected(ZpErrors.paymentAmountUnresolvable(context.paymentAmount)),
     },
   );
 }
@@ -126,10 +103,7 @@ bool _verifyCallbackHash({
 ///
 /// Returns `null` when [body] is structurally valid. This does not verify
 /// callback authenticity.
-ZpCallbackMalformed? validateZpCallbackBody(
-  ZpPluginMode mode,
-  Map<String, Object?> body,
-) {
+ZpCallbackMalformed? validateZpCallbackBody(ZpPluginMode mode, Map<String, Object?> body) {
   try {
     _parseCallbackShape(mode, body);
     return null;
@@ -147,16 +121,9 @@ ZpCallbackMalformed? validateZpCallbackBody(
 /// Recover [mode] from your own launch state. Never infer it from [body].
 ///
 /// Never throws for malformed callback data.
-ZpCallbackResult verifyZpCallback(
-  ZpPluginMode mode,
-  Map<String, Object?> body,
-  ZpVerifyCallbackContext context,
-) {
+ZpCallbackResult verifyZpCallback(ZpPluginMode mode, Map<String, Object?> body, ZpVerifyCallbackContext context) {
   try {
-    final (response: _, :reference, :validationCode) = _parseCallbackShape(
-      mode,
-      body,
-    );
+    final (response: _, :reference, :validationCode) = _parseCallbackShape(mode, body);
 
     final (amount, contextError) = _validateCallbackContext(mode, context);
 
@@ -164,13 +131,7 @@ ZpCallbackResult verifyZpCallback(
       return contextError;
     }
 
-    if (!_verifyCallbackHash(
-      mode: mode,
-      context: context,
-      amount: amount!,
-      reference: reference,
-      validationCode: validationCode,
-    )) {
+    if (!_verifyCallbackHash(mode: mode, context: context, amount: amount!, reference: reference, validationCode: validationCode)) {
       return const ZpCallbackRejected(ZpErrors.validationCodeMismatch);
     }
 

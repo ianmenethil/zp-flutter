@@ -38,11 +38,7 @@ extension type _Location(JSObject _) implements JSObject {
 /// Returns `null` when the browser refuses the request, which in practice means
 /// a popup blocker rejected it.
 @JS('window.open')
-external _BrowserWindow? _windowOpen(
-  String url,
-  String target,
-  String features,
-);
+external _BrowserWindow? _windowOpen(String url, String target, String features);
 
 /// Window features for [_windowOpen].
 ///
@@ -120,11 +116,7 @@ final class _CheckoutPresenterWeb extends CheckoutPresenter {
   /// back from an in-app surface to the system browser — on web the tab
   /// already *is* the system browser, so there is nothing to fall back from.
   @override
-  Future<PresentationLaunchResult> openCheckout(
-    Uri url, {
-    required bool showTitle,
-    required bool allowExternalBrowserFallback,
-  }) async {
+  Future<PresentationLaunchResult> openCheckout(Uri url, {required bool showTitle, required bool allowExternalBrowserFallback}) async {
     _stopWatching();
 
     final reserved = _reserved;
@@ -132,10 +124,7 @@ final class _CheckoutPresenterWeb extends CheckoutPresenter {
     final opened = reserved ?? _windowOpen(url.toString(), _blankTarget, _popupFeatures);
 
     if (opened == null) {
-      return const PresentationLaunchResult(
-        launched: false,
-        usedExternalBrowserFallback: false,
-      );
+      return const PresentationLaunchResult(launched: false, usedExternalBrowserFallback: false);
     }
     if (reserved != null) {
       reserved.location.href = url.toString();
@@ -154,10 +143,7 @@ final class _CheckoutPresenterWeb extends CheckoutPresenter {
     // A new tab is the normal presentation on web, not a degraded
     // fallback from an in-app surface, so this is never reported as an
     // external fallback.
-    return const PresentationLaunchResult(
-      launched: true,
-      usedExternalBrowserFallback: false,
-    );
+    return const PresentationLaunchResult(launched: true, usedExternalBrowserFallback: false);
   }
 
   @override

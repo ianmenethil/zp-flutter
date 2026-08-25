@@ -14,13 +14,10 @@ void main() {
       expect(ZpPluginMode.preauthorization.wireValue, 3);
     });
 
-    test(
-      'fromWireValue resolves a known value and throws on an unknown one',
-      () {
-        expect(ZpPluginMode.fromWireValue(3), ZpPluginMode.preauthorization);
-        expect(() => ZpPluginMode.fromWireValue(9), throwsArgumentError);
-      },
-    );
+    test('fromWireValue resolves a known value and throws on an unknown one', () {
+      expect(ZpPluginMode.fromWireValue(3), ZpPluginMode.preauthorization);
+      expect(() => ZpPluginMode.fromWireValue(9), throwsArgumentError);
+    });
 
     test('requiresPositiveAmount is true only for modes 0, 2, and 3', () {
       expect(ZpPluginMode.makePayment.requiresPositiveAmount, isTrue);
@@ -78,22 +75,15 @@ void main() {
 
   test('createZpTimestamp returns a slice-19 UTC ISO 8601 string', () {
     final timestamp = createZpTimestamp();
-    expect(
-      RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$').hasMatch(timestamp.value),
-      isTrue,
-      reason: timestamp.value,
-    );
+    expect(RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$').hasMatch(timestamp.value), isTrue, reason: timestamp.value);
   });
 
-  test(
-    'createZpMupid returns a 22-character base64url string with no padding',
-    () {
-      final mupid = createZpMupid();
-      expect(mupid.value, hasLength(22));
-      expect(mupid.value.contains('='), isFalse);
-      expect(RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(mupid.value), isTrue);
-    },
-  );
+  test('createZpMupid returns a 22-character base64url string with no padding', () {
+    final mupid = createZpMupid();
+    expect(mupid.value, hasLength(22));
+    expect(mupid.value.contains('='), isFalse);
+    expect(RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(mupid.value), isTrue);
+  });
 
   test('createZpMupid returns distinct values across calls', () {
     expect(createZpMupid().value, isNot(createZpMupid().value));
@@ -132,10 +122,7 @@ void main() {
       expect(result, isA<ZpUrlFailure>());
       final failure = createZpCheckoutUrl(options) as ZpUrlFailure;
       expect(failure.message, contains('at least one of callbackUrl or redirectUrl'));
-      expect(
-        validateZpCheckoutUrlRequest(options)?.message,
-        contains('at least one of callbackUrl or redirectUrl'),
-      );
+      expect(validateZpCheckoutUrlRequest(options)?.message, contains('at least one of callbackUrl or redirectUrl'));
     });
 
     test('validateZpCheckoutUrlRequest returns null for a valid request', () {
@@ -194,31 +181,28 @@ void main() {
       }
     });
 
-    test(
-      'encodes delimiter-bearing free text instead of splitting the query',
-      () {
-        final options = ZpCheckoutOptions(
-          url: 'https://pay.sandbox.b2bpay.com.au/Online/v5',
-          merchantCode: 'ZenTest1',
-          apiKey: 'api-key-value',
-          fingerprint: 'f'.padLeft(128, 'f'),
-          merchantUniquePaymentId: const ZpMupid('mupid-0001'),
-          timestamp: const ZpTimestamp('2026-01-15T10:30:00'),
-          customerEmail: 'jane@example.com',
-          paymentAmount: '49.90',
-          customerName: 'Jane & Jones #1', // Delimiter
-          customerReference: 'ORD-1001',
-          redirectUrl: 'https://merchant.example/return',
-        );
-        final result = createZpCheckoutUrl(options);
-        expect(result, isA<ZpUrlSuccess>());
-        if (result is ZpUrlSuccess) {
-          expect(result.url, isNot(contains('#')));
-          final params = Uri.parse(result.url).queryParameters;
-          expect(params['customerName'], 'Jane & Jones #1');
-        }
-      },
-    );
+    test('encodes delimiter-bearing free text instead of splitting the query', () {
+      final options = ZpCheckoutOptions(
+        url: 'https://pay.sandbox.b2bpay.com.au/Online/v5',
+        merchantCode: 'ZenTest1',
+        apiKey: 'api-key-value',
+        fingerprint: 'f'.padLeft(128, 'f'),
+        merchantUniquePaymentId: const ZpMupid('mupid-0001'),
+        timestamp: const ZpTimestamp('2026-01-15T10:30:00'),
+        customerEmail: 'jane@example.com',
+        paymentAmount: '49.90',
+        customerName: 'Jane & Jones #1', // Delimiter
+        customerReference: 'ORD-1001',
+        redirectUrl: 'https://merchant.example/return',
+      );
+      final result = createZpCheckoutUrl(options);
+      expect(result, isA<ZpUrlSuccess>());
+      if (result is ZpUrlSuccess) {
+        expect(result.url, isNot(contains('#')));
+        final params = Uri.parse(result.url).queryParameters;
+        expect(params['customerName'], 'Jane & Jones #1');
+      }
+    });
 
     test('percent-encodes a customerEmail with an "@" the same as other safe fields', () {
       final result = createZpCheckoutUrl(baseOptions());

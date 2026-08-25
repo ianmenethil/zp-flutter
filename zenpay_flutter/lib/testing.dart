@@ -69,9 +69,7 @@ final class FakeReturnUriSource implements ZpReturnUriSource {
     if (initialUri != null && !_initialUriConsumed) {
       _initialUriConsumed = true;
       final replayed = StreamController<Uri>()..add(initialUri!);
-      unawaited(
-        replayed.addStream(controller.stream).whenComplete(replayed.close),
-      );
+      unawaited(replayed.addStream(controller.stream).whenComplete(replayed.close));
       return replayed.stream;
     }
     return controller.stream;

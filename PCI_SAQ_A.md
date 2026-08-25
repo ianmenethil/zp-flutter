@@ -130,21 +130,33 @@ then clears cache, local storage, and cookies, in that order. **Guarded by the
 Unlike § 3.1–3.5, this isn't a PCI control — it's a platform restriction that specifically
 affects embedded WebViews. Google Pay's button and payment logic run entirely *inside* the
 ZenPay hosted page's own JavaScript, not in any code this SDK or the host app owns — but that
-JavaScript still executes inside a WebView running in the host app's own process, and
-Android's package-visibility (`<queries>`) rules are evaluated per host APK. `zenpay_embedded`
-opts in to the WebView's Payment Request API via `AndroidWebViewController`'s native
-`WebViewFeatureType.paymentRequest` flag (`_enableGooglePayPaymentRequest()`, a
-`WebSettings`-level toggle, not a JavaScript channel — it carries none of the § 3.1 bridge
-risk). But that alone is not sufficient: **the host app's own `AndroidManifest.xml` must also
-declare `<queries>` entries** (`org.chromium.intent.action.PAY`, `IS_READY_TO_PAY`,
-`UPDATE_PAYMENT_DETAILS`) for the OS to let the WebView discover the Google Pay app at all.
+JavaScript still executes inside a WebView running in the host app's own process, and Android
+gates the WebView's use of the standard Payment Request API behind a native `WebSettings` flag.
+`zenpay_embedded` opts in via `AndroidWebViewController`'s `WebViewFeatureType.paymentRequest`
+(`_enableGooglePayPaymentRequest()`, a `WebSettings`-level toggle, not a JavaScript channel — it
+carries none of the § 3.1 bridge risk).
 
-**Known unresolved gap:** `example/app/android/app/src/main/AndroidManifest.xml` does not
-currently declare these entries — its entire git history is a single commit, suggesting this
-requirement was met in an earlier, since-rewritten version of the example app and never
-carried forward. Whether Google Pay currently works in the embedded demo is unverified; this
-is a per-merchant integration requirement regardless (`zenpay_embedded` ships no native
-`android/` folder of its own to auto-merge it).
+**Verified load-bearing by a live device test** (Pixel 9 Pro XL, embedded-WebView demo,
+2026-08-25): commenting out `_enableGooglePayPaymentRequest()` and rebuilding reproduces
+Google's own in-page failure verbatim:
+
+> Something went wrong
+> Google Pay couldn't load properly because this App uses a WebView. App developers must
+> follow the instructions to enable Google Pay to work within Android WebView:
+> https://goo.gle/gpay-android-webview-help [OR_BIBED_15] OR_BIBED_15
+
+With the flag restored, Google Pay has worked across every checkout mode in extensive
+real-device testing.
+
+**Correction to a prior claim in this section:** an earlier version of this doc additionally
+claimed the host app's `AndroidManifest.xml` must declare `<queries>` entries
+(`org.chromium.intent.action.PAY`, `IS_READY_TO_PAY`, `UPDATE_PAYMENT_DETAILS`) for Google Pay
+to work. That claim was never verified against code and is contradicted by testing:
+`example/app/android/app/src/main/AndroidManifest.xml` declares no such entries (only the
+Flutter-generated `PROCESS_TEXT` query), and Google Pay has still worked reliably across
+repeated real-device tests. Treat that specific manifest requirement as unconfirmed rather
+than a known gap — if your own target devices/Play Services versions need it, verify
+independently; don't assume this doc's earlier claim was correct.
 
 ---
 

@@ -14,89 +14,50 @@ void main() {
   final base = Uri.parse('http://localhost:8080');
 
   group('prepareCheckout', () {
-    test(
-      'POSTs to the checkout/token endpoint and returns the token',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return http.Response(
-            jsonEncode(<String, Object?>{'checkoutToken': 'checkout-token-1'}),
-            201,
-          );
-        });
+    test('POSTs to the checkout/token endpoint and returns the token', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(jsonEncode(<String, Object?>{'checkoutToken': 'checkout-token-1'}), 201);
+      });
 
-        final checkoutToken = await prepareCheckout(base, <String, Object?>{
-          'mode': 0,
-          'paymentAmount': 10,
-        }, client: client);
+      final checkoutToken = await prepareCheckout(base, <String, Object?>{'mode': 0, 'paymentAmount': 10}, client: client);
 
-        expect(captured.method, 'POST');
-        expect(captured.url.path, '/api/v1/checkout/token');
-        expect(captured.headers['content-type'], 'application/json');
-        expect(
-          captured.headers['idempotency-key']!.length,
-          inInclusiveRange(16, 128),
-        );
-        expect(
-          jsonDecode(captured.body) as Map<String, Object?>,
-          isNot(contains('client')),
-        );
-        expect(captured.headers['x-client'], 'mobile');
-        expect(captured.headers['x-request-id'], isNotEmpty);
-        expect(checkoutToken, 'checkout-token-1');
-      },
-    );
+      expect(captured.method, 'POST');
+      expect(captured.url.path, '/api/v1/checkout/token');
+      expect(captured.headers['content-type'], 'application/json');
+      expect(captured.headers['idempotency-key']!.length, inInclusiveRange(16, 128));
+      expect(jsonDecode(captured.body) as Map<String, Object?>, isNot(contains('client')));
+      expect(captured.headers['x-client'], 'mobile');
+      expect(captured.headers['x-request-id'], isNotEmpty);
+      expect(checkoutToken, 'checkout-token-1');
+    });
 
     test('throws BackendError carrying the backend error code', () async {
-      final client = MockClient(
-        (request) async => http.Response(
-          jsonEncode(<String, Object?>{
-            'error': 'SESSION_CONFIGURATION_REQUIRED',
-          }),
-          500,
-        ),
-      );
+      final client = MockClient((request) async => http.Response(jsonEncode(<String, Object?>{'error': 'SESSION_CONFIGURATION_REQUIRED'}), 500));
 
       await expectLater(
         prepareCheckout(base, <String, Object?>{}, client: client),
-        throwsA(
-          isA<BackendError>().having((e) => e.statusCode, 'statusCode', 500).having((e) => e.code, 'code', 'SESSION_CONFIGURATION_REQUIRED'),
-        ),
+        throwsA(isA<BackendError>().having((e) => e.statusCode, 'statusCode', 500).having((e) => e.code, 'code', 'SESSION_CONFIGURATION_REQUIRED')),
       );
     });
   });
 
   group('exchangeCheckout', () {
-    test(
-      'POSTs with a Bearer checkoutToken and decodes the response',
-      () async {
-        late http.Request captured;
-        final client = MockClient((request) async {
-          captured = request;
-          return http.Response(
-            jsonEncode(<String, Object?>{
-              'checkoutUrl': 'https://pay.sandbox.travelpay.com.au/launch',
-            }),
-            200,
-          );
-        });
+    test('POSTs with a Bearer checkoutToken and decodes the response', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(jsonEncode(<String, Object?>{'checkoutUrl': 'https://pay.sandbox.travelpay.com.au/launch'}), 200);
+      });
 
-        final exchanged = await exchangeCheckout(
-          base,
-          'checkout-token-1',
-          client: client,
-        );
+      final exchanged = await exchangeCheckout(base, 'checkout-token-1', client: client);
 
-        expect(captured.method, 'POST');
-        expect(captured.url.path, '/api/v1/checkout/exchange');
-        expect(captured.headers['authorization'], 'Bearer checkout-token-1');
-        expect(
-          exchanged.checkoutUrl,
-          'https://pay.sandbox.travelpay.com.au/launch',
-        );
-      },
-    );
+      expect(captured.method, 'POST');
+      expect(captured.url.path, '/api/v1/checkout/exchange');
+      expect(captured.headers['authorization'], 'Bearer checkout-token-1');
+      expect(exchanged.checkoutUrl, 'https://pay.sandbox.travelpay.com.au/launch');
+    });
   });
 
   group('fetchStatus', () {
@@ -104,13 +65,7 @@ void main() {
       late http.Request captured;
       final client = MockClient((request) async {
         captured = request;
-        return http.Response(
-          jsonEncode(<String, Object?>{
-            'status': 'successful',
-            'callbackVerified': true,
-          }),
-          200,
-        );
+        return http.Response(jsonEncode(<String, Object?>{'status': 'successful', 'callbackVerified': true}), 200);
       });
 
       final status = await fetchStatus(base, 'signed-token', client: client);
@@ -127,9 +82,7 @@ void main() {
 
       await expectLater(
         fetchStatus(base, 'signed-token', client: client),
-        throwsA(
-          isA<BackendError>().having((e) => e.statusCode, 'statusCode', 404).having((e) => e.code, 'code', isNull),
-        ),
+        throwsA(isA<BackendError>().having((e) => e.statusCode, 'statusCode', 404).having((e) => e.code, 'code', isNull)),
       );
     });
   });

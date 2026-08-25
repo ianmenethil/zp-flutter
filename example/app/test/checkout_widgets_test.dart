@@ -18,13 +18,7 @@ Future<void> _pump(WidgetTester tester, Widget widget) {
 void main() {
   group('ZenPayAmountField', () {
     testWidgets('renders title, currency badge and presets', (tester) async {
-      await _pump(
-        tester,
-        ZenPayAmountField(
-          controller: TextEditingController(),
-          hintText: '0.00',
-        ),
-      );
+      await _pump(tester, ZenPayAmountField(controller: TextEditingController(), hintText: '0.00'));
 
       expect(find.text('PAYMENT AMOUNT'), findsOneWidget);
       expect(find.text('AUD'), findsOneWidget);
@@ -34,14 +28,9 @@ void main() {
       expect(find.text(r'$1000'), findsOneWidget);
     });
 
-    testWidgets('tapping a preset writes it into the controller', (
-      tester,
-    ) async {
+    testWidgets('tapping a preset writes it into the controller', (tester) async {
       final controller = TextEditingController();
-      await _pump(
-        tester,
-        ZenPayAmountField(controller: controller, hintText: '0.00'),
-      );
+      await _pump(tester, ZenPayAmountField(controller: controller, hintText: '0.00'));
 
       await tester.tap(find.text(r'$100'));
       await tester.pump();
@@ -50,14 +39,7 @@ void main() {
     });
 
     testWidgets('renders a custom currency label', (tester) async {
-      await _pump(
-        tester,
-        ZenPayAmountField(
-          controller: TextEditingController(),
-          hintText: '0.00',
-          currencyLabel: 'USD',
-        ),
-      );
+      await _pump(tester, ZenPayAmountField(controller: TextEditingController(), hintText: '0.00', currencyLabel: 'USD'));
 
       expect(find.text('USD'), findsOneWidget);
       expect(find.text('AUD'), findsNothing);
@@ -68,13 +50,7 @@ void main() {
     testWidgets('shows icon, label and subtitle', (tester) async {
       await _pump(
         tester,
-        ZenPaySelectableCard(
-          icon: Icons.credit_card,
-          label: 'Make Payment',
-          subtitle: 'Standard one-off transaction',
-          selected: false,
-          onTap: () {},
-        ),
+        ZenPaySelectableCard(icon: Icons.credit_card, label: 'Make Payment', subtitle: 'Standard one-off transaction', selected: false, onTap: () {}),
       );
 
       expect(find.byIcon(Icons.credit_card), findsOneWidget);
@@ -86,13 +62,7 @@ void main() {
       var taps = 0;
       await _pump(
         tester,
-        ZenPaySelectableCard(
-          icon: Icons.credit_card,
-          label: 'Make Payment',
-          subtitle: 'Standard one-off transaction',
-          selected: false,
-          onTap: () => taps++,
-        ),
+        ZenPaySelectableCard(icon: Icons.credit_card, label: 'Make Payment', subtitle: 'Standard one-off transaction', selected: false, onTap: () => taps++),
       );
 
       await tester.tap(find.text('Make Payment'));
@@ -104,20 +74,12 @@ void main() {
     testWidgets('selected card draws the primary border', (tester) async {
       await _pump(
         tester,
-        ZenPaySelectableCard(
-          icon: Icons.credit_card,
-          label: 'Make Payment',
-          subtitle: 'Standard one-off transaction',
-          selected: true,
-          onTap: () {},
-        ),
+        ZenPaySelectableCard(icon: Icons.credit_card, label: 'Make Payment', subtitle: 'Standard one-off transaction', selected: true, onTap: () {}),
       );
 
       final container = tester.widget<Container>(find.byType(Container));
       final border = (container.decoration! as BoxDecoration).border! as Border;
-      final primary = Theme.of(
-        tester.element(find.byType(Container)),
-      ).colorScheme.primary;
+      final primary = Theme.of(tester.element(find.byType(Container))).colorScheme.primary;
 
       expect(border.top.color, primary);
       expect(border.top.width, 2);
@@ -126,14 +88,7 @@ void main() {
 
   group('ZenPayLabeledField', () {
     testWidgets('shows label and hint', (tester) async {
-      await _pump(
-        tester,
-        ZenPayLabeledField(
-          controller: TextEditingController(),
-          label: 'Customer email',
-          hintText: 'ada@example.com',
-        ),
-      );
+      await _pump(tester, ZenPayLabeledField(controller: TextEditingController(), label: 'Customer email', hintText: 'ada@example.com'));
 
       expect(find.text('Customer email'), findsOneWidget);
       expect(find.text('ada@example.com'), findsOneWidget);
@@ -163,31 +118,15 @@ void main() {
 
   group('ZenPayEnvironmentBanner', () {
     testWidgets('shows for sandbox hosts', (tester) async {
-      await _pump(
-        tester,
-        const ZenPayEnvironmentBanner(
-          allowedCheckoutHosts: <String>{'pay.sandbox.travelpay.com.au'},
-        ),
-      );
+      await _pump(tester, const ZenPayEnvironmentBanner(allowedCheckoutHosts: <String>{'pay.sandbox.travelpay.com.au'}));
 
-      expect(
-        find.text('Sandbox environment — test payments only'),
-        findsOneWidget,
-      );
+      expect(find.text('Sandbox environment — test payments only'), findsOneWidget);
     });
 
     testWidgets('hides for production hosts', (tester) async {
-      await _pump(
-        tester,
-        const ZenPayEnvironmentBanner(
-          allowedCheckoutHosts: <String>{'pay.travelpay.com.au'},
-        ),
-      );
+      await _pump(tester, const ZenPayEnvironmentBanner(allowedCheckoutHosts: <String>{'pay.travelpay.com.au'}));
 
-      expect(
-        find.text('Sandbox environment — test payments only'),
-        findsNothing,
-      );
+      expect(find.text('Sandbox environment — test payments only'), findsNothing);
     });
   });
 }

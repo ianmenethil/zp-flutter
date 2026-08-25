@@ -48,60 +48,36 @@ void main() {
 
   final checkoutUrl = Uri.parse('https://checkout.example.com/pay');
 
-  Future<PresentationLaunchResult> present(
-    _FakeUrlLauncher launcher, {
-    required bool allowExternalBrowserFallback,
-  }) {
+  Future<PresentationLaunchResult> present(_FakeUrlLauncher launcher, {required bool allowExternalBrowserFallback}) {
     UrlLauncherPlatform.instance = launcher;
-    return createCheckoutPresenter().openCheckout(
-      checkoutUrl,
-      showTitle: true,
-      allowExternalBrowserFallback: allowExternalBrowserFallback,
-    );
+    return createCheckoutPresenter().openCheckout(checkoutUrl, showTitle: true, allowExternalBrowserFallback: allowExternalBrowserFallback);
   }
 
   group('external browser fallback', () {
     test('is not attempted when the in-app surface launches', () async {
       final launcher = _FakeUrlLauncher(<Object>[true]);
 
-      final result = await present(
-        launcher,
-        allowExternalBrowserFallback: true,
-      );
+      final result = await present(launcher, allowExternalBrowserFallback: true);
 
       expect(result.launched, isTrue);
       expect(result.usedExternalBrowserFallback, isFalse);
-      expect(launcher.requestedModes, <PreferredLaunchMode>[
-        PreferredLaunchMode.inAppBrowserView,
-      ]);
+      expect(launcher.requestedModes, <PreferredLaunchMode>[PreferredLaunchMode.inAppBrowserView]);
     });
 
     test('retries externally when the in-app surface returns false', () async {
       final launcher = _FakeUrlLauncher(<Object>[false, true]);
 
-      final result = await present(
-        launcher,
-        allowExternalBrowserFallback: true,
-      );
+      final result = await present(launcher, allowExternalBrowserFallback: true);
 
       expect(result.launched, isTrue);
       expect(result.usedExternalBrowserFallback, isTrue);
-      expect(launcher.requestedModes, <PreferredLaunchMode>[
-        PreferredLaunchMode.inAppBrowserView,
-        PreferredLaunchMode.externalApplication,
-      ]);
+      expect(launcher.requestedModes, <PreferredLaunchMode>[PreferredLaunchMode.inAppBrowserView, PreferredLaunchMode.externalApplication]);
     });
 
     test('retries externally when the in-app surface throws', () async {
-      final launcher = _FakeUrlLauncher(<Object>[
-        Exception('no provider'),
-        true,
-      ]);
+      final launcher = _FakeUrlLauncher(<Object>[Exception('no provider'), true]);
 
-      final result = await present(
-        launcher,
-        allowExternalBrowserFallback: true,
-      );
+      final result = await present(launcher, allowExternalBrowserFallback: true);
 
       expect(result.launched, isTrue);
       expect(result.usedExternalBrowserFallback, isTrue);
@@ -110,44 +86,27 @@ void main() {
     test('is skipped entirely when the caller disallows it', () async {
       final launcher = _FakeUrlLauncher(<Object>[false]);
 
-      final result = await present(
-        launcher,
-        allowExternalBrowserFallback: false,
-      );
+      final result = await present(launcher, allowExternalBrowserFallback: false);
 
       expect(result.launched, isFalse);
       expect(result.usedExternalBrowserFallback, isFalse);
-      expect(launcher.requestedModes, <PreferredLaunchMode>[
-        PreferredLaunchMode.inAppBrowserView,
-      ]);
+      expect(launcher.requestedModes, <PreferredLaunchMode>[PreferredLaunchMode.inAppBrowserView]);
     });
 
-    test(
-      'reports an unlaunched result when both surfaces return false',
-      () async {
-        final launcher = _FakeUrlLauncher(<Object>[false, false]);
+    test('reports an unlaunched result when both surfaces return false', () async {
+      final launcher = _FakeUrlLauncher(<Object>[false, false]);
 
-        final result = await present(
-          launcher,
-          allowExternalBrowserFallback: true,
-        );
+      final result = await present(launcher, allowExternalBrowserFallback: true);
 
-        expect(result.launched, isFalse);
-        expect(result.usedExternalBrowserFallback, isFalse);
-      },
-    );
+      expect(result.launched, isFalse);
+      expect(result.usedExternalBrowserFallback, isFalse);
+    });
 
     test('rethrows the in-app error when the fallback also fails', () async {
       final inAppError = Exception('in-app failed');
-      final launcher = _FakeUrlLauncher(<Object>[
-        inAppError,
-        Exception('external failed too'),
-      ]);
+      final launcher = _FakeUrlLauncher(<Object>[inAppError, Exception('external failed too')]);
 
-      await expectLater(
-        present(launcher, allowExternalBrowserFallback: true),
-        throwsA(same(inAppError)),
-      );
+      await expectLater(present(launcher, allowExternalBrowserFallback: true), throwsA(same(inAppError)));
     });
   });
 
@@ -160,39 +119,28 @@ void main() {
     Future<CheckoutPresenter> presentAndKeepReference() async {
       UrlLauncherPlatform.instance = _FakeUrlLauncher(<Object>[true]);
       final presenter = createCheckoutPresenter();
-      final result = await presenter.openCheckout(
-        checkoutUrl,
-        showTitle: true,
-        allowExternalBrowserFallback: true,
-      );
+      final result = await presenter.openCheckout(checkoutUrl, showTitle: true, allowExternalBrowserFallback: true);
       expect(result.launched, isTrue);
       return presenter;
     }
 
-    test(
-      'emits once the app resumes and stays foregrounded past the grace period',
-      () async {
-        final presenter = await presentAndKeepReference();
-        final events = <void>[];
-        presenter.events.listen(events.add);
+    test('emits once the app resumes and stays foregrounded past the grace period', () async {
+      final presenter = await presentAndKeepReference();
+      final events = <void>[];
+      presenter.events.listen(events.add);
 
-        TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
-          AppLifecycleState.resumed,
-        );
-        await Future<void>.delayed(waitPastGracePeriod);
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await Future<void>.delayed(waitPastGracePeriod);
 
-        expect(events, hasLength(1));
-      },
-    );
+      expect(events, hasLength(1));
+    });
 
     test('does not emit before the grace period elapses', () async {
       final presenter = await presentAndKeepReference();
       final events = <void>[];
       presenter.events.listen(events.add);
 
-      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(events, isEmpty);
@@ -204,43 +152,32 @@ void main() {
       final events = <void>[];
       presenter.events.listen(events.add);
 
-      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await Future<void>.delayed(const Duration(milliseconds: 100));
-      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
-        AppLifecycleState.inactive,
-      );
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await Future<void>.delayed(waitPastGracePeriod);
 
       expect(events, isEmpty);
     });
 
-    test(
-      'does not emit after dismissCheckout has already settled it',
-      () async {
-        final presenter = await presentAndKeepReference();
-        final events = <void>[];
-        presenter.events.listen(events.add);
+    test('does not emit after dismissCheckout has already settled it', () async {
+      final presenter = await presentAndKeepReference();
+      final events = <void>[];
+      presenter.events.listen(events.add);
 
-        await presenter.dismissCheckout();
-        TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
-          AppLifecycleState.resumed,
-        );
-        await Future<void>.delayed(waitPastGracePeriod);
+      await presenter.dismissCheckout();
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await Future<void>.delayed(waitPastGracePeriod);
 
-        expect(events, isEmpty);
-      },
-    );
+      expect(events, isEmpty);
+    });
 
     test('does not emit before any checkout has been presented', () async {
       final presenter = createCheckoutPresenter();
       final events = <void>[];
       presenter.events.listen(events.add);
 
-      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(
-        AppLifecycleState.resumed,
-      );
+      TestWidgetsFlutterBinding.instance.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await Future<void>.delayed(waitPastGracePeriod);
 
       expect(events, isEmpty);

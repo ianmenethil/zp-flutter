@@ -10,10 +10,7 @@ import 'package:meta/meta.dart';
 @immutable
 final class PresentationLaunchResult {
   /// Creates a [PresentationLaunchResult].
-  const PresentationLaunchResult({
-    required this.launched,
-    required this.usedExternalBrowserFallback,
-  });
+  const PresentationLaunchResult({required this.launched, required this.usedExternalBrowserFallback});
 
   /// Whether the presentation was successfully launched.
   final bool launched;
@@ -42,11 +39,7 @@ abstract class CheckoutPresenter {
 
   /// Presents [url], honouring [showTitle] and [allowExternalBrowserFallback]
   /// where the underlying platform supports them.
-  Future<PresentationLaunchResult> openCheckout(
-    Uri url, {
-    required bool showTitle,
-    required bool allowExternalBrowserFallback,
-  });
+  Future<PresentationLaunchResult> openCheckout(Uri url, {required bool showTitle, required bool allowExternalBrowserFallback});
 
   /// Requests dismissal of the currently active presentation, if any.
   Future<bool> dismissCheckout();

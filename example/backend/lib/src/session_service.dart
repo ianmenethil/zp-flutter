@@ -61,11 +61,7 @@ num? _resolveAmount(int mode, num? paymentAmount) {
 
 /// Throws [HttpError] `409` if a replayed `idempotencyKey` request's core
 /// order fields don't match the [existing] attempt.
-void _requireIdempotentMatch(
-  CheckoutAttempt existing,
-  PrepareCheckoutBody body,
-  int mode,
-) {
+void _requireIdempotentMatch(CheckoutAttempt existing, PrepareCheckoutBody body, int mode) {
   if (existing.customerEmail != body.customerEmail ||
       existing.customerName != body.customerName ||
       existing.mode != mode ||
@@ -97,12 +93,7 @@ String _mintCheckoutToken(CheckoutAttempt attempt, AppConfig config) => createCh
 /// [CheckoutAttempt], and returns a signed checkout token. A repeated
 /// [idempotencyKey] re-mints a token for the *same* attempt rather than
 /// creating a new one.
-String prepareCheckout(
-  PrepareCheckoutBody body,
-  String idempotencyKey,
-  AppConfig config,
-  AttemptStore store,
-) {
+String prepareCheckout(PrepareCheckoutBody body, String idempotencyKey, AppConfig config, AttemptStore store) {
   final mode = body.mode ?? 0;
 
   final existing = store.getByIdempotencyKey(idempotencyKey);
@@ -135,15 +126,8 @@ String prepareCheckout(
 /// Step 2 — `POST /api/v1/checkout/exchange`. Verifies the checkout token,
 /// and builds (or, on replay, reuses) the ZenPay checkout URL for the
 /// attempt it names.
-ExchangeCheckoutResponse exchangeCheckout(
-  String checkoutToken,
-  AppConfig config,
-  AttemptStore store,
-) {
-  final payload = switch (verifyCheckoutToken(
-    checkoutToken,
-    checkoutTokenKey(config),
-  )) {
+ExchangeCheckoutResponse exchangeCheckout(String checkoutToken, AppConfig config, AttemptStore store) {
+  final payload = switch (verifyCheckoutToken(checkoutToken, checkoutTokenKey(config))) {
     CheckoutTokenVerified(:final payload) => payload,
     CheckoutTokenFailure() => throw HttpError(401, 'CHECKOUT_TOKEN_INVALID'),
   };
@@ -171,10 +155,7 @@ ExchangeCheckoutResponse exchangeCheckout(
 
   final updated = store.replace(
     attempt.merchantUniquePaymentId,
-    attempt.copyWith(
-      checkoutUrl: checkoutUrl.toString(),
-      status: MerchantPaymentStatus.sessionCreated,
-    ),
+    attempt.copyWith(checkoutUrl: checkoutUrl.toString(), status: MerchantPaymentStatus.sessionCreated),
   );
 
   return ExchangeCheckoutResponse(checkoutUrl: updated.checkoutUrl!);
@@ -212,9 +193,7 @@ Uri _buildCheckoutUrl({
     ),
   )) {
     ZpFingerprintSuccess(:final fingerprint) => fingerprint,
-    ZpFingerprintFailure() => throw ZenPaySessionException(
-      'ZENPAY_FINGERPRINT_FAILED',
-    ),
+    ZpFingerprintFailure() => throw ZenPaySessionException('ZENPAY_FINGERPRINT_FAILED'),
   };
 
   // Carries the mupid as a signed claim, so `/return` and the status lookup
@@ -227,17 +206,12 @@ Uri _buildCheckoutUrl({
       paymentAmount: amount,
     ),
     callbackTokenKey(config),
-    ZpCallbackUrlTokenOptions(
-      expiresInSeconds: config.checkoutStatusTtlMinutes * 60,
-    ),
+    ZpCallbackUrlTokenOptions(expiresInSeconds: config.checkoutStatusTtlMinutes * 60),
   );
 
   final isPaymentLike = _isPaymentLike(mode);
   final isMakePayment = mode == 0;
-  final returnUrl = config.publicBaseUrl.replace(
-    path: returnPath,
-    queryParameters: {'t': returnToken},
-  );
+  final returnUrl = config.publicBaseUrl.replace(path: returnPath, queryParameters: {'t': returnToken});
 
   final authoriseRequest = ZpCheckoutOptions(
     url: config.zenPay.hppEndpointUrl.toString(),
@@ -266,9 +240,7 @@ Uri _buildCheckoutUrl({
 
   final url = switch (createZpCheckoutUrl(authoriseRequest)) {
     ZpUrlSuccess(:final url) => url,
-    ZpUrlFailure() => throw ZenPaySessionException(
-      'ZENPAY_CHECKOUT_URL_FAILED',
-    ),
+    ZpUrlFailure() => throw ZenPaySessionException('ZENPAY_CHECKOUT_URL_FAILED'),
   };
   return resolveCheckoutUrl(url, config);
 }
@@ -292,9 +264,7 @@ Uri resolveCheckoutUrl(String endpointUrl, AppConfig config) {
   if (checkoutUrl.scheme != 'https') {
     throw ZenPaySessionException('ZENPAY_SESSION_ENDPOINT_NOT_HTTPS');
   }
-  if (!config.zenPay.allowedCheckoutHosts.contains(
-    checkoutUrl.host.toLowerCase(),
-  )) {
+  if (!config.zenPay.allowedCheckoutHosts.contains(checkoutUrl.host.toLowerCase())) {
     throw ZenPaySessionException('ZENPAY_RESOLVED_CHECKOUT_URL_NOT_ALLOWED');
   }
   return checkoutUrl;

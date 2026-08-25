@@ -8,14 +8,7 @@ import 'package:flutter/material.dart';
 /// beneath, and a highlighted border when [selected].
 final class ZenPaySelectableCard extends StatelessWidget {
   /// Creates a [ZenPaySelectableCard].
-  const ZenPaySelectableCard({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-    super.key,
-  });
+  const ZenPaySelectableCard({required this.icon, required this.label, required this.subtitle, required this.selected, required this.onTap, super.key});
 
   /// Icon shown beside the label.
   final IconData icon;
@@ -45,10 +38,7 @@ final class ZenPaySelectableCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? colorScheme.primary.withValues(alpha: 0.08) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? colorScheme.primary : colorScheme.outline,
-            width: selected ? 2 : 1,
-          ),
+          border: Border.all(color: selected ? colorScheme.primary : colorScheme.outline, width: selected ? 2 : 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,21 +49,12 @@ final class ZenPaySelectableCard extends StatelessWidget {
               children: <Widget>[
                 Icon(icon, color: colorScheme.primary),
                 Expanded(
-                  child: Text(
-                    label,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                  child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ],
             ),
             const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
+            Text(subtitle, style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant)),
           ],
         ),
       ),

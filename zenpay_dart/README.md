@@ -246,6 +246,8 @@ The reference backend tests (`../example/backend/test/`) cover:
 - Callback signature verification and status mapping
 - Return broker redirect behavior (mobile App Link, web)
 
+**Coverage:** 93.4% line coverage. Regenerate with `melos run coverage:dart --scope=zenpay_dart` from the repository root — writes `zenpay_dart/coverage/lcov.info`.
+
 ---
 
 ## License

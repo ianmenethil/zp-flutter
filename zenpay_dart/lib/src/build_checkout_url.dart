@@ -57,9 +57,7 @@ ZpUrlFailure? validateZpCheckoutUrlRequest(ZpCheckoutOptions request) {
   }
 
   if (!ZpPatterns.hcpEndpoint.hasMatch(request.url)) {
-    return ZpUrlFailure(
-      'url "${request.url}" is not a recognized ZenPay HCP endpoint',
-    );
+    return ZpUrlFailure('url "${request.url}" is not a recognized ZenPay HCP endpoint');
   }
 
   if (request.merchantCode.isEmpty) {
@@ -81,9 +79,7 @@ ZpUrlFailure? validateZpCheckoutUrlRequest(ZpCheckoutOptions request) {
   }
 
   if (!ZpPatterns.email.hasMatch(request.customerEmail)) {
-    return ZpUrlFailure(
-      'customerEmail "${request.customerEmail}" is not a valid email',
-    );
+    return ZpUrlFailure('customerEmail "${request.customerEmail}" is not a valid email');
   }
 
   if (request.mode == ZpPluginMode.makePayment || request.mode == ZpPluginMode.customPayment) {
@@ -99,9 +95,7 @@ ZpUrlFailure? validateZpCheckoutUrlRequest(ZpCheckoutOptions request) {
   return null;
 }
 
-Map<String, String> _buildQueryParams(
-  ZpCheckoutOptions request,
-) => <String, String>{
+Map<String, String> _buildQueryParams(ZpCheckoutOptions request) => <String, String>{
   '__ApiKey': request.apiKey,
   '__Fingerprint': request.fingerprint,
   'timestamp': request.timestamp.value,
@@ -171,10 +165,7 @@ ZpUrlResult createZpCheckoutUrl(ZpCheckoutOptions request) {
   // query manually so every param matches ZenPay's own URLSearchParams output.
   final query = _buildQueryParams(request).entries.map((e) => '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value)}').join('&');
 
-  final url = base.replace(
-    path: '$basePath/${request.merchantCode}/${ZpCore.authoriseActionPath}',
-    query: query,
-  );
+  final url = base.replace(path: '$basePath/${request.merchantCode}/${ZpCore.authoriseActionPath}', query: query);
 
   final height = request.mode == ZpPluginMode.tokenise ? ZpUiDefaults.heightTokenise : ZpUiDefaults.heightDefault;
 

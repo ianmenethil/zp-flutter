@@ -206,8 +206,8 @@ not a way to mint unlimited attempts from one token.
   limiting, idempotency, or a signed capability token with it.
 - **Token hygiene** — full tokens are never logged; structured logs carry
   `requestId`/`merchantUniquePaymentId`/`paymentReference` instead.
-  Signature checks are constant-time (`package:hashlib`'s
-  `HashDigest.isEqual`). See [Checkout Identity Model](#checkout-identity-model)
+  Signature checks are constant-time (a local XOR-accumulator comparison; see
+  `constantTimeEqual` in `security.dart`). See [Checkout Identity Model](#checkout-identity-model)
   for the per-purpose key derivation backing this.
 - **No sensitive data in logs** — passwords, card numbers, CVVs, secrets,
   and raw tokens are never logged.

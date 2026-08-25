@@ -20,7 +20,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:hashlib/hashlib.dart';
+import 'package:pointycastle/export.dart';
 
 const _minSecretBytes = 32;
 const _signatureBytes = 16;
@@ -56,16 +56,10 @@ Uint8List _keyBytes(Object secret) {
   final bytes = switch (secret) {
     final String value => Uint8List.fromList(utf8.encode(value)),
     final Uint8List value => value,
-    _ => throw ArgumentError.value(
-      secret,
-      'secret',
-      'must be a String or Uint8List',
-    ),
+    _ => throw ArgumentError.value(secret, 'secret', 'must be a String or Uint8List'),
   };
   if (bytes.length < _minSecretBytes) {
-    throw RangeError(
-      'secret must be at least $_minSecretBytes bytes (got ${bytes.length})',
-    );
+    throw RangeError('secret must be at least $_minSecretBytes bytes (got ${bytes.length})');
   }
   return bytes;
 }
@@ -76,8 +70,17 @@ Uint8List _keyBytes(Object secret) {
 /// [rootSecret] must be at least 32 bytes, same as any token secret.
 Uint8List deriveTokenKey(Object rootSecret, String purpose) {
   final rootBytes = _keyBytes(rootSecret);
-  final mac = sha3_512.hmac.by(rootBytes).sign(utf8.encode(purpose));
-  return Uint8List.fromList(mac.bytes);
+  final hmac = HMac(SHA3Digest(512), 72)..init(KeyParameter(rootBytes));
+  return hmac.process(Uint8List.fromList(utf8.encode(purpose)));
+}
+
+/// Compares two byte sequences in constant time.
+bool _constantTimeBytesEqual(List<int> a, List<int> b) {
+  var mismatch = a.length ^ b.length;
+  for (var i = 0; i < a.length; i++) {
+    mismatch |= a[i] ^ (i < b.length ? b[i] : 0);
+  }
+  return mismatch == 0;
 }
 
 String _base64UrlEncode(List<int> bytes) => base64Url.encode(bytes).replaceAll(_padding, '');
@@ -88,8 +91,9 @@ Uint8List _base64UrlDecode(String value) {
 }
 
 Uint8List _sign(String body, Uint8List key) {
-  final mac = sha3_512.hmac.by(key).sign(utf8.encode(body));
-  return Uint8List.fromList(mac.bytes.sublist(0, _signatureBytes));
+  final hmac = HMac(SHA3Digest(512), 72)..init(KeyParameter(key));
+  final mac = hmac.process(Uint8List.fromList(utf8.encode(body)));
+  return mac.sublist(0, _signatureBytes);
 }
 
 /// Encodes [claims] as a compact HMAC-SHA3-512 signed token, using [secret]
@@ -121,7 +125,7 @@ SignedTokenDecodeResult decodeSignedToken(String token, Object secret) {
     return const SignedTokenBadSignature();
   }
 
-  if (!HashDigest(_sign(body, key)).isEqual(providedSignatureBytes)) {
+  if (!_constantTimeBytesEqual(_sign(body, key), providedSignatureBytes)) {
     return const SignedTokenBadSignature();
   }
 

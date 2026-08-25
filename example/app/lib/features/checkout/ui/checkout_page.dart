@@ -114,14 +114,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   late final ZpCheckout _checkout;
   bool _busy = false;
-  ({
-    String title,
-    String detail,
-    bool isError,
-    bool isVerified,
-    Map<String, Object?>? callbackPayload,
-  })?
-  _result;
+  ({String title, String detail, bool isError, bool isVerified, Map<String, Object?>? callbackPayload})? _result;
 
   @override
   void initState() {
@@ -180,26 +173,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
         }
       }
 
-      final checkoutToken = await prepareCheckout(
-        backendBaseUrl,
-        <String, Object?>{
-          'customerName': _text(_name, _placeholder.name),
-          'customerEmail': _text(_email, _placeholder.email),
-          'customerReference': _text(_reference, _placeholder.reference),
-          'contactNumber': _text(_phone, _placeholder.phone),
-          'mode': _mode.wireValue,
-          if (_mode.usesAmount) 'paymentAmount': double.tryParse(_amount.text.trim()) ?? _placeholderAmount,
-        },
-        recaptchaToken: recaptchaToken,
-      );
-      final exchanged = await exchangeCheckout(
-        backendBaseUrl,
-        checkoutToken,
-      );
+      final checkoutToken = await prepareCheckout(backendBaseUrl, <String, Object?>{
+        'customerName': _text(_name, _placeholder.name),
+        'customerEmail': _text(_email, _placeholder.email),
+        'customerReference': _text(_reference, _placeholder.reference),
+        'contactNumber': _text(_phone, _placeholder.phone),
+        'mode': _mode.wireValue,
+        if (_mode.usesAmount) 'paymentAmount': double.tryParse(_amount.text.trim()) ?? _placeholderAmount,
+      }, recaptchaToken: recaptchaToken);
+      final exchanged = await exchangeCheckout(backendBaseUrl, checkoutToken);
 
-      await _resolve(
-        await _checkout.open(checkoutUrl: Uri.parse(exchanged.checkoutUrl)),
-      );
+      await _resolve(await _checkout.open(checkoutUrl: Uri.parse(exchanged.checkoutUrl)));
     } on Object catch (error) {
       // open() consumes the reservation; anything failing before it would
       // otherwise leak a blank tab.
@@ -218,10 +202,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         // backend put in the query is this app's job, not the SDK's.
         final token = returnUri.queryParameters['t'];
         if (token == null) {
-          _show(
-            'Payment status unknown',
-            'The return carried no status token.',
-          );
+          _show('Payment status unknown', 'The return carried no status token.');
           return;
         }
 
@@ -258,22 +239,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   String _text(TextEditingController controller, String fallback) => controller.text.trim().isEmpty ? fallback : controller.text.trim();
 
-  void _show(
-    String title,
-    String detail, {
-    bool isError = true,
-    bool isVerified = false,
-    Map<String, Object?>? callbackPayload,
-  }) {
+  void _show(String title, String detail, {bool isError = true, bool isVerified = false, Map<String, Object?>? callbackPayload}) {
     if (mounted) {
       setState(() {
-        _result = (
-          title: title,
-          detail: detail,
-          isError: isError,
-          isVerified: isVerified,
-          callbackPayload: callbackPayload,
-        );
+        _result = (title: title, detail: detail, isError: isError, isVerified: isVerified, callbackPayload: callbackPayload);
       });
     }
   }
@@ -291,19 +260,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   /// Make Payment / Tokenise / Custom Payment / Pre-Auth picker cards.
   List<Widget> _buildTransactionModeSection(BuildContext context) {
-    Widget card(TransactionMode mode) => ZenPaySelectableCard(
-      icon: mode.icon,
-      label: mode.label,
-      subtitle: mode.subtitle,
-      selected: mode == _mode,
-      onTap: () => setState(() => _mode = mode),
-    );
+    Widget card(TransactionMode mode) =>
+        ZenPaySelectableCard(icon: mode.icon, label: mode.label, subtitle: mode.subtitle, selected: mode == _mode, onTap: () => setState(() => _mode = mode));
 
     return <Widget>[
-      const Text(
-        'Transaction mode:',
-        style: TextStyle(fontWeight: FontWeight.w500),
-      ),
+      const Text('Transaction mode:', style: TextStyle(fontWeight: FontWeight.w500)),
       const SizedBox(height: 8),
       Row(
         children: <Widget>[
@@ -326,12 +287,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   /// Name/email/reference/phone input fields.
   List<Widget> _buildCustomerFields() {
     return <Widget>[
-      ZenPayLabeledField(
-        controller: _name,
-        label: 'Customer name',
-        hintText: _placeholder.name,
-        textInputAction: TextInputAction.next,
-      ),
+      ZenPayLabeledField(controller: _name, label: 'Customer name', hintText: _placeholder.name, textInputAction: TextInputAction.next),
       const SizedBox(height: 12),
       ZenPayLabeledField(
         controller: _email,
@@ -344,11 +300,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         },
       ),
       const SizedBox(height: 12),
-      ZenPayLabeledField(
-        controller: _reference,
-        label: 'Customer reference',
-        hintText: _placeholder.reference,
-      ),
+      ZenPayLabeledField(controller: _reference, label: 'Customer reference', hintText: _placeholder.reference),
       const SizedBox(height: 12),
       ZenPayLabeledField(
         controller: _phone,
@@ -405,17 +357,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     result?.title ?? _noPaymentYetText,
                     style: TextStyle(color: color, fontWeight: FontWeight.w500),
                   ),
-                  if (result != null) ...<Widget>[
-                    const SizedBox(height: 4),
-                    Text(
-                      result.detail,
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                  ],
-                  if (payload != null && payload.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 4),
-                    _buildCallbackPayloadPanel(context, payload),
-                  ],
+                  if (result != null) ...<Widget>[const SizedBox(height: 4), Text(result.detail, style: TextStyle(color: colors.onSurfaceVariant))],
+                  if (payload != null && payload.isNotEmpty) ...<Widget>[const SizedBox(height: 4), _buildCallbackPayloadPanel(context, payload)],
                 ],
               ),
             ),
@@ -428,10 +371,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   /// Collapsible panel showing the entire verified callback body ZenPay
   /// posted — `{response, validationCode}` — exactly as the backend
   /// forwarded it, unfiltered.
-  Widget _buildCallbackPayloadPanel(
-    BuildContext context,
-    Map<String, Object?> payload,
-  ) {
+  Widget _buildCallbackPayloadPanel(BuildContext context, Map<String, Object?> payload) {
     final colors = Theme.of(context).colorScheme;
     return Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -440,19 +380,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
         childrenPadding: const EdgeInsets.only(bottom: 8),
         title: Text(
           'Raw callback payload',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: colors.onSurfaceVariant,
-          ),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.onSurfaceVariant),
         ),
         children: <Widget>[
           Align(
             alignment: Alignment.centerLeft,
-            child: SelectableText(
-              const JsonEncoder.withIndent('  ').convert(payload),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            child: SelectableText(const JsonEncoder.withIndent('  ').convert(payload), style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
           ),
         ],
       ),
@@ -467,14 +400,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Image.asset(
-            Theme.of(context).brightness == Brightness.dark ? 'assets/brand/logo-light.png' : 'assets/brand/logo.png',
-            height: 28,
-          ),
+          Image.asset(Theme.of(context).brightness == Brightness.dark ? 'assets/brand/logo-light.png' : 'assets/brand/logo.png', height: 28),
           const SizedBox(width: 14),
-          const Flexible(
-            child: Text(_appBarTitle, overflow: TextOverflow.ellipsis),
-          ),
+          const Flexible(child: Text(_appBarTitle, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -503,11 +431,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       ..._buildTransactionModeSection(context),
                       if (_mode.usesAmount) ...<Widget>[
                         const SizedBox(height: 16),
-                        ZenPayAmountField(
-                          controller: _amount,
-                          hintText: _placeholderAmount.toStringAsFixed(2),
-                          presets: _mode.amountPresets,
-                        ),
+                        ZenPayAmountField(controller: _amount, hintText: _placeholderAmount.toStringAsFixed(2), presets: _mode.amountPresets),
                       ],
                       const SizedBox(height: 16),
                       ..._buildCustomerFields(),

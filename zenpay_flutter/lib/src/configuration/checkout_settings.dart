@@ -61,11 +61,7 @@ final class ZpCheckoutConfiguration({
   /// Creates a validated [ZpCheckoutConfiguration].
   this {
     if (this.allowedCheckoutHosts.isEmpty || this.allowedCheckoutHosts.any((host) => host.isEmpty)) {
-      throw ArgumentError.value(
-        allowedCheckoutHosts,
-        'allowedCheckoutHosts',
-        _errMissingHosts,
-      );
+      throw ArgumentError.value(allowedCheckoutHosts, 'allowedCheckoutHosts', _errMissingHosts);
     }
 
     if (expectedReturnUri.scheme.toLowerCase() != _httpsScheme ||
@@ -73,36 +69,22 @@ final class ZpCheckoutConfiguration({
         expectedReturnUri.userInfo.isNotEmpty ||
         expectedReturnUri.query.isNotEmpty ||
         expectedReturnUri.fragment.isNotEmpty) {
-      throw ArgumentError.value(
-        expectedReturnUri,
-        'expectedReturnUri',
-        _errInvalidReturnUri,
-      );
+      throw ArgumentError.value(expectedReturnUri, 'expectedReturnUri', _errInvalidReturnUri);
     }
 
     if (timeout <= Duration.zero) {
       throw ArgumentError.value(timeout, 'timeout', _errPositiveTimeout);
     }
     if (maxReturnUriLength < 256) {
-      throw ArgumentError.value(
-        maxReturnUriLength,
-        'maxReturnUriLength',
-        _errMinReturnUriLength,
-      );
+      throw ArgumentError.value(maxReturnUriLength, 'maxReturnUriLength', _errMinReturnUriLength);
     }
     if (maxReturnValueLength < 16) {
-      throw ArgumentError.value(
-        maxReturnValueLength,
-        'maxReturnValueLength',
-        _errMinReturnValueLength,
-      );
+      throw ArgumentError.value(maxReturnValueLength, 'maxReturnValueLength', _errMinReturnValueLength);
     }
   }
 
   /// The set of normalized HTTPS hostnames authorized for checkout URLs.
-  final Set<String> allowedCheckoutHosts = Set<String>.unmodifiable(
-    allowedCheckoutHosts.map((host) => host.trim().toLowerCase()),
-  );
+  final Set<String> allowedCheckoutHosts = Set<String>.unmodifiable(allowedCheckoutHosts.map((host) => host.trim().toLowerCase()));
 
   @override
   bool operator ==(Object other) =>

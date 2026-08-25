@@ -9,38 +9,24 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
 
-Map<String, Object?> _loadVectors() => jsonDecode(
-  File('test/fixtures/zp_hcp_v0_1_30_vectors.json').readAsStringSync(),
-) as Map<String, Object?>;
+Map<String, Object?> _loadVectors() => jsonDecode(File('test/fixtures/zp_hcp_v0_1_30_vectors.json').readAsStringSync()) as Map<String, Object?>;
 
 void main() {
   final vectors = _loadVectors();
   final tokenVector = vectors['callbackToken']! as Map<String, Object?>;
   final secret = tokenVector['secret']! as String;
 
-  test(
-    'verifies a token whose HMAC-SHA3-512 signature was computed independently',
-    () {
-      final result = verifyZpCallbackUrlToken(
-        tokenVector['token']! as String,
-        secret,
-      );
-      final decoded = tokenVector['decodedPayload']! as Map<String, Object?>;
-      if (result case ZpCallbackUrlTokenVerified(:final payload)) {
-        expect(
-          payload.mode,
-          ZpPluginMode.fromWireValue(decoded['mode']! as int),
-        );
-        expect(
-          payload.merchantUniquePaymentId,
-          decoded['merchantUniquePaymentId'],
-        );
-        expect(payload.timestamp, decoded['timestamp']);
-      } else {
-        fail('expected a verified token');
-      }
-    },
-  );
+  test('verifies a token whose HMAC-SHA3-512 signature was computed independently', () {
+    final result = verifyZpCallbackUrlToken(tokenVector['token']! as String, secret);
+    final decoded = tokenVector['decodedPayload']! as Map<String, Object?>;
+    if (result case ZpCallbackUrlTokenVerified(:final payload)) {
+      expect(payload.mode, ZpPluginMode.fromWireValue(decoded['mode']! as int));
+      expect(payload.merchantUniquePaymentId, decoded['merchantUniquePaymentId']);
+      expect(payload.timestamp, decoded['timestamp']);
+    } else {
+      fail('expected a verified token');
+    }
+  });
 
   test('create then verify round-trips the payload', () {
     const payload = ZpCallbackUrlTokenPayload(
@@ -124,11 +110,7 @@ void main() {
       merchantUniquePaymentId: ZpMupid('mupid-0006'),
       timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
-    final token = createZpCallbackUrlToken(
-      payload,
-      secret,
-      const ZpCallbackUrlTokenOptions(expiresInSeconds: -1),
-    );
+    final token = createZpCallbackUrlToken(payload, secret, const ZpCallbackUrlTokenOptions(expiresInSeconds: -1));
     final result = verifyZpCallbackUrlToken(token, secret);
     if (result case ZpCallbackUrlTokenFailure(:final reason)) {
       expect(reason, ZpCallbackUrlTokenFailureReason.expired);
@@ -144,10 +126,7 @@ void main() {
       timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
     final token = createZpCallbackUrlToken(payload, secret);
-    expect(
-      verifyZpCallbackUrlToken(token, secret),
-      isA<ZpCallbackUrlTokenVerified>(),
-    );
+    expect(verifyZpCallbackUrlToken(token, secret), isA<ZpCallbackUrlTokenVerified>());
   });
 
   test('throws RangeError for a secret shorter than 32 bytes', () {
@@ -156,10 +135,7 @@ void main() {
       merchantUniquePaymentId: ZpMupid('mupid-0008'),
       timestamp: ZpTimestamp('2026-02-01T09:00:00'),
     );
-    expect(
-      () => createZpCallbackUrlToken(payload, 'short'),
-      throwsA(isA<ArgumentError>()),
-    );
+    expect(() => createZpCallbackUrlToken(payload, 'short'), throwsA(isA<ArgumentError>()));
   });
 
   test('throws ArgumentError for a malformed timestamp', () {
@@ -168,25 +144,16 @@ void main() {
       merchantUniquePaymentId: ZpMupid('mupid-0009'),
       timestamp: ZpTimestamp('not-a-timestamp'),
     );
-    expect(
-      () => createZpCallbackUrlToken(payload, secret),
-      throwsArgumentError,
-    );
+    expect(() => createZpCallbackUrlToken(payload, secret), throwsArgumentError);
   });
 
-  test(
-    'throws ArgumentError for a paymentAmount that is not a String or num',
-    () {
-      const payload = ZpCallbackUrlTokenPayload(
-        mode: ZpPluginMode.makePayment,
-        merchantUniquePaymentId: ZpMupid('mupid-0010'),
-        timestamp: ZpTimestamp('2026-02-01T09:00:00'),
-        paymentAmount: {'amount': 1},
-      );
-      expect(
-        () => createZpCallbackUrlToken(payload, secret),
-        throwsArgumentError,
-      );
-    },
-  );
+  test('throws ArgumentError for a paymentAmount that is not a String or num', () {
+    const payload = ZpCallbackUrlTokenPayload(
+      mode: ZpPluginMode.makePayment,
+      merchantUniquePaymentId: ZpMupid('mupid-0010'),
+      timestamp: ZpTimestamp('2026-02-01T09:00:00'),
+      paymentAmount: {'amount': 1},
+    );
+    expect(() => createZpCallbackUrlToken(payload, secret), throwsArgumentError);
+  });
 }

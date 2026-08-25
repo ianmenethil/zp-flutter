@@ -1,0 +1,67 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: ["master", "main"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Resolve pub workspace
+        run: dart run melos bootstrap
+
+      - name: Verify formatting
+        run: dart run melos run format -- --set-exit-if-changed
+
+      - name: Analyze
+        run: dart run melos run analyze
+
+  test:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: zenpay_dart
+            kind: dart
+          - package: zenpay_flutter
+            kind: flutter
+          - package: zenpay_embedded
+            kind: flutter
+          - package: zenpay_example_backend
+            kind: dart
+          - package: zenpay_example_app
+            kind: flutter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      # Every matrix job resolves the whole pub workspace, even for a
+      # dart-only package: sibling members (zenpay_flutter, zenpay_embedded,
+      # example/app) declare `flutter: sdk: flutter`, and workspace
+      # resolution is monorepo-wide, not per-package.
+      - name: Resolve pub workspace
+        run: dart run melos bootstrap
+
+      - name: Test (flutter)
+        if: matrix.kind == 'flutter'
+        run: dart run melos run test --scope=${{ matrix.package }}
+
+      - name: Test (dart)
+        if: matrix.kind == 'dart'
+        run: dart run melos run test:dart --scope=${{ matrix.package }}

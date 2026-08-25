@@ -47,11 +47,7 @@ final class WebPopupReturnUriSource implements ZpReturnUriSource {
   void _onMessage(_MessageEvent event) {
     final data = event.data;
     final messageData = (data != null && data.typeofEquals('string')) ? (data as JSString).toDart : null;
-    final uri = parseIncomingReturnMessage(
-      eventOrigin: event.origin,
-      expectedOrigin: _locationOrigin,
-      messageData: messageData,
-    );
+    final uri = parseIncomingReturnMessage(eventOrigin: event.origin, expectedOrigin: _locationOrigin, messageData: messageData);
     if (uri != null) _controller.add(uri);
   }
 

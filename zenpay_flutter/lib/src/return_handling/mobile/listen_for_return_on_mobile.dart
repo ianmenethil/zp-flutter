@@ -39,15 +39,13 @@ final class DefaultAppLinksAdapter implements AppLinksPlatformAdapter {
 /// into a single unified stream of [uris].
 final class AppLinksReturnUriSource implements ZpReturnUriSource {
   /// Creates an [AppLinksReturnUriSource] with either an [adapter] or [appLinks] instance.
-  AppLinksReturnUriSource({
-    AppLinksPlatformAdapter? adapter,
-    AppLinks? appLinks,
-  }) : assert(
-         adapter == null || appLinks == null,
-         'Supply either adapter or appLinks, not both — appLinks is ignored '
-         'once adapter is set.',
-       ),
-       _adapter = adapter ?? DefaultAppLinksAdapter(appLinks: appLinks);
+  AppLinksReturnUriSource({AppLinksPlatformAdapter? adapter, AppLinks? appLinks})
+    : assert(
+        adapter == null || appLinks == null,
+        'Supply either adapter or appLinks, not both — appLinks is ignored '
+        'once adapter is set.',
+      ),
+      _adapter = adapter ?? DefaultAppLinksAdapter(appLinks: appLinks);
 
   final AppLinksPlatformAdapter _adapter;
 

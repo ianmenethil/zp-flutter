@@ -79,11 +79,7 @@ final class _CheckoutPresenterMobile extends CheckoutPresenter with WidgetsBindi
   /// `mapLaunchFailureCode` still sees the platform's own error rather than a
   /// generic one.
   @override
-  Future<PresentationLaunchResult> openCheckout(
-    Uri url, {
-    required bool showTitle,
-    required bool allowExternalBrowserFallback,
-  }) async {
+  Future<PresentationLaunchResult> openCheckout(Uri url, {required bool showTitle, required bool allowExternalBrowserFallback}) async {
     // Defensive reset: a prior launch that settled by timeout (rather than
     // through dismissCheckout) would otherwise leave the observer registered.
     _stopWatching();
@@ -105,28 +101,19 @@ final class _CheckoutPresenterMobile extends CheckoutPresenter with WidgetsBindi
 
     if (launched) {
       _startWatching();
-      return const PresentationLaunchResult(
-        launched: true,
-        usedExternalBrowserFallback: false,
-      );
+      return const PresentationLaunchResult(launched: true, usedExternalBrowserFallback: false);
     }
 
     if (allowExternalBrowserFallback && await _launchExternal(url)) {
       _startWatching();
-      return const PresentationLaunchResult(
-        launched: true,
-        usedExternalBrowserFallback: true,
-      );
+      return const PresentationLaunchResult(launched: true, usedExternalBrowserFallback: true);
     }
 
     if (inAppError != null) {
       Error.throwWithStackTrace(inAppError, inAppStackTrace!);
     }
 
-    return const PresentationLaunchResult(
-      launched: false,
-      usedExternalBrowserFallback: false,
-    );
+    return const PresentationLaunchResult(launched: false, usedExternalBrowserFallback: false);
   }
 
   /// Opens [url] in the external system browser, reporting only whether it

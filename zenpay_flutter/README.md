@@ -156,6 +156,8 @@ a log sink cannot leak the credentials in a checkout URL. Exceptions thrown from
 `package:zenpay_flutter/testing.dart` provides `FakeReturnUriSource`, which lets
 a test emit a return URI without any platform channel.
 
+**Coverage:** 89.1% line coverage. Regenerate with `melos run coverage --scope=zenpay_flutter` from the repository root — writes `zenpay_flutter/coverage/lcov.info`.
+
 ## Additional information
 
 - Server-side URL building, fingerprints, and callback verification:

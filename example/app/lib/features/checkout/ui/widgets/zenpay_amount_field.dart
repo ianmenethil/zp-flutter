@@ -44,12 +44,7 @@ final class ZenPayAmountField extends StatelessWidget {
         children: <Widget>[
           Text(
             _fieldSectionTitle,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: colorScheme.onSurfaceVariant),
           ),
           // stretch + IntrinsicHeight so the currency badge is exactly as tall
           // as the field beside it, whatever the text scale factor.
@@ -59,45 +54,24 @@ final class ZenPayAmountField extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 const Center(
-                  child: Text(
-                    _currencySymbol,
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
-                  ),
+                  child: Text(_currencySymbol, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
                 ),
                 Expanded(
                   child: TextField(
                     controller: controller,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     textAlignVertical: TextAlignVertical.center,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: hintText,
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                    decoration: InputDecoration(hintText: hintText, border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
                   ),
                 ),
                 Container(
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: colorScheme.error,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  decoration: BoxDecoration(color: colorScheme.error, borderRadius: BorderRadius.circular(8)),
                   child: Text(
                     currencyLabel,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.5,
-                      color: colorScheme.onError,
-                    ),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5, color: colorScheme.onError),
                   ),
                 ),
               ],
@@ -115,9 +89,7 @@ final class ZenPayAmountField extends StatelessWidget {
                       onPressed: () => controller.text = '$preset',
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text('\$$preset'),
                     ),

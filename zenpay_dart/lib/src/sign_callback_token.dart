@@ -5,7 +5,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:hashlib/hashlib.dart';
+import 'package:pointycastle/export.dart';
 
 import 'package:zenpay_dart/src/constants.dart';
 import 'package:zenpay_dart/src/crypto_utils.dart';
@@ -16,17 +16,11 @@ Uint8List _keyBytes(Object secret) {
   final bytes = switch (secret) {
     final String value => Uint8List.fromList(utf8.encode(value)),
     final Uint8List value => value,
-    _ => throw ArgumentError.value(
-      secret,
-      'secret',
-      'must be a String or Uint8List',
-    ),
+    _ => throw ArgumentError.value(secret, 'secret', 'must be a String or Uint8List'),
   };
 
   if (bytes.length < ZpCore.minSecretBytes) {
-    throw ArgumentError(
-      'secret must be at least ${ZpCore.minSecretBytes} bytes long (provided ${bytes.length})',
-    );
+    throw ArgumentError('secret must be at least ${ZpCore.minSecretBytes} bytes long (provided ${bytes.length})');
   }
 
   return bytes;
@@ -41,9 +35,10 @@ Uint8List _base64UrlDecode(String value) {
 }
 
 Uint8List _sign(String body, Uint8List key) {
-  final mac = sha3_512.hmac.by(key).sign(utf8.encode(body));
+  final hmac = HMac(SHA3Digest(512), 72)..init(KeyParameter(key));
+  final mac = hmac.process(Uint8List.fromList(utf8.encode(body)));
 
-  return Uint8List.fromList(mac.bytes.sublist(0, ZpCore.signatureBytes));
+  return mac.sublist(0, ZpCore.signatureBytes);
 }
 
 // `is num` alone is not equivalent to TS's `z.number()`: NaN and Infinity are
@@ -80,25 +75,13 @@ Map<String, Object?>? _decodeBody(String body) {
 /// which never throws and instead returns a Result type for every failure —
 /// a token payload here is caller-constructed data you control, not
 /// attacker-supplied wire input, so failing fast is appropriate.
-String createZpCallbackUrlToken(
-  ZpCallbackUrlTokenPayload payload,
-  Object secret, [
-  ZpCallbackUrlTokenOptions options = const ZpCallbackUrlTokenOptions(),
-]) {
+String createZpCallbackUrlToken(ZpCallbackUrlTokenPayload payload, Object secret, [ZpCallbackUrlTokenOptions options = const ZpCallbackUrlTokenOptions()]) {
   if (!isValidZpTimestamp(payload.timestamp.value)) {
-    throw ArgumentError.value(
-      payload.timestamp,
-      'timestamp',
-      'must match yyyy-MM-ddTHH:mm:ss',
-    );
+    throw ArgumentError.value(payload.timestamp, 'timestamp', 'must match yyyy-MM-ddTHH:mm:ss');
   }
 
   if (!_isAmountShaped(payload.paymentAmount)) {
-    throw ArgumentError.value(
-      payload.paymentAmount,
-      'paymentAmount',
-      'must be a String or a finite num',
-    );
+    throw ArgumentError.value(payload.paymentAmount, 'paymentAmount', 'must be a String or a finite num');
   }
 
   final key = _keyBytes(secret);
@@ -141,9 +124,7 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
   final signatureLength = _base64UrlEncode(Uint8List(ZpCore.signatureBytes)).length;
 
   if (token.length <= signatureLength) {
-    return const ZpCallbackUrlTokenFailure(
-      ZpCallbackUrlTokenFailureReason.malformed,
-    );
+    return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.malformed);
   }
 
   final body = token.substring(0, token.length - signatureLength);
@@ -155,23 +136,17 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
   try {
     providedSignatureBytes = _base64UrlDecode(providedSignature);
   } on FormatException {
-    return const ZpCallbackUrlTokenFailure(
-      ZpCallbackUrlTokenFailureReason.badSignature,
-    );
+    return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.badSignature);
   }
 
-  if (!HashDigest(_sign(body, key)).isEqual(providedSignatureBytes)) {
-    return const ZpCallbackUrlTokenFailure(
-      ZpCallbackUrlTokenFailureReason.badSignature,
-    );
+  if (!constantTimeBytesEqual(_sign(body, key), providedSignatureBytes)) {
+    return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.badSignature);
   }
 
   final data = _decodeBody(body);
 
   if (data == null) {
-    return const ZpCallbackUrlTokenFailure(
-      ZpCallbackUrlTokenFailureReason.malformed,
-    );
+    return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.malformed);
   }
 
   final modeValue = data[ZpCbTokenKeys.mode];
@@ -188,26 +163,20 @@ ZpCallbackUrlTokenResult verifyZpCallbackUrlToken(String token, Object secret) {
       !_isAmountShaped(paymentAmount) ||
       issuedAt is! int ||
       (expiresAt != null && expiresAt is! int)) {
-    return const ZpCallbackUrlTokenFailure(
-      ZpCallbackUrlTokenFailureReason.malformed,
-    );
+    return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.malformed);
   }
 
   final mode = ZpPluginMode.tryFromWireValue(modeValue);
 
   if (mode == null) {
-    return const ZpCallbackUrlTokenFailure(
-      ZpCallbackUrlTokenFailureReason.malformed,
-    );
+    return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.malformed);
   }
 
   if (expiresAt is int) {
     final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
 
     if (now >= expiresAt) {
-      return const ZpCallbackUrlTokenFailure(
-        ZpCallbackUrlTokenFailureReason.expired,
-      );
+      return const ZpCallbackUrlTokenFailure(ZpCallbackUrlTokenFailureReason.expired);
     }
   }
 

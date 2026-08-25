@@ -2,9 +2,10 @@
 library;
 
 import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
 
-import 'package:hashlib/hashlib.dart';
-import 'package:hashlib/random.dart';
+import 'package:pointycastle/export.dart';
 
 import 'package:zenpay_dart/src/constants.dart';
 import 'package:zenpay_dart/src/models/enums.dart';
@@ -19,7 +20,9 @@ extension type const ZpMupid(String value) {}
 extension type const ZpTimestamp(String value) {}
 
 /// Creates a SHA3-512 hash of [input] as 128-character lowercase hex.
-String createSha3_512(String input) => sha3_512.string(input).hex();
+String createSha3_512(String input) => _bytesToHex(SHA3Digest(512).process(Uint8List.fromList(utf8.encode(input))));
+
+String _bytesToHex(Uint8List bytes) => bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
 
 /// Compares two SHA3-512 hexadecimal digests in constant time.
 ///
@@ -32,6 +35,20 @@ bool constantTimeHexEqual(String a, String b) {
 
   for (var i = 0; i < a.length; i++) {
     mismatch |= a.codeUnitAt(i) ^ (i < b.length ? b.codeUnitAt(i) : 0);
+  }
+
+  return mismatch == 0;
+}
+
+/// Compares two byte sequences in constant time — the [constantTimeHexEqual]
+/// pattern applied to raw bytes instead of hex char codes, for callers
+/// comparing a computed HMAC directly against wire bytes without a hex
+/// round-trip.
+bool constantTimeBytesEqual(List<int> a, List<int> b) {
+  var mismatch = a.length ^ b.length;
+
+  for (var i = 0; i < a.length; i++) {
+    mismatch |= a[i] ^ (i < b.length ? b[i] : 0);
   }
 
   return mismatch == 0;
@@ -53,9 +70,7 @@ ZpCents? zpAmountToCents(Object? amount) {
   final whole = parts[0];
   final fraction = parts.length > 1 ? parts[1] : '';
 
-  return ZpCents(
-    (BigInt.parse(whole) * BigInt.from(100) + BigInt.parse(fraction.padRight(2, '0'))).toString(),
-  );
+  return ZpCents((BigInt.parse(whole) * BigInt.from(100) + BigInt.parse(fraction.padRight(2, '0'))).toString());
 }
 
 /// Resolves the amount used in a ZenPay fingerprint or callback hash.
@@ -81,10 +96,7 @@ enum ZpAmountFailureReason {
 }
 
 /// Validates [amount] for [mode] and resolves the hash-pipe cents value.
-(ZpCents?, ZpAmountFailureReason?) resolveZpHashAmountChecked(
-  ZpPluginMode mode,
-  Object? amount,
-) {
+(ZpCents?, ZpAmountFailureReason?) resolveZpHashAmountChecked(ZpPluginMode mode, Object? amount) {
   if (mode == ZpPluginMode.customPayment) {
     return (resolveZpHashAmountField(mode, amount), null);
   }
@@ -114,7 +126,14 @@ enum ZpAmountFailureReason {
 ///
 /// Generates 16 random bytes encoded as unpadded base64url. Create a new value
 /// for every plugin open; do not reuse a previous payment attempt's MUPID.
-ZpMupid createZpMupid() => ZpMupid(base64Url.encode(randomBytes(16)).replaceAll(ZpCore.base64Padding, ''));
+ZpMupid createZpMupid() => ZpMupid(base64Url.encode(_secureRandomBytes(16)).replaceAll(ZpCore.base64Padding, ''));
+
+/// Generates [length] cryptographically secure random bytes via Dart's own
+/// `Random.secure()` — no third-party dependency needed for this.
+Uint8List _secureRandomBytes(int length) {
+  final random = Random.secure();
+  return Uint8List.fromList(List<int>.generate(length, (_) => random.nextInt(256)));
+}
 
 /// Creates the UTC timestamp required by ZenPay.
 ///

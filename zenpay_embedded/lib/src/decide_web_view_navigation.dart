@@ -35,11 +35,7 @@ bool _looksLikeReturnUri(Uri candidate, Uri expected) {
 /// the checkout sheet with no way back.
 ///
 /// Not exported from the package barrel: this is an internal rule, not API.
-NavigationDecision decideNavigation(
-  String url, {
-  required Uri returnUriAddress,
-  required void Function(Uri uri) onReturnUri,
-}) {
+NavigationDecision decideNavigation(String url, {required Uri returnUriAddress, required void Function(Uri uri) onReturnUri}) {
   final uri = Uri.tryParse(url);
   if (uri == null) {
     return NavigationDecision.prevent;

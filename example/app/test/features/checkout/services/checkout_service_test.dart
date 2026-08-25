@@ -7,9 +7,7 @@ import 'package:zenpay_example_app/features/checkout/services/checkout_service.d
 void main() {
   group('ExchangeResponse.fromJson', () {
     test('decodes a valid payload', () {
-      final exchanged = ExchangeResponse.fromJson({
-        'checkoutUrl': 'https://pay.example.com/checkout',
-      });
+      final exchanged = ExchangeResponse.fromJson({'checkoutUrl': 'https://pay.example.com/checkout'});
 
       expect(exchanged.checkoutUrl, 'https://pay.example.com/checkout');
     });
@@ -44,10 +42,7 @@ void main() {
     });
 
     test('decodes a valid payload with optional fields absent', () {
-      final status = StatusResponse.fromJson({
-        'status': 'created',
-        'callbackVerified': false,
-      });
+      final status = StatusResponse.fromJson({'status': 'created', 'callbackVerified': false});
 
       expect(status.paymentReference, isNull);
       expect(status.preauthReference, isNull);
@@ -59,10 +54,7 @@ void main() {
     });
 
     test('throws when a required field is missing', () {
-      expect(
-        () => StatusResponse.fromJson({'status': 'created'}),
-        throwsA(isA<TypeError>()),
-      );
+      expect(() => StatusResponse.fromJson({'status': 'created'}), throwsA(isA<TypeError>()));
     });
   });
 }

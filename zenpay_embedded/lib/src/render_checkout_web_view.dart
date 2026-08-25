@@ -31,12 +31,7 @@ abstract interface class EmbeddedStateInterface {
 /// way to show it.
 final class ZenPayCheckoutWebView extends StatefulWidget {
   /// Creates a [ZenPayCheckoutWebView].
-  const ZenPayCheckoutWebView({
-    required this.state,
-    required this.returnUriSource,
-    required this.returnUriAddress,
-    super.key,
-  });
+  const ZenPayCheckoutWebView({required this.state, required this.returnUriSource, required this.returnUriAddress, super.key});
 
   /// Receives the attach/detach lifecycle callbacks from the created state.
   final void Function(EmbeddedStateInterface state) state;
@@ -60,8 +55,7 @@ final class ZenPayCheckoutWebView extends StatefulWidget {
 }
 
 final class _ZenPayCheckoutWebViewState extends State<ZenPayCheckoutWebView> implements EmbeddedStateInterface {
-  /// Shown when the hosted page fails to load. Fixed text by design — see
-  /// the [NavigationDelegate.onWebResourceError] handler.
+  /// Shown when the hosted page fails to load. Fixed text by design — see the [NavigationDelegate.onWebResourceError] handler.
   static const String _loadFailureMessage = 'Could not load the checkout page. Check your connection and try again.';
 
   late final WebViewController _controller;
@@ -79,12 +73,16 @@ final class _ZenPayCheckoutWebViewState extends State<ZenPayCheckoutWebView> imp
     widget.state(this);
   }
 
-  /// Google disables the Payment Request API in a `WebView` by default, so
-  /// Google Pay fails inside the hosted checkout page unless the host app
-  /// opts in per-platform. This is a native `WebSettings` flag, not a
-  /// JavaScript channel — it carries none of the bridge risk the no-bridge
-  /// rule guards against. iOS has no equivalent switch, so this is
-  /// Android-only.
+  /// Google disables the Payment Request API in a `WebView` by default, so Google Pay fails inside the hosted checkout page unless the host app opts in per-platform.
+  /// This is a native `WebSettings` flag, not a JavaScript channel — it carries none of the bridge risk the no-bridge rule guards against.
+  /// iOS has no equivalent switch, so this is Android-only.
+  ///
+  /// Confirmed load-bearing by a live device test (Pixel 9 Pro XL, embedded WebView demo):
+  /// commenting this call out reproduces Google's own in-page failure verbatim —
+  /// "Something went wrong / Google Pay couldn't load properly because this App uses a
+  /// WebView. App developers must follow the instructions to enable Google Pay to work
+  /// within Android WebView: https://goo.gle/gpay-android-webview-help \[OR_BIBED_15\]" —
+  /// see PCI_SAQ_A.md § 3.6.
   Future<void> _enableGooglePayPaymentRequest() async {
     final platform = _controller.platform;
     if (platform is AndroidWebViewController && await platform.isWebViewFeatureSupported(WebViewFeatureType.paymentRequest)) {

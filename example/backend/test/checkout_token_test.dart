@@ -20,11 +20,7 @@ CheckoutTokenPayload _payload({num? amount = 10}) => CheckoutTokenPayload(
 
 void main() {
   test('mints a token that verifies back to the same claims', () {
-    final token = createCheckoutToken(
-      _payload(),
-      _secret,
-      expiresInSeconds: 300,
-    );
+    final token = createCheckoutToken(_payload(), _secret, expiresInSeconds: 300);
     final result = verifyCheckoutToken(token, _secret);
 
     expect(result, isA<CheckoutTokenVerified>());
@@ -36,73 +32,36 @@ void main() {
   });
 
   test('preserves a null amount (e.g. Tokenise)', () {
-    final token = createCheckoutToken(
-      _payload(amount: null),
-      _secret,
-      expiresInSeconds: 300,
-    );
+    final token = createCheckoutToken(_payload(amount: null), _secret, expiresInSeconds: 300);
     final result = verifyCheckoutToken(token, _secret) as CheckoutTokenVerified;
 
     expect(result.payload.amount, isNull);
   });
 
   test('rejects a token signed with a different secret', () {
-    final token = createCheckoutToken(
-      _payload(),
-      _secret,
-      expiresInSeconds: 300,
-    );
-    final result = verifyCheckoutToken(
-      token,
-      'a-different-secret-1234567890abcd',
-    );
+    final token = createCheckoutToken(_payload(), _secret, expiresInSeconds: 300);
+    final result = verifyCheckoutToken(token, 'a-different-secret-1234567890abcd');
 
-    expect(
-      result,
-      isA<CheckoutTokenFailure>().having(
-        (f) => f.reason,
-        'reason',
-        CheckoutTokenFailureReason.badSignature,
-      ),
-    );
+    expect(result, isA<CheckoutTokenFailure>().having((f) => f.reason, 'reason', CheckoutTokenFailureReason.badSignature));
   });
 
   test('rejects a tampered claim', () {
-    final token = createCheckoutToken(
-      _payload(),
-      _secret,
-      expiresInSeconds: 300,
-    );
+    final token = createCheckoutToken(_payload(), _secret, expiresInSeconds: 300);
     final tampered = 'X${token.substring(1)}';
 
     expect(verifyCheckoutToken(tampered, _secret), isA<CheckoutTokenFailure>());
   });
 
   test('rejects an expired token', () {
-    final token = createCheckoutToken(
-      _payload(),
-      _secret,
-      expiresInSeconds: -1,
-    );
+    final token = createCheckoutToken(_payload(), _secret, expiresInSeconds: -1);
 
-    expect(
-      verifyCheckoutToken(token, _secret),
-      isA<CheckoutTokenFailure>().having(
-        (f) => f.reason,
-        'reason',
-        CheckoutTokenFailureReason.expired,
-      ),
-    );
+    expect(verifyCheckoutToken(token, _secret), isA<CheckoutTokenFailure>().having((f) => f.reason, 'reason', CheckoutTokenFailureReason.expired));
   });
 
   test('rejects a malformed token', () {
     expect(
       verifyCheckoutToken('not-a-real-token', _secret),
-      isA<CheckoutTokenFailure>().having(
-        (f) => f.reason,
-        'reason',
-        CheckoutTokenFailureReason.malformed,
-      ),
+      isA<CheckoutTokenFailure>().having((f) => f.reason, 'reason', CheckoutTokenFailureReason.malformed),
     );
   });
 
@@ -118,9 +77,6 @@ void main() {
       _secret,
     );
 
-    expect(
-      verifyCheckoutToken(returnToken, _secret),
-      isA<CheckoutTokenFailure>(),
-    );
+    expect(verifyCheckoutToken(returnToken, _secret), isA<CheckoutTokenFailure>());
   });
 }

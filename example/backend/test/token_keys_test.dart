@@ -25,12 +25,7 @@ AppConfig _config() => AppConfig(
   zenPay: ZenPayConfig(
     hppEndpointUrl: Uri.parse('https://pay.sandbox.travelpay.com.au/Online/v5'),
     allowedCheckoutHosts: {'pay.sandbox.travelpay.com.au'},
-    credentials: const ZenPayCredentials(
-      merchantCode: 'merchant-code',
-      apiKey: 'test-api-key',
-      username: 'test-username',
-      password: 'test-password',
-    ),
+    credentials: const ZenPayCredentials(merchantCode: 'merchant-code', apiKey: 'test-api-key', username: 'test-username', password: 'test-password'),
   ),
 );
 
@@ -69,26 +64,16 @@ void main() {
   group('cross-purpose verification always fails', () {
     test('checkoutToken cannot verify as the callback (t) token', () {
       final config = _config();
-      final checkoutToken = createCheckoutToken(
-        _checkoutPayload,
-        checkoutTokenKey(config),
-        expiresInSeconds: 300,
-      );
+      final checkoutToken = createCheckoutToken(_checkoutPayload, checkoutTokenKey(config), expiresInSeconds: 300);
 
-      expect(
-        verifyZpCallbackUrlToken(checkoutToken, callbackTokenKey(config)),
-        isA<ZpCallbackUrlTokenFailure>(),
-      );
+      expect(verifyZpCallbackUrlToken(checkoutToken, callbackTokenKey(config)), isA<ZpCallbackUrlTokenFailure>());
     });
 
     test('the callback (t) token cannot verify as a checkoutToken', () {
       final config = _config();
       final callbackToken = _callbackToken(config);
 
-      expect(
-        verifyCheckoutToken(callbackToken, checkoutTokenKey(config)),
-        isA<CheckoutTokenFailure>(),
-      );
+      expect(verifyCheckoutToken(callbackToken, checkoutTokenKey(config)), isA<CheckoutTokenFailure>());
     });
   });
 }

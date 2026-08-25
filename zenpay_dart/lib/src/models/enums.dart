@@ -2,9 +2,7 @@
 library;
 
 /// Payment operating mode used by ZenPay HCP.
-enum const ZpPluginMode(
-  final int wireValue,
-) {
+enum const ZpPluginMode(final int wireValue) {
   /// `0` — capture a one-off payment.
   makePayment(0),
 
@@ -50,9 +48,7 @@ enum const ZpPluginMode(
 }
 
 /// How hosted checkout is presented.
-enum const ZpDisplayMode(
-  final int wireValue,
-) {
+enum const ZpDisplayMode(final int wireValue) {
   /// `0` — modal iframe.
   modal(0),
 
@@ -61,9 +57,7 @@ enum const ZpDisplayMode(
 }
 
 /// Customer- or merchant-facing checkout mode.
-enum const ZpUserMode(
-  final int wireValue,
-) {
+enum const ZpUserMode(final int wireValue) {
   /// `0` — customer-facing checkout.
   customer(0),
 
@@ -72,9 +66,7 @@ enum const ZpUserMode(
 }
 
 /// Who pays the ZenPay transaction fee.
-enum const ZpOverrideFeePayer(
-  final int wireValue,
-) {
+enum const ZpOverrideFeePayer(final int wireValue) {
   /// `0` — use the merchant account default.
   accountDefault(0),
 
@@ -86,9 +78,7 @@ enum const ZpOverrideFeePayer(
 }
 
 /// Payment and preauthorization status codes returned by ZenPay.
-enum const ZpPaymentStatus(
-  final int wireValue,
-) {
+enum const ZpPaymentStatus(final int wireValue) {
   /// `0` — pending.
   pending(0),
 

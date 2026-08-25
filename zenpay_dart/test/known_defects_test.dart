@@ -71,11 +71,7 @@ void main() {
       // exactly one segment.
       expect(
         Uri.parse(success.url).pathSegments,
-        <String>[
-          ...Uri.parse(_endpoint).pathSegments,
-          merchantCode,
-          'Authorise',
-        ],
+        <String>[...Uri.parse(_endpoint).pathSegments, merchantCode, 'Authorise'],
         reason:
             'merchantCode "$merchantCode" was accepted but did not occupy '
             'exactly one path segment between the base path and Authorise — '
@@ -118,48 +114,27 @@ void main() {
   // handle.
   group('createZpCallbackUrlToken rejects non-finite paymentAmount', () {
     test('control: a finite num is accepted', () {
-      expect(
-        createZpCallbackUrlToken(_payloadWith(49.9), _secret),
-        isNotEmpty,
-      );
+      expect(createZpCallbackUrlToken(_payloadWith(49.9), _secret), isNotEmpty);
     });
 
     test('control: a String amount is accepted', () {
-      expect(
-        createZpCallbackUrlToken(_payloadWith('49.90'), _secret),
-        isNotEmpty,
-      );
+      expect(createZpCallbackUrlToken(_payloadWith('49.90'), _secret), isNotEmpty);
     });
 
     test('control: a null amount is accepted', () {
-      expect(
-        createZpCallbackUrlToken(_payloadWith(null), _secret),
-        isNotEmpty,
-      );
+      expect(createZpCallbackUrlToken(_payloadWith(null), _secret), isNotEmpty);
     });
 
     test('NaN throws ArgumentError', () {
-      expect(
-        () => createZpCallbackUrlToken(_payloadWith(double.nan), _secret),
-        throwsArgumentError,
-      );
+      expect(() => createZpCallbackUrlToken(_payloadWith(double.nan), _secret), throwsArgumentError);
     });
 
     test('Infinity throws ArgumentError', () {
-      expect(
-        () => createZpCallbackUrlToken(_payloadWith(double.infinity), _secret),
-        throwsArgumentError,
-      );
+      expect(() => createZpCallbackUrlToken(_payloadWith(double.infinity), _secret), throwsArgumentError);
     });
 
     test('negative Infinity throws ArgumentError', () {
-      expect(
-        () => createZpCallbackUrlToken(
-          _payloadWith(double.negativeInfinity),
-          _secret,
-        ),
-        throwsArgumentError,
-      );
+      expect(() => createZpCallbackUrlToken(_payloadWith(double.negativeInfinity), _secret), throwsArgumentError);
     });
   });
 }

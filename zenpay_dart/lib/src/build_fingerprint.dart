@@ -26,10 +26,7 @@ import 'package:zenpay_dart/src/models/fingerprint_result.dart';
     return (null, const ZpFingerprintFailure(ZpErrors.timestampFormat));
   }
 
-  final (amount, failureReason) = resolveZpHashAmountChecked(
-    request.mode,
-    request.paymentAmount,
-  );
+  final (amount, failureReason) = resolveZpHashAmountChecked(request.mode, request.paymentAmount);
 
   if (failureReason == null) {
     return (amount, null);
@@ -38,15 +35,9 @@ import 'package:zenpay_dart/src/models/fingerprint_result.dart';
   return (
     null,
     switch (failureReason) {
-      ZpAmountFailureReason.notANumber => const ZpFingerprintFailure(
-        ZpErrors.paymentAmountNumber,
-      ),
-      ZpAmountFailureReason.notPositive => const ZpFingerprintFailure(
-        ZpErrors.paymentAmountPositive,
-      ),
-      ZpAmountFailureReason.unresolvable => ZpFingerprintFailure(
-        ZpErrors.paymentAmountUnresolvable(request.paymentAmount),
-      ),
+      ZpAmountFailureReason.notANumber => const ZpFingerprintFailure(ZpErrors.paymentAmountNumber),
+      ZpAmountFailureReason.notPositive => const ZpFingerprintFailure(ZpErrors.paymentAmountPositive),
+      ZpAmountFailureReason.unresolvable => ZpFingerprintFailure(ZpErrors.paymentAmountUnresolvable(request.paymentAmount)),
     },
   );
 }

@@ -73,34 +73,16 @@ final class ZenithTheme {
   );
 
   /// Shared theme builder — [light] and [dark] only differ in [colorScheme].
-  static ThemeData _theme({
-    required Brightness brightness,
-    required ColorScheme colorScheme,
-  }) {
-    final base = ThemeData(
-      brightness: brightness,
-      fontFamily: _fontFamily,
-    ).textTheme;
+  static ThemeData _theme({required Brightness brightness, required ColorScheme colorScheme}) {
+    final base = ThemeData(brightness: brightness, fontFamily: _fontFamily).textTheme;
     // Headings: Monument Bold is unavailable, so weight 900 Poppins stands
     // in for it per the design system's own documented fallback.
     final textTheme = base.copyWith(
-      headlineLarge: base.headlineLarge?.copyWith(
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.02,
-      ),
-      headlineMedium: base.headlineMedium?.copyWith(
-        fontWeight: FontWeight.w900,
-        letterSpacing: -0.02,
-      ),
-      titleLarge: base.titleLarge?.copyWith(
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.01,
-      ),
+      headlineLarge: base.headlineLarge?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.02),
+      headlineMedium: base.headlineMedium?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.02),
+      titleLarge: base.titleLarge?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.01),
       titleMedium: base.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-      labelLarge: base.labelLarge?.copyWith(
-        fontWeight: FontWeight.w600,
-        letterSpacing: 0.01,
-      ),
+      labelLarge: base.labelLarge?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.01),
     );
 
     const pillShape = StadiumBorder();
@@ -128,10 +110,7 @@ final class ZenithTheme {
         style: FilledButton.styleFrom(
           shape: pillShape,
           padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
-          textStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.01,
-          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, letterSpacing: 0.01),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -155,9 +134,7 @@ final class ZenithTheme {
         fillColor: colorScheme.surface,
         border: outlineBorder,
         enabledBorder: outlineBorder,
-        focusedBorder: outlineBorder.copyWith(
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
-        ),
+        focusedBorder: outlineBorder.copyWith(borderSide: BorderSide(color: colorScheme.primary, width: 2)),
         labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
         hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
       ),
@@ -167,9 +144,7 @@ final class ZenithTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: textTheme.titleLarge?.copyWith(
-          color: colorScheme.onSurface,
-        ),
+        titleTextStyle: textTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
       ),
       dividerTheme: DividerThemeData(color: colorScheme.outlineVariant),
     );

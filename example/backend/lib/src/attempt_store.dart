@@ -56,10 +56,7 @@ class AttemptStore {
 
   /// Throws [AttemptStoreError] `'CHECKOUT_ATTEMPT_NOT_FOUND'` if no attempt
   /// exists for [merchantUniquePaymentId].
-  CheckoutAttempt replace(
-    String merchantUniquePaymentId,
-    CheckoutAttempt next,
-  ) {
+  CheckoutAttempt replace(String merchantUniquePaymentId, CheckoutAttempt next) {
     if (!_byMerchantPaymentId.containsKey(merchantUniquePaymentId)) {
       throw AttemptStoreError('CHECKOUT_ATTEMPT_NOT_FOUND');
     }

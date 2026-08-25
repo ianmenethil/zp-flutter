@@ -28,11 +28,7 @@ String? decodeZpReturnMessage(String message) => message.startsWith(_prefix) ? m
 /// Only ever trusts a message from [expectedOrigin] — the return popup is
 /// same-origin by construction. Returns `null` for a cross-origin event, a
 /// non-handoff message, or a handoff whose href fails to parse.
-Uri? parseIncomingReturnMessage({
-  required String eventOrigin,
-  required String expectedOrigin,
-  required String? messageData,
-}) {
+Uri? parseIncomingReturnMessage({required String eventOrigin, required String expectedOrigin, required String? messageData}) {
   if (eventOrigin != expectedOrigin) return null;
   if (messageData == null) return null;
   final href = decodeZpReturnMessage(messageData);

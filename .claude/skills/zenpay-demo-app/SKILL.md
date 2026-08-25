@@ -111,8 +111,8 @@ gotcha that was never written down the first time.
 - `melos`'s `packages:` glob is `example/*` — **direct children only**. Nested packages like
   `example/coffee/backend` are silently invisible to every `melos run` script, which is why
   generated packages are flat (`example/coffee_backend`).
-- `dart create -t console` adds a `path: ^1.9.0` dependency the demo does not use. Harmless,
-  but `melos run lint` (dart_code_linter) may flag it if the package ever declares that lint.
+- `dart create -t console` adds a `path: ^1.9.0` dependency the demo does not use. Harmless —
+  `dart analyze` does not flag unused pubspec dependencies.
 - The scaffold's own tests live outside any package, so `melos run test` never reaches them.
   Run `dart test .claude/skills/zenpay-demo-app/scripts/new_demo_app_test.dart` directly.
 - `verify_demo_app.dart`'s `reserveLaunch()` check is a line scan, not an AST walk. An

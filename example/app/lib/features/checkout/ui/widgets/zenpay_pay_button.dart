@@ -59,14 +59,7 @@ final class ZenPayPayButton extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     key: const ValueKey('busy'),
                     children: <Widget>[
-                      const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      ),
+                      const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)),
                       const SizedBox(width: 12),
                       Text(busyLabel),
                     ],

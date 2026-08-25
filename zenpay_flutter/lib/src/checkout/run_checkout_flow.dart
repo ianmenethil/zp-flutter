@@ -62,11 +62,7 @@ final class ZpCheckout {
   /// return URI, and a [ZpReturnUriSource] delivering incoming deep links. An
   /// optional [presenter] can be supplied for testing or a custom presentation
   /// strategy.
-  ZpCheckout({
-    required this.configuration,
-    required this._returnUriSource,
-    CheckoutPresenter? presenter,
-  }) : _presenter = presenter ?? createCheckoutPresenter();
+  ZpCheckout({required this.configuration, required this._returnUriSource, CheckoutPresenter? presenter}) : _presenter = presenter ?? createCheckoutPresenter();
 
   /// The active checkout configuration settings.
   final ZpCheckoutConfiguration configuration;
@@ -131,10 +127,7 @@ final class ZpCheckout {
     }
 
     try {
-      _launchValidator.validate(
-        checkoutUrl: checkoutUrl,
-        configuration: configuration,
-      );
+      _launchValidator.validate(checkoutUrl: checkoutUrl, configuration: configuration);
     } on ZpInvalidLaunchException catch (error) {
       _presenter.releaseReservation();
       _emit(ZpLaunchRejectedEvent(reason: error.message));
@@ -145,13 +138,7 @@ final class ZpCheckout {
       onFinished: (outcome, duration, cause) {
         _active = null;
         unawaited(_presenter.dismissCheckout().catchError((Object _) => false));
-        _emit(
-          ZpFinishedEvent(
-            outcome: outcome.outcomeName,
-            duration: duration,
-            cause: cause,
-          ),
-        );
+        _emit(ZpFinishedEvent(outcome: outcome.outcomeName, duration: duration, cause: cause));
       },
     );
     _active = active;
@@ -161,10 +148,7 @@ final class ZpCheckout {
       _returnUriSource.uris.listen(
         handleReturnUri,
         onError: (Object error, StackTrace stackTrace) {
-          active.finish(
-            const ZpLaunchFailed(code: ZpLaunchFailureCode.platformError),
-            cause: error,
-          );
+          active.finish(const ZpLaunchFailed(code: ZpLaunchFailureCode.platformError), cause: error);
         },
       ),
     );
@@ -173,10 +157,7 @@ final class ZpCheckout {
       _presenter.events.listen(
         (_) => active.finish(const ZpPresentationDismissed()),
         onError: (Object error, StackTrace stackTrace) {
-          active.finish(
-            const ZpLaunchFailed(code: ZpLaunchFailureCode.platformError),
-            cause: error,
-          );
+          active.finish(const ZpLaunchFailed(code: ZpLaunchFailureCode.platformError), cause: error);
         },
       ),
     );
@@ -192,12 +173,7 @@ final class ZpCheckout {
       );
       _presentationInFlight = false;
 
-      _emit(
-        ZpPresentedEvent(
-          checkoutHost: checkoutUrl.host,
-          launched: launch.launched,
-        ),
-      );
+      _emit(ZpPresentedEvent(checkoutHost: checkoutUrl.host, launched: launch.launched));
 
       if (_disposed) {
         // dispose() deferred settling this checkout to here rather than
@@ -206,16 +182,11 @@ final class ZpCheckout {
         // already won the race in the meantime.
         active.finish(const ZpPresentationDismissed());
       } else if (!launch.launched) {
-        active.finish(
-          const ZpLaunchFailed(code: ZpLaunchFailureCode.rejectedByPlatform),
-        );
+        active.finish(const ZpLaunchFailed(code: ZpLaunchFailureCode.rejectedByPlatform));
       }
     } on Object catch (error) {
       _presentationInFlight = false;
-      active.finish(
-        ZpLaunchFailed(code: mapLaunchFailureCode(error)),
-        cause: error,
-      );
+      active.finish(ZpLaunchFailed(code: mapLaunchFailureCode(error)), cause: error);
     }
 
     return active.outcome;

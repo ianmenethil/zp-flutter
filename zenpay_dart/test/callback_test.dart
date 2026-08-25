@@ -10,9 +10,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:zenpay_dart/zenpay_dart.dart';
 
-Map<String, Object?> _loadVectors() => jsonDecode(
-  File('test/fixtures/zp_hcp_v0_1_30_vectors.json').readAsStringSync(),
-) as Map<String, Object?>;
+Map<String, Object?> _loadVectors() => jsonDecode(File('test/fixtures/zp_hcp_v0_1_30_vectors.json').readAsStringSync()) as Map<String, Object?>;
 
 void main() {
   final vectors = _loadVectors();
@@ -34,11 +32,7 @@ void main() {
     final amount = vector['paymentAmount']! as num;
 
     Map<String, Object?> body({String? reference, String? validationCode}) => {
-      'response': {
-        'merchantUniquePaymentId': mupid,
-        'paymentReference': reference ?? vector['reference'],
-        'paymentStatus': 3,
-      },
+      'response': {'merchantUniquePaymentId': mupid, 'paymentReference': reference ?? vector['reference'], 'paymentStatus': 3},
       'validationCode': validationCode ?? vector['validationCode'],
     };
 
@@ -48,20 +42,12 @@ void main() {
     });
 
     test('rejects a tampered validationCode', () {
-      final result = verifyZpCallback(
-        mode,
-        body(validationCode: '0'.padLeft(128, '0')),
-        contextFor(amount),
-      );
+      final result = verifyZpCallback(mode, body(validationCode: '0'.padLeft(128, '0')), contextFor(amount));
       expect(result, isA<ZpCallbackRejected>());
     });
 
     test('rejects a callback whose reference was swapped', () {
-      final result = verifyZpCallback(
-        mode,
-        body(reference: 'PAY-999'),
-        contextFor(amount),
-      );
+      final result = verifyZpCallback(mode, body(reference: 'PAY-999'), contextFor(amount));
       expect(result, isA<ZpCallbackRejected>());
     });
 
@@ -71,45 +57,40 @@ void main() {
     });
 
     test('reports a body that does not match the mode schema as malformed', () {
-      final result = verifyZpCallback(mode, const {
-        'nonsense': true,
-      }, contextFor(amount));
+      final result = verifyZpCallback(mode, const {'nonsense': true}, contextFor(amount));
       expect(result, isA<ZpCallbackMalformed>());
       if (result is ZpCallbackMalformed) {
         expect(result.message, contains('body must contain'));
       }
     });
 
-    test(
-      'verifies regardless of which extra business or card/account-shaped '
-      'fields the response carries — this SDK checks the hash, nothing else',
-      () {
-        // Extra fields aren't part of the hash pipe, so adding them here
-        // doesn't invalidate the golden validationCode above. There is
-        // nothing to read off the result: verifyZpCallback returns no
-        // data — the caller already holds this same `response` map and
-        // reads whatever it needs from it directly.
-        final result = verifyZpCallback(mode, {
-          'response': {
-            'merchantUniquePaymentId': mupid,
-            'paymentReference': vector['reference'],
-            'paymentStatus': 3,
-            'customerName': 'Jane Doe',
-            'cardCategory': 'Credit',
-            'additionalData': {'authCode': 'AUTH123'},
-            'token': 'CARD-TOKEN-ABC123',
-            // Card/account-shaped — the SDK does authenticity verification
-            // only, so these don't affect the result either.
-            'accountOrCardNo': '4111********1111',
-            'paymentCard': 'VISA',
-            'cardHolderName': 'Jane Smith',
-          },
-          'validationCode': vector['validationCode'],
-        }, contextFor(amount));
+    test('verifies regardless of which extra business or card/account-shaped '
+        'fields the response carries — this SDK checks the hash, nothing else', () {
+      // Extra fields aren't part of the hash pipe, so adding them here
+      // doesn't invalidate the golden validationCode above. There is
+      // nothing to read off the result: verifyZpCallback returns no
+      // data — the caller already holds this same `response` map and
+      // reads whatever it needs from it directly.
+      final result = verifyZpCallback(mode, {
+        'response': {
+          'merchantUniquePaymentId': mupid,
+          'paymentReference': vector['reference'],
+          'paymentStatus': 3,
+          'customerName': 'Jane Doe',
+          'cardCategory': 'Credit',
+          'additionalData': {'authCode': 'AUTH123'},
+          'token': 'CARD-TOKEN-ABC123',
+          // Card/account-shaped — the SDK does authenticity verification
+          // only, so these don't affect the result either.
+          'accountOrCardNo': '4111********1111',
+          'paymentCard': 'VISA',
+          'cardHolderName': 'Jane Smith',
+        },
+        'validationCode': vector['validationCode'],
+      }, contextFor(amount));
 
-        expect(result, isA<ZpCallbackVerified>());
-      },
-    );
+      expect(result, isA<ZpCallbackVerified>());
+    });
 
     group('validateZpCallbackBody', () {
       test('returns null for a well-shaped body', () {
@@ -123,23 +104,14 @@ void main() {
       });
 
       test('flags a non-hex validationCode', () {
-        final failure = validateZpCallbackBody(
-          mode,
-          body(validationCode: 'not-hex'),
-        );
+        final failure = validateZpCallbackBody(mode, body(validationCode: 'not-hex'));
         expect(failure?.message, contains('128-character hex string'));
       });
 
       test('does not reject a tampered validationCode — shape only', () {
         // Unlike verifyZpCallback, shape validation never hashes: a body
         // with a wrong-but-correctly-shaped validationCode still passes.
-        expect(
-          validateZpCallbackBody(
-            mode,
-            body(validationCode: '0'.padLeft(128, '0')),
-          ),
-          isNull,
-        );
+        expect(validateZpCallbackBody(mode, body(validationCode: '0'.padLeft(128, '0'))), isNull);
       });
 
       test('reports a body missing response/validationCode as malformed', () {
@@ -159,45 +131,30 @@ void main() {
     expect(result, isA<ZpCallbackVerified>());
   });
 
-  test(
-    'mode 1 (tokenise) verifies with paymentDetail and doRedirect present',
-    () {
-      final vector = callbacks['mode1Tokenise']! as Map<String, Object?>;
-      final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
-      final result = verifyZpCallback(mode, {
-        'response': {
-          'token': vector['reference'],
-          'doRedirect': true,
-          'paymentDetail': {
-            'customerFee': 1.5,
-            'merchantFee': 0.5,
-            'processingAmount': 51.4,
-            'paymentAmount': 49.9,
-          },
-        },
-        'validationCode': vector['validationCode'],
-      }, contextFor(vector['paymentAmount']! as num));
+  test('mode 1 (tokenise) verifies with paymentDetail and doRedirect present', () {
+    final vector = callbacks['mode1Tokenise']! as Map<String, Object?>;
+    final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
+    final result = verifyZpCallback(mode, {
+      'response': {
+        'token': vector['reference'],
+        'doRedirect': true,
+        'paymentDetail': {'customerFee': 1.5, 'merchantFee': 0.5, 'processingAmount': 51.4, 'paymentAmount': 49.9},
+      },
+      'validationCode': vector['validationCode'],
+    }, contextFor(vector['paymentAmount']! as num));
 
-      expect(result, isA<ZpCallbackVerified>());
-    },
-  );
+    expect(result, isA<ZpCallbackVerified>());
+  });
 
   test('mode 2 (custom payment) — hash uses "0" regardless of the context amount', () {
     final vector = callbacks['mode2CustomPayment']! as Map<String, Object?>;
     final mode = ZpPluginMode.fromWireValue(vector['mode']! as int);
     final body = {
-      'response': {
-        'merchantUniquePaymentId': mupid,
-        'paymentReference': vector['reference'],
-        'paymentStatus': 3,
-      },
+      'response': {'merchantUniquePaymentId': mupid, 'paymentReference': vector['reference'], 'paymentStatus': 3},
       'validationCode': vector['validationCode'],
     };
 
-    expect(
-      verifyZpCallback(mode, body, contextFor(vector['paymentAmount']! as num)),
-      isA<ZpCallbackVerified>(),
-    );
+    expect(verifyZpCallback(mode, body, contextFor(vector['paymentAmount']! as num)), isA<ZpCallbackVerified>());
     // The hash always uses "0" for mode 2, so the context amount is
     // irrelevant to verification — a zero amount must still succeed.
     final zeroAmount = verifyZpCallback(mode, body, contextFor(0));
@@ -237,10 +194,7 @@ void main() {
     final result = verifyZpCallback(
       mode,
       {
-        'response': {
-          'merchantUniquePaymentId': mupid,
-          'paymentReference': vector['reference'],
-        },
+        'response': {'merchantUniquePaymentId': mupid, 'paymentReference': vector['reference']},
         'validationCode': vector['validationCode'],
       },
       const ZpVerifyCallbackContext(

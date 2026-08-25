@@ -47,14 +47,9 @@ final class ZpLaunchValidator {
   ///
   /// Throws [ZpInvalidLaunchException] if [checkoutUrl] does not satisfy
   /// [isAllowedCheckoutUrl].
-  void validate({
-    required Uri checkoutUrl,
-    required ZpCheckoutConfiguration configuration,
-  }) {
+  void validate({required Uri checkoutUrl, required ZpCheckoutConfiguration configuration}) {
     if (!isAllowedCheckoutUrl(checkoutUrl, configuration)) {
-      throw const ZpInvalidLaunchException(
-        _ValidationMessage.checkoutUrlNotAllowed,
-      );
+      throw const ZpInvalidLaunchException(_ValidationMessage.checkoutUrlNotAllowed);
     }
   }
 }

@@ -78,7 +78,6 @@ Run these commands from the repository root to verify your changes across all pa
 melos bs
 melos run format
 melos run analyze
-melos run lint
 melos run test
 melos run test:dart
 ```

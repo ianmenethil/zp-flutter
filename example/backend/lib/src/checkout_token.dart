@@ -131,11 +131,7 @@ final class CheckoutTokenFailure extends CheckoutTokenResult {
 /// [expiresInSeconds]. Keep this short-lived — it is the anonymous admission
 /// boundary for creating a ZenPay attempt. [secret] is typically a
 /// purpose-derived key from `token_keys.dart`, not the raw root secret.
-String createCheckoutToken(
-  CheckoutTokenPayload payload,
-  Object secret, {
-  required int expiresInSeconds,
-}) {
+String createCheckoutToken(CheckoutTokenPayload payload, Object secret, {required int expiresInSeconds}) {
   final issuedAt = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
   return encodeSignedToken({
     _keyScope: _scope,
@@ -161,9 +157,7 @@ CheckoutTokenResult verifyCheckoutToken(String token, Object secret) {
     case SignedTokenDecoded(:final claims):
       data = claims;
     case SignedTokenBadSignature():
-      return const CheckoutTokenFailure(
-        CheckoutTokenFailureReason.badSignature,
-      );
+      return const CheckoutTokenFailure(CheckoutTokenFailureReason.badSignature);
     case SignedTokenMalformed():
       return const CheckoutTokenFailure(CheckoutTokenFailureReason.malformed);
   }

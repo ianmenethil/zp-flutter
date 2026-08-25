@@ -51,7 +51,7 @@ Official packages maintained by the Dart team.
 | `collection` | `^1.19.0` | `zenpay_flutter` | `SetEquality<String>` for value-equality on `ZpCheckoutConfiguration`'s `allowedCheckoutHosts` set (immutable config classes require `==`/`hashCode`). |
 | `coverage` | `^1.15.1` | `zenpay_dart` (dev) | LCOV coverage generation for pure-Dart packages (`melos run coverage:dart`; Flutter packages use `flutter test --coverage` instead). |
 | `http` | `^1.6.0` | `example/app` (dep); `example/backend` (dev) | `example/app`'s `checkout_service.dart` calls the backend's `/api/v1/checkout/*` and `/api/v1/sessions` endpoints; `example/backend`'s tests use it as an HTTP client against the running server. |
-| `lints` | `^6.1.0` | `zenpay_dart`, `example/backend` (dev) | Base rule set `analysis_options.yaml` extends via `package:lints/recommended.yaml` (plain-Dart packages; Flutter packages use `flutter_lints` instead). |
+| `lints` | `^6.1.0` | root (dev, all packages via `analysis_options.yaml`), `zenpay_dart` (dev, standalone copy) | Base rule set the repo's `analysis_options.yaml` extends via `package:lints/recommended.yaml`, plus explicit `strict-casts`/`strict-inference`/`strict-raw-types` restated alongside it — the basis for this repo's "no `dynamic`" strictness rule. `zenpay_dart` carries its own copy of both since its `analysis_options.yaml` must resolve standalone once published. |
 | `logging` | `^1.3.0` | `example/backend` | Structured logging in the reference backend server. |
 | `meta` | `^1.16.0`–`^1.18.0` | `zenpay_flutter`, `zenpay_embedded`, `example/backend` | `@visibleForTesting`, `@internal` annotations (e.g. `resetInitialLinkConsumedForTesting()` in `zenpay_flutter`). |
 | `shelf` | `^1.4.2` | `example/backend` | The HTTP server framework the reference backend is built on. |
@@ -91,11 +91,9 @@ Official first-party Flutter plugins and lint config.
 | Package | Version | Where | Publisher (pub.dev) | Why |
 | :--- | :--- | :--- | :--- | :--- |
 | `app_links` | `^7.2.1` | `zenpay_flutter` | `cow-level.ovh` | Captures Android App Links / iOS Universal Links for mobile checkout-return deep-link handling (`AppLinksReturnUriSource`). |
-| `dart_code_linter` | `^4.1.9` | `zenpay_dart`, `zenpay_flutter`, `zenpay_embedded` (dev) | `bancolombia.com` | Unused-code/dead-code detection (`melos run lint` → `dart_code_linter:metrics analyze lib`). Not declared at the workspace root — each package that needs it declares it itself. |
 | `dotenv` | `^4.2.0` | `example/backend` | `practicalflutter.com` | Loads `example/backend/.env` into `AppConfig` (API keys, `TOKEN_SECRET`, etc. — see that package's `.env.example`). |
-| `hashlib` | `^2.4.2` | `zenpay_dart`, `example/backend` | `bitanon.dev` | SHA3-512 hashing, HMAC-SHA3-512, and secure random bytes — the cryptographic core of fingerprints, callback `ValidationCode` verification, and callback URL tokens. |
+| `pointycastle` | `^4.0.0` | `zenpay_dart`, `example/backend` | `bouncycastle.org` | SHA3-512 hashing and HMAC-SHA3-512 — the cryptographic core of fingerprints, callback `ValidationCode` verification, and callback URL tokens. Secure random bytes (`createZpMupid`) use Dart's own `dart:math` `Random.secure()` instead, no package needed. Switched from `hashlib` (`bitanon.dev`) for its far larger install base (~36x more downloads) — verified byte-identical SHA3-512/HMAC-SHA3-512 output against the prior implementation before switching. |
 | `melos` | `^8.3.0` | root (dev) | `invertase.io` (Invertase) | The monorepo package-management tool itself — drives the Dart pub workspace that links sibling packages via ordinary version constraints (not `path:` deps), runs `melos run <script>` across every package. |
-| `very_good_analysis` | `^10.3.0` | root, `zenpay_dart` (dev) | `verygood.ventures` (Very Good Ventures) | Stricter-than-default analysis rules (`strict-casts`, `strict-inference`, `strict-raw-types`) — the basis for this repo's "no `dynamic`" strictness rule. |
 
 ---
 
