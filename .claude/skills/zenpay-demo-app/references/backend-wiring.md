@@ -148,7 +148,7 @@ Copy `example/backend/.env.example`; the scaffold seeds real values from
 | `PUBLIC_BASE_URL` | `localhost` works until you need a real callback; ZenPay's webhook is server-to-server and cannot reach your machine |
 
 The server should refuse to start session creation without these and return
-`503 SESSION_CONFIG_REQUIRED` rather than failing deeper in — copy that behaviour, it is the
+`503 SESSION_CONFIGURATION_REQUIRED` rather than failing deeper in — copy that behaviour, it is the
 difference between a five-second diagnosis and an hour.
 
 reCAPTCHA is optional: leave `RECAPTCHA_PROJECT_NUMBER`, `RECAPTCHA_SERVICE_ACCOUNT_JSON`,
