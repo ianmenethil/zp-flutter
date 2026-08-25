@@ -103,7 +103,11 @@ manually with `dart run cli.dart --sync-examples`, or automatically before every
 - **`_fixAnalysisOptionsInclude(String destPath)`**: Repoints the copied
   `analysis_options.yaml`'s `include:` from the monorepo root's file (unreachable
   standalone) to `package:lints/recommended.yaml`, a dependency every copy's own
-  `pubspec.yaml` actually declares.
+  `pubspec.yaml` actually declares. Also restates the root's `formatter: page_width: 160`
+  override, which `include:` alone doesn't carry across — the same restatement
+  `zenpay_dart/analysis_options.yaml` already does for itself. Without it, `dart format`
+  falls back to its 80-column default on the copy, so an already-clean source file shows
+  up as needing a reformat purely because the applicable rule changed underneath it.
 
 ### `check_claude_md.dart`
 

@@ -27,19 +27,9 @@ const _defaultPath = '/zenpay/app-return';
 /// top-level function so tests can exercise parsing without invoking [main]
 /// (which calls [exit]).
 ArgParser buildParser() => ArgParser()
-  ..addOption(
-    'host',
-    help: 'The App Link / Universal Link host, e.g. payments.example.com.',
-  )
-  ..addFlag(
-    'from-wrangler',
-    negatable: false,
-    help: "Read the host from wrangler.jsonc's vars.PUBLIC_BASE_URL instead of --host.",
-  )
-  ..addOption(
-    'root',
-    help: 'Repo root containing example/app. Defaults to the current directory.',
-  )
+  ..addOption('host', help: 'The App Link / Universal Link host, e.g. payments.example.com.')
+  ..addFlag('from-wrangler', negatable: false, help: "Read the host from wrangler.jsonc's vars.PUBLIC_BASE_URL instead of --host.")
+  ..addOption('root', help: 'Repo root containing example/app. Defaults to the current directory.')
   ..addOption('path', help: 'App Link path prefix.', defaultsTo: _defaultPath)
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this usage.');
 
@@ -89,9 +79,7 @@ String hostFromWrangler(String root) {
     exit(1);
   }
 
-  final match = RegExp(
-    r'"PUBLIC_BASE_URL"\s*:\s*"https?://([^/"]+)',
-  ).firstMatch(wrangler.readAsStringSync());
+  final match = RegExp(r'"PUBLIC_BASE_URL"\s*:\s*"https?://([^/"]+)').firstMatch(wrangler.readAsStringSync());
   if (match == null) {
     stderr.writeln('Could not find vars.PUBLIC_BASE_URL in ${wrangler.path}.');
     exit(1);
@@ -102,9 +90,7 @@ String hostFromWrangler(String root) {
 /// Patches `AndroidManifest.xml` with the App Link intent filter. Public so
 /// tests can call it directly against a temp directory.
 void patchAndroid(String root, String host, String path) {
-  final manifest = File(
-    '$root/example/app/android/app/src/main/AndroidManifest.xml',
-  );
+  final manifest = File('$root/example/app/android/app/src/main/AndroidManifest.xml');
   if (!manifest.existsSync()) {
     stderr.writeln('Android manifest not found: ${manifest.path}');
     exit(1);
@@ -115,9 +101,7 @@ void patchAndroid(String root, String host, String path) {
   // Already patched: rewrite the host/path in place. Returning early here
   // instead would make the host permanently unchangeable after the first run,
   // which is the opposite of why this script exists.
-  final existing = RegExp(
-    r'<data\s+android:scheme="https"\s+android:host="[^"]*"\s+android:pathPrefix="[^"]*"\s*/>',
-  );
+  final existing = RegExp(r'<data\s+android:scheme="https"\s+android:host="[^"]*"\s+android:pathPrefix="[^"]*"\s*/>');
   if (existing.hasMatch(text)) {
     manifest.writeAsStringSync(
       text.replaceAll(
@@ -156,25 +140,20 @@ void patchAndroid(String root, String host, String path) {
     stderr.writeln('Unable to locate Android activity closing tag.');
     exit(1);
   }
-  manifest.writeAsStringSync(
-    text.replaceFirst(marker, '$snippet        $marker'),
-  );
+  manifest.writeAsStringSync(text.replaceFirst(marker, '$snippet        $marker'));
 }
 
 /// Patches the iOS Runner project with entitlements and deep-link config.
 /// Public so tests can call it directly against a temp directory.
 void patchIos(String root, String host) {
   final runnerDir = Directory('$root/example/app/ios/Runner');
-  final project = File(
-    '$root/example/app/ios/Runner.xcodeproj/project.pbxproj',
-  );
+  final project = File('$root/example/app/ios/Runner.xcodeproj/project.pbxproj');
   if (!runnerDir.existsSync() || !project.existsSync()) {
     stderr.writeln('Generated iOS Runner project not found.');
     exit(1);
   }
 
-  File('${runnerDir.path}/Runner.entitlements').writeAsStringSync(
-    '''
+  File('${runnerDir.path}/Runner.entitlements').writeAsStringSync('''
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -187,8 +166,7 @@ void patchIos(String root, String host) {
   </array>
 </dict>
 </plist>
-''',
-  );
+''');
 
   final infoPlist = File('${runnerDir.path}/Info.plist');
   var infoText = infoPlist.readAsStringSync();
@@ -198,17 +176,12 @@ void patchIos(String root, String host) {
       stderr.writeln('Unable to locate iOS Info.plist dict closing tag.');
       exit(1);
     }
-    infoText = infoText.replaceFirst(
-      marker,
-      '\t<key>FlutterDeepLinkingEnabled</key>\n\t<false/>\n$marker',
-    );
+    infoText = infoText.replaceFirst(marker, '\t<key>FlutterDeepLinkingEnabled</key>\n\t<false/>\n$marker');
     infoPlist.writeAsStringSync(infoText);
   }
 
   var projectText = project.readAsStringSync();
-  if (!projectText.contains(
-    'CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;',
-  )) {
+  if (!projectText.contains('CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;')) {
     // The negative lookahead keeps this off the RunnerTests target, which has
     // its own bundle identifier and must not be signed with the app's
     // entitlements.

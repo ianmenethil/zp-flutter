@@ -86,10 +86,7 @@ void main() {
 }
 ''');
 
-      expect(
-        hostFromWrangler(root.path),
-        'flutter-demo.zenithpayments.support',
-      );
+      expect(hostFromWrangler(root.path), 'flutter-demo.zenithpayments.support');
     });
   });
 
@@ -99,12 +96,9 @@ void main() {
 
     setUp(() {
       root = Directory.systemTemp.createTempSync('apply_platform_config_');
-      manifest =
-          File(
-              '${root.path}/example/app/android/app/src/main/AndroidManifest.xml',
-            )
-            ..createSync(recursive: true)
-            ..writeAsStringSync(_androidManifestFresh);
+      manifest = File('${root.path}/example/app/android/app/src/main/AndroidManifest.xml')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(_androidManifestFresh);
     });
 
     tearDown(() => root.deleteSync(recursive: true));
@@ -150,9 +144,7 @@ void main() {
     test('writes entitlements with the given host', () {
       patchIos(root.path, 'payments.example.com');
 
-      final entitlements = File(
-        '${runnerDir.path}/Runner.entitlements',
-      ).readAsStringSync();
+      final entitlements = File('${runnerDir.path}/Runner.entitlements').readAsStringSync();
       expect(entitlements, contains('applinks:payments.example.com'));
     });
 
@@ -164,18 +156,12 @@ void main() {
       expect('FlutterDeepLinkingEnabled'.allMatches(text).length, 1);
     });
 
-    test(
-      'adds CODE_SIGN_ENTITLEMENTS to the app target but not RunnerTests',
-      () {
-        patchIos(root.path, 'payments.example.com');
+    test('adds CODE_SIGN_ENTITLEMENTS to the app target but not RunnerTests', () {
+      patchIos(root.path, 'payments.example.com');
 
-        final text = project.readAsStringSync();
-        expect('CODE_SIGN_ENTITLEMENTS'.allMatches(text).length, 1);
-        expect(
-          text.indexOf('CODE_SIGN_ENTITLEMENTS'),
-          lessThan(text.indexOf('RunnerTests')),
-        );
-      },
-    );
+      final text = project.readAsStringSync();
+      expect('CODE_SIGN_ENTITLEMENTS'.allMatches(text).length, 1);
+      expect(text.indexOf('CODE_SIGN_ENTITLEMENTS'), lessThan(text.indexOf('RunnerTests')));
+    });
   });
 }

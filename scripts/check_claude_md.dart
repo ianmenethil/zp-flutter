@@ -59,11 +59,7 @@ ClmTemplate parseTemplate(String text) {
 /// directory). Returns one human-readable violation per problem, empty when
 /// the document conforms. Pure aside from the glob filesystem reads, so tests
 /// can drive it with temp-directory fixtures.
-List<String> checkClaudeMd({
-  required String docText,
-  required String sourceDir,
-  required ClmTemplate template,
-}) {
+List<String> checkClaudeMd({required String docText, required String sourceDir, required ClmTemplate template}) {
   final violations = <String>[];
   // Normalize CRLF/CR line endings first — a trailing \r makes Dart's `$`
   // anchor miss, so the heading and entry regexes below must see clean line
@@ -83,9 +79,7 @@ List<String> checkClaudeMd({
   for (final line in lines) {
     final heading = RegExp(r'^##\s+(.*)$').firstMatch(line);
     if (heading != null) {
-      headingTexts.add(
-        heading.group(1)!.trim().replaceFirst(RegExp(r'^\d+[.)]\s*'), ''),
-      );
+      headingTexts.add(heading.group(1)!.trim().replaceFirst(RegExp(r'^\d+[.)]\s*'), ''));
     }
   }
   final foundAt = <int>[];
@@ -164,16 +158,7 @@ String _forward(String path) => path.replaceAll(r'\', '/');
 /// not ignored (the same selection `sync_package_examples.dart` uses) — so
 /// the generated `zenpay_*/example/` copies (gitignored) are never checked.
 List<String> _trackedClaudeMds(String root) {
-  final result = Process.runSync('git', [
-    '-C',
-    root,
-    'ls-files',
-    '--cached',
-    '--others',
-    '--exclude-standard',
-    '--',
-    '*CLAUDE.md',
-  ]);
+  final result = Process.runSync('git', ['-C', root, 'ls-files', '--cached', '--others', '--exclude-standard', '--', '*CLAUDE.md']);
   if (result.exitCode != 0) {
     stderr.writeln('git ls-files failed: ${result.stderr}');
     exit(1);
@@ -208,9 +193,7 @@ void main(List<String> arguments) {
   // sits directly under it, per the repo layout).
   final scriptDir = File.fromUri(Platform.script).parent.path;
   final root = _forward(Directory(scriptDir).parent.path);
-  final template = parseTemplate(
-    File('$scriptDir/claude_md_template.md').readAsStringSync(),
-  );
+  final template = parseTemplate(File('$scriptDir/claude_md_template.md').readAsStringSync());
 
   final docs = arguments.isEmpty ? _trackedClaudeMds(root) : arguments;
 
@@ -221,9 +204,7 @@ void main(List<String> arguments) {
   var checked = 0;
   var failed = 0;
   for (final doc in docs) {
-    final absolute = _forward(
-      File(arguments.isEmpty ? '$root/$doc' : doc).absolute.path,
-    );
+    final absolute = _forward(File(arguments.isEmpty ? '$root/$doc' : doc).absolute.path);
     if (!File(absolute).existsSync()) {
       failed++;
       checked++;
@@ -232,11 +213,7 @@ void main(List<String> arguments) {
         ..writeln('        file not found: $absolute');
       continue;
     }
-    final violations = checkClaudeMd(
-      docText: File(absolute).readAsStringSync(),
-      sourceDir: _forward(File(absolute).parent.path),
-      template: template,
-    );
+    final violations = checkClaudeMd(docText: File(absolute).readAsStringSync(), sourceDir: _forward(File(absolute).parent.path), template: template);
     checked++;
     if (violations.isEmpty) {
       stdout.writeln('PASS  $doc');

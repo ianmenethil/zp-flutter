@@ -201,11 +201,11 @@ Non-2xx bodies are `{"error": "MACHINE_CODE"}`. Codes worth handling in a demo:
 
 | Code | Means |
 |---|---|
-| `SESSION_CONFIG_REQUIRED` (503) | `.env` is missing ZenPay credentials or `TOKEN_SECRET` — the most common first-run failure. Say which file to edit |
+| `SESSION_CONFIGURATION_REQUIRED` (503) | `.env` is missing ZenPay credentials or `TOKEN_SECRET` — the most common first-run failure. Say which file to edit |
 | `INVALID_CHECKOUT_AMOUNT` (400) | amount missing or ≤ 0 for a mode that requires one |
 | `IDEMPOTENCY_KEY_REUSED` (409) | same key, different order fields |
 | `CHECKOUT_TOKEN_INVALID` (401) | expired or tampered checkout token |
 | `CHECKOUT_ATTEMPT_NOT_FOUND` (404) | token names an attempt the store purged (TTL) |
 
-A demo that surfaces `SESSION_CONFIG_REQUIRED` as "add your ZenPay credentials to
+A demo that surfaces `SESSION_CONFIGURATION_REQUIRED` as "add your ZenPay credentials to
 `.env`" saves more time than any other error handling you can write.

@@ -58,13 +58,7 @@ melos run test
         sourceDir: Directory.systemTemp.createTempSync().path,
         template: const ClmTemplate(requiredSections: _sections, coverageGlobs: []),
       );
-      expect(
-        violations,
-        containsAll([
-          'missing top-level `# ` title',
-          'missing section: ## Related Guides',
-        ]),
-      );
+      expect(violations, containsAll(['missing top-level `# ` title', 'missing section: ## Related Guides']));
     });
 
     test('accepts CRLF and CR line endings', () {
@@ -82,12 +76,7 @@ melos run test
         sourceDir: Directory.systemTemp.createTempSync().path,
         template: const ClmTemplate(requiredSections: _sections, coverageGlobs: []),
       );
-      expect(
-        violations,
-        contains(
-          'sections out of order: ## Verification appears before ## Related Guides',
-        ),
-      );
+      expect(violations, contains('sections out of order: ## Verification appears before ## Related Guides'));
     });
   });
 
@@ -120,10 +109,7 @@ melos run test
 - **[top.dart](top.dart)** — the entrypoint.
 ''',
         sourceDir: dir.path,
-        template: const ClmTemplate(
-          requiredSections: [],
-          coverageGlobs: ['lib/**/*.dart', '*.dart'],
-        ),
+        template: const ClmTemplate(requiredSections: [], coverageGlobs: ['lib/**/*.dart', '*.dart']),
       );
       expect(violations, isEmpty);
     });
@@ -135,10 +121,7 @@ melos run test
       final violations = checkClaudeMd(
         docText: '# package\n\n- **[foo.dart](lib/src/foo.dart)**: Implements F.\n',
         sourceDir: dir.path,
-        template: const ClmTemplate(
-          requiredSections: [],
-          coverageGlobs: ['lib/**/*.dart'],
-        ),
+        template: const ClmTemplate(requiredSections: [], coverageGlobs: ['lib/**/*.dart']),
       );
       expect(violations, isEmpty);
     });
@@ -150,10 +133,7 @@ melos run test
       final violations = checkClaudeMd(
         docText: 'See lib/src/foo.dart for the details.\n',
         sourceDir: dir.path,
-        template: const ClmTemplate(
-          requiredSections: [],
-          coverageGlobs: ['lib/**/*.dart'],
-        ),
+        template: const ClmTemplate(requiredSections: [], coverageGlobs: ['lib/**/*.dart']),
       );
       expect(violations, contains('missing file entry: lib/src/foo.dart'));
     });
@@ -166,10 +146,7 @@ melos run test
       final violations = checkClaudeMd(
         docText: '# package\n\n- `top.dart` — the entrypoint.\n',
         sourceDir: dir.path,
-        template: const ClmTemplate(
-          requiredSections: [],
-          coverageGlobs: ['*.dart'],
-        ),
+        template: const ClmTemplate(requiredSections: [], coverageGlobs: ['*.dart']),
       );
       expect(violations, isEmpty);
     });

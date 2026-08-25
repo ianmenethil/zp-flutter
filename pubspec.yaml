@@ -47,11 +47,11 @@ melos:
         dirExists: test
         flutter: false
     format:
-      exec: dart format .
-      description: Format all Dart and Flutter code.
+      run: dart format zenpay_dart zenpay_flutter zenpay_embedded example scripts cli.dart
+      description: Format all Dart and Flutter code, including root-level scripts/ and cli.dart.
     analyze:
-      exec: dart analyze .
-      description: Run static analysis (dart analyze) across all packages.
+      run: dart analyze zenpay_dart zenpay_flutter zenpay_embedded example scripts cli.dart
+      description: Run static analysis (dart analyze) across all packages, plus root-level scripts/ and cli.dart.
     coverage:
       exec: flutter test --coverage
       description: Generate lcov coverage for Flutter packages.

@@ -68,6 +68,7 @@ String _usage() {
       'Regenerate zenpay_dart/example and zenpay_flutter/example from '
           'example/backend + example/app.',
     ),
+    row('--check', 'Run every format/analyze/test/CLAUDE.md/PCI check CI and the pre-commit hook require.'),
     row('--release-dart-minor', 'Bump zenpay_dart to the next minor version, prep for pub.dev.'),
     row('--release-dart-major', 'Bump zenpay_dart to the next major version, prep for pub.dev.'),
     row('--release-flutter-minor', 'Bump zenpay_flutter to the next minor version, prep for pub.dev.'),
@@ -98,6 +99,7 @@ String _usage() {
     _dim('  dart run $_scriptName --docker-build'),
     _dim('  dart run $_scriptName --docker-run'),
     _dim('  dart run $_scriptName --docker-rebuild'),
+    _dim('  dart run $_scriptName --check'),
     _dim('  dart run $_scriptName --release-dart-minor'),
     _dim('  dart run $_scriptName --release-flutter-major'),
   ].join('\n');
@@ -119,6 +121,7 @@ Future<void> main(List<String> arguments) async {
     ..addFlag('docker-rebuild', negatable: false, help: 'Delete existing image, build fresh, and run.')
     ..addFlag('cf-deploy', negatable: false, help: 'Deploy the Cloudflare Workers backend and Containers.')
     ..addFlag('sync-examples', negatable: false, help: 'Regenerate zenpay_dart/example and zenpay_flutter/example from example/backend + example/app.')
+    ..addFlag('check', negatable: false, help: 'Run every format/analyze/test/CLAUDE.md/PCI check CI and the pre-commit hook require.')
     ..addFlag('release-dart-minor', negatable: false, help: 'Bump zenpay_dart to the next minor version, prep for pub.dev.')
     ..addFlag('release-dart-major', negatable: false, help: 'Bump zenpay_dart to the next major version, prep for pub.dev.')
     ..addFlag('release-flutter-minor', negatable: false, help: 'Bump zenpay_flutter to the next minor version, prep for pub.dev.')
@@ -166,6 +169,7 @@ Future<void> main(List<String> arguments) async {
     if (args['docker-rebuild'] as bool) 'docker-rebuild',
     if (args['cf-deploy'] as bool) 'cf-deploy',
     if (args['sync-examples'] as bool) 'sync-examples',
+    if (args['check'] as bool) 'check',
     if (args['release-dart-minor'] as bool) 'release:dart:minor',
     if (args['release-dart-major'] as bool) 'release:dart:major',
     if (args['release-flutter-minor'] as bool) 'release:flutter:minor',
@@ -223,6 +227,8 @@ Future<void> main(List<String> arguments) async {
     await _cfDeploy(root);
   } else if (mode == 'sync-examples') {
     await _syncExamples(root);
+  } else if (mode == 'check') {
+    await _check(root);
   } else if (mode.startsWith('release:')) {
     // release:<dart|flutter>:<minor|major>
     final parts = mode.split(':');
@@ -1001,6 +1007,155 @@ String _defaultQuickTunnelUrl(String root) {
 /// go stale silently; also runnable standalone via `--sync-examples`.
 Future<void> _syncExamples(String root) async {
   await _runChecked('dart', ['run', 'scripts/sync_package_examples.dart'], cwd: root);
+}
+
+/// True if any `.dart` file under [dirPath] contains any of [needles] —
+/// the "must be absent anywhere in this tree" shape used by `--check`'s
+/// no-js-bridge guard below.
+bool _dartFilesContainAny(String dirPath, List<String> needles) {
+  final directory = Directory(dirPath);
+  if (!directory.existsSync()) return false;
+  for (final entity in directory.listSync(recursive: true)) {
+    if (entity is File && entity.path.endsWith('.dart') && needles.any(entity.readAsStringSync().contains)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/// True if [filePath] contains any of [needles] — the "must be absent in
+/// this one file" shape used by `--check`'s no-host-allowlist guard below.
+bool _fileContainsAny(String filePath, List<String> needles) {
+  final file = File(filePath);
+  if (!file.existsSync()) return false;
+  final content = file.readAsStringSync();
+  return needles.any(content.contains);
+}
+
+/// True if [filePath] contains every one of [needles] — the "must all be
+/// present" shape used by `--check`'s WebView-teardown guard below.
+bool _fileContainsAll(String filePath, List<String> needles) {
+  final file = File(filePath);
+  if (!file.existsSync()) return false;
+  final content = file.readAsStringSync();
+  return needles.every(content.contains);
+}
+
+/// Runs every check CI (`codemagic.yaml`'s Format/Analyze/Test steps) and
+/// the pre-commit hook (`lefthook.yml`) require, across the *whole* tree —
+/// not just staged files, unlike lefthook's own `format`/`analyze-root`
+/// gates. Every step's live output still streams to the terminal as it
+/// runs, but is also captured, so a failing step's output can be reprinted
+/// next to it in the final summary — without that meaning scrolling back
+/// through everything else `--check` ran to find out why.
+///
+/// The three static regression guards (`no-js-bridge`, `webview-teardown`,
+/// `webview-no-host-allowlist`) are re-implemented here in pure Dart rather
+/// than shelling out to `grep`, since this file otherwise has no external
+/// tool dependency for its own checks. Keep these in sync with
+/// `lefthook.yml` if either changes.
+Future<void> _check(String root) async {
+  final results = <String, bool>{};
+  final details = <String, String>{};
+
+  Future<void> step(String label, String executable, List<String> args) async {
+    stdout.writeln();
+    _info('=== $label ===');
+    final captured = <int>[];
+    final process = await Process.start(_resolveExecutable(executable), args, workingDirectory: root);
+    process.stdout.listen((bytes) {
+      stdout.add(bytes);
+      captured.addAll(bytes);
+    });
+    process.stderr.listen((bytes) {
+      stderr.add(bytes);
+      captured.addAll(bytes);
+    });
+    final code = await process.exitCode;
+    final passed = code == 0;
+    results[label] = passed;
+    if (!passed) {
+      details[label] = utf8.decode(captured, allowMalformed: true).trim();
+      _error('FAILED (exit $code)');
+    }
+  }
+
+  void staticStep(String label, bool passed, String onFailDetail) {
+    stdout.writeln();
+    _info('=== $label ===');
+    results[label] = passed;
+    if (!passed) {
+      details[label] = onFailDetail;
+      _error('FAILED');
+    }
+  }
+
+  await step('Format (zenpay_dart, zenpay_flutter, zenpay_embedded, example, scripts, cli.dart)', 'dart', [
+    'format',
+    '--output=none',
+    '--set-exit-if-changed',
+    'zenpay_dart',
+    'zenpay_flutter',
+    'zenpay_embedded',
+    'example',
+    'scripts',
+    'cli.dart',
+  ]);
+  await step('Analyze', 'dart', ['run', 'melos', 'run', 'analyze']);
+  await step('Test (Flutter packages)', 'dart', ['run', 'melos', 'run', 'test']);
+  await step('Test (Dart packages)', 'dart', ['run', 'melos', 'run', 'test:dart']);
+  await step('CLAUDE.md coverage', 'dart', ['run', 'scripts/check_claude_md.dart']);
+
+  staticStep(
+    'No JS bridge in zenpay_embedded',
+    !_dartFilesContainAny('$root/zenpay_embedded/lib', ['addJavaScriptChannel', 'setOnConsoleMessage']),
+    'zenpay_embedded/lib contains addJavaScriptChannel or setOnConsoleMessage — barred by the '
+        'no-js-bridge gate (lefthook.yml). See zenpay_embedded/CLAUDE.md § Non-negotiable rules.',
+  );
+  staticStep(
+    'WebView full teardown on dismiss',
+    _fileContainsAll('$root/zenpay_embedded/lib/src/render_checkout_web_view.dart', ['clearCache', 'clearLocalStorage', 'WebViewCookieManager']),
+    'zenpay_embedded/lib/src/render_checkout_web_view.dart is missing one of clearCache / '
+        'clearLocalStorage / WebViewCookieManager on dismiss — see the webview-teardown gate (lefthook.yml).',
+  );
+  staticStep(
+    'WebView has no host allowlist on navigation',
+    !_fileContainsAny('$root/zenpay_embedded/lib/src/decide_web_view_navigation.dart', [
+      'isAllowedCheckoutUrl',
+      'allowedCheckoutHosts',
+      'validate_checkout_url.dart',
+    ]),
+    'zenpay_embedded/lib/src/decide_web_view_navigation.dart references isAllowedCheckoutUrl / '
+        'allowedCheckoutHosts / validate_checkout_url.dart — 3DS/issuer ACS hosts can\'t be enumerated '
+        'in advance, so navigation must never be filtered by host. See the webview-no-host-allowlist '
+        'gate (lefthook.yml).',
+  );
+
+  stdout.writeln();
+  _info('=== Summary ===');
+  var allPassed = true;
+  for (final entry in results.entries) {
+    if (entry.value) {
+      _success('  PASS  ${entry.key}');
+    } else {
+      _error('  FAIL  ${entry.key}');
+      allPassed = false;
+    }
+  }
+
+  if (!allPassed) {
+    stdout.writeln();
+    _info('=== Why ===');
+    for (final entry in results.entries) {
+      if (entry.value) continue;
+      _error('${entry.key}:');
+      stdout.writeln(details[entry.key]);
+      stdout.writeln();
+    }
+    _error('One or more checks failed.');
+    exit(1);
+  }
+  _success('All checks passed.');
 }
 
 /// Bumps [package]'s version and preps it for a pub.dev publish, via Melos.

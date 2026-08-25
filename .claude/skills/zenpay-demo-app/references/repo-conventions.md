@@ -75,18 +75,20 @@ as its source grows, or the check fails on the next commit.
 
 ## Commit gates
 
-`lefthook` pre-commit runs: `format`, `analyze`, `analyze-root`, `lint`, `test`,
-`no-js-bridge`, `webview-teardown`, `webview-no-host-allowlist`. CI is currently disabled
-(`.github/workflows/pr_check.yaml.bak` is not a live workflow), so this hook is the only
-enforcement. The last three only bite `zenpay_embedded`, which a demo should not be touching.
+`lefthook` pre-commit runs seven checks: `format`, `analyze`, `analyze-root`, `test`,
+`no-js-bridge`, `webview-teardown`, `webview-no-host-allowlist`. There is no `lint` gate —
+this repo declares no lint package. GitHub Actions then re-runs formatting and analysis on
+every pull request, followed by a test matrix across all five packages
+(`.github/workflows/pr_check.yaml`). The last three hooks only bite `zenpay_embedded`, which
+a demo should not be touching.
 
 Verify before committing:
 
 ```bash
 melos run format
 melos run analyze
-melos run lint
 melos run test
+melos run test:dart
 dart run scripts/check_claude_md.dart
 ```
 

@@ -181,11 +181,23 @@ void _writeDependencyOverrides(String destPath, Map<String, String> localOverrid
 /// directly, which every copied package's own `pubspec.yaml` genuinely
 /// depends on (`lints: ^6.1.0`), so it resolves standalone. The
 /// `analyzer: exclude:` block above it is untouched.
+///
+/// Also restates the root's `formatter: page_width: 160` override, which
+/// `include:` does not carry across — the same restatement
+/// `zenpay_dart/analysis_options.yaml` already does for itself, for the
+/// same reason. Without it, `dart format` falls back to its 80-column
+/// default here, so an already-clean source file (formatted at 160
+/// columns) shows up as needing a reformat once copied — not because its
+/// content changed, but because the rule that applies to it did.
 void _fixAnalysisOptionsInclude(String destPath) {
   final file = File('$destPath/analysis_options.yaml');
   if (!file.existsSync()) return;
   final content = file.readAsStringSync();
-  final patched = content.replaceFirst(RegExp(r'^include:\s*\.\./\.\./analysis_options\.yaml\s*$', multiLine: true), 'include: package:lints/recommended.yaml');
+  var patched = content.replaceFirst(RegExp(r'^include:\s*\.\./\.\./analysis_options\.yaml\s*$', multiLine: true), 'include: package:lints/recommended.yaml');
+  if (!patched.contains('page_width')) {
+    final eol = patched.contains('\r\n') ? '\r\n' : '\n';
+    patched = '${patched.trimRight()}$eol${eol}formatter:$eol  page_width: 160$eol';
+  }
   if (patched != content) {
     file.writeAsStringSync(patched);
   }
