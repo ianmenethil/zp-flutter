@@ -662,7 +662,7 @@ footer { margin-top: 70px; padding-top: 24px; border-top: 1px solid var(--line-s
               <tbody>
                 <tr><td><code>ZpReturnReceived</code></td><td>The device came back to your app. Read <code>t</code> off the return URI and ask your backend for the real status. <b>Nothing more than that.</b></td></tr>
                 <tr><td><code>ZpPresentationDismissed</code></td><td>Closed before returning. Dismissal is <b>not</b> cancellation — it may still have completed server-side, so do not report it as cancelled.</td></tr>
-                <tr><td><code>ZpTimedOut</code></td><td>No return arrived within the configured timeout (20 minutes by default).</td></tr>
+                <tr><td><code>ZpTimedOut</code></td><td>No return arrived within the configured timeout (10 minutes by default).</td></tr>
                 <tr><td><code>ZpLaunchFailed</code></td><td>Presentation never started; <code>ZpLaunchFailureCode</code> says why.</td></tr>
               </tbody>
             </table>

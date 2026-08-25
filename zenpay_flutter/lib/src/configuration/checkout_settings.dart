@@ -29,7 +29,7 @@ final class ZpCheckoutConfiguration({
   required final Uri expectedReturnUri,
 
   /// Maximum duration a checkout presentation can remain open before timing out.
-  final Duration timeout = const Duration(minutes: 20),
+  final Duration timeout = const Duration(minutes: 10),
 
   /// Whether to display the web browser toolbar title.
   ///
