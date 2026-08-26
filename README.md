@@ -1,5 +1,7 @@
 # ZenPay Hosted Checkout SDK for Flutter
 
+[![PR Check](https://github.com/ianmenethil/zp-flutter/actions/workflows/pr_check.yaml/badge.svg)](https://github.com/ianmenethil/zp-flutter/actions/workflows/pr_check.yaml)
+
 Monorepo for the ZenPay Hosted Checkout Plugin (HCP) Dart/Flutter ecosystem: a pure-Dart backend SDK, a Flutter client SDK, and a runnable example that wires both together end-to-end.
 
 🌐 **Live Web Demo:** [flutter-demo.zenithpayments.support](https://flutter-demo.zenithpayments.support)
